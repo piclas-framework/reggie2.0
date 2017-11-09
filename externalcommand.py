@@ -4,6 +4,7 @@ import logging
 import tools
 import select
 from timeit import default_timer as timer
+import sys
 
 class ExternalCommand() :
     def __init__(self) :
@@ -19,6 +20,7 @@ class ExternalCommand() :
         """Execute an external program specified by 'cmd'. The working directory of this program is set to target_directory.
         Returns the return_code of the external program.
         """
+        sys.stdout.flush() # flush output here, because the subprocess will force buffering until it is finished
         log = logging.getLogger('logger')
 
         workingDir = os.path.abspath(target_directory)

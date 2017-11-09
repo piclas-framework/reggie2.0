@@ -7,7 +7,6 @@ from externalcommand import ExternalCommand
 import tools
 from analysis import Analyze, getAnalyzes
 import collections
-import sys
 
 class Build(OutputDirectory,ExternalCommand) :
 
@@ -58,7 +57,7 @@ class Build(OutputDirectory,ExternalCommand) :
         print "building"
 
         # CMAKE: execute cmd in build directory
-        print "C-making with ["," ".join(self.cmake_cmd_color),"] ...",   # print colored string
+        print "C-making with [%s] ..." % (" ".join(self.cmake_cmd_color)),
         if self.execute_cmd(self.cmake_cmd, self.target_directory) != 0 : # use unclolored string for cmake
             raise BuildFailedException(self) # "CMAKE failed"
 
@@ -66,7 +65,7 @@ class Build(OutputDirectory,ExternalCommand) :
         self.make_cmd = ["make", "-j"]
         if buildprocs > 0 : self.make_cmd.append(str(buildprocs))
         # execute cmd in build directory
-        print "Building with ["," ".join(self.make_cmd),"] ...",
+        print "Building with [%s] ..." % (" ".join(self.make_cmd)),
         if self.execute_cmd(self.make_cmd, self.target_directory) != 0 :
             raise BuildFailedException(self) # "MAKE failed"
         print('-'*132)
@@ -245,8 +244,7 @@ class Run(OutputDirectory, ExternalCommand) :
             cmd.append(cmd_restart_file)
 
         # execute the command 'cmd'
-        print tools.indent("Running [%s]" % (" ".join(cmd)), 2),
-        sys.stdout.flush()
+        print tools.indent("Running [%s] ..." % (" ".join(cmd)), 2),
         self.execute_cmd(cmd, self.target_directory) # run the code
 
         if self.return_code != 0 :
