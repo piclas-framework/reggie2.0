@@ -7,6 +7,7 @@ from externalcommand import ExternalCommand
 import tools
 from analysis import Analyze, getAnalyzes
 import collections
+import sys
 
 class Build(OutputDirectory,ExternalCommand) :
 
@@ -245,6 +246,7 @@ class Run(OutputDirectory, ExternalCommand) :
 
         # execute the command 'cmd'
         print tools.indent("Running [%s]" % (" ".join(cmd)), 2),
+        sys.stdout.flush()
         self.execute_cmd(cmd, self.target_directory) # run the code
 
         if self.return_code != 0 :
