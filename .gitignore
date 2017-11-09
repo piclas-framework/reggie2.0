@@ -5,3 +5,4 @@
 *.swp
 *.pyc
 ctags.txt
+output_dir/

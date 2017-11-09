@@ -360,7 +360,7 @@ def PerformCheck(start,builds,args,log) :
                             run.rename_failed()
                     if not any([run.analyze_successful for run in runs_successful]) : remove_build_when_successful = False # don't delete build folder after all examples/runs
 
-            if remove_build_when_successful :
+            if remove_build_when_successful and not args.save :
                 tools.remove_folder(build.target_directory)
             print('='*132)
 

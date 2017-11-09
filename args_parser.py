@@ -16,6 +16,7 @@ def getArgsAndBuilds() :
     parser.add_argument('-b', '--basedir', help='Path to basedir of code that should be tested (contains CMakeLists.txt).')
     parser.add_argument('-y', '--dummy', action='store_true',help='use dummy_basedir and dummy_checks for fast testing on dummy code')
     parser.add_argument('-r', '--run', action='store_true' ,help='run all binaries for all examples with all run-combinations for all existing binaries')
+    parser.add_argument('-s', '--save', action='store_true',help='do not remove output directories buildsXXXX in output_dir after successful run')
     parser.add_argument('check', help='Path to check-/example-directory.')
     
     # get reggie command line arguments
@@ -33,8 +34,9 @@ def getArgsAndBuilds() :
     else :
         # For real reggie-execution:
         # Setup basedir (containing CMakeLists.txt) by searching upward from current working directory 
+        if args.basedir is None : args.basedir = os.getcwd() # start with current working directory
         try :
-            args.basedir = tools.find_basedir()
+            args.basedir = tools.find_basedir(args.basedir)
         except Exception,ex :
             print tools.red("Basedir (containing 'CMakeLists.txt') not found!\nEither specify the basedir on the command line or execute reggie within a project with a 'CMakeLists.txt'.")
             exit(1)

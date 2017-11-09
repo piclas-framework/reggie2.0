@@ -71,11 +71,11 @@ def setup_logger(debug_level):
     logger.addHandler(handler)
     return logger
 
-def find_basedir() :
+def find_basedir(basedir) :
     """Search 'CMakeLists.txt' in directories above current working directory.
     The directory containing the 'CMakeLists.txt' is the 'basedir'."""
-    basedir = os.getcwd()                                           # start with current working directory
     found = os.path.exists(os.path.join(basedir, "CMakeLists.txt")) # check if actual directory is the basedir
+    if found : basedir = os.path.abspath(basedir)
     while not found :                                               # look upwards until basedir found
         basedir = os.path.dirname(basedir)                              # basedir = basedir/..
         found = os.path.exists(os.path.join(basedir, "CMakeLists.txt")) # check if actual directory is the basedir
