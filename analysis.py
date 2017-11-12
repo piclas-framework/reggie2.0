@@ -200,6 +200,14 @@ class Analyze_Convtest_h(Analyze) :
 
         # 1.  check if number of successful runs is euqal the number of supplied cells
         nRuns = len(runs)
+        if nRuns < 2 :
+            for run in runs :
+                s="analysis failed: h-convergence not possible with only 1 run"
+                print tools.red(s)
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                return
         if len(self.cells) == nRuns :
 
             # 1.1   read the polynomial degree from the first run -> must not change!
@@ -255,7 +263,12 @@ class Analyze_Convtest_h(Analyze) :
                     Analyze.total_errors+=1
 
         else :
-            print tools.yellow("cannot perform conv test, because number of successful runs must equal the number of cells")
+            s="cannot perform h-convergence test, because number of successful runs must equal the number of cells"
+            print tools.red(s)
+            for run in runs :
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
             print tools.yellow("nRun  "+str(nRuns))
             print tools.yellow("cells "+str(len(self.cells)))
     def __str__(self) :
@@ -293,6 +306,15 @@ class Analyze_Convtest_p(Analyze) :
 
         # 2   check if number of successful runs must be euqal the number of supplied cells
         nRuns = len(runs)
+        if nRuns < 2 :
+            for run in runs :
+                s="analysis failed: p-convergence not possible with only 1 run"
+                print tools.red(s)
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                return
+
         if len(p) == nRuns :
 
             # 2.2   get L2 errors of all runs and create np.array
@@ -354,9 +376,14 @@ class Analyze_Convtest_p(Analyze) :
 
                     #global_errors+=1
         else :
-            print "cannot perform conv test, because number of successful runs must equal the number of polynomial degrees p"
-            print "nRun   ",nRuns
-            print "len(p) ",len(p)
+            s="cannot perform p-convergence test, because number of successful runs must equal the number of polynomial degrees p"
+            print tools.red(s)
+            for run in runs :
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+            print tools.yellow("nRun   "+str(nRuns))
+            print tools.yellow("len(p) "+str(len(p)))
     def __str__(self) :
         return "perform L2 p-convergence test and check if the order of convergence increases with smaller grid size"
 
