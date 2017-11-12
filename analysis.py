@@ -80,7 +80,7 @@ def getAnalyzes(path, example) :
     # 2.3   p-convergence test
     #convtest_p_tolerance = float(options.get('analyze_convtest_p_tolerance',1e-2))
     convtest_p_rate       = float(options.get('analyze_convtest_p_rate',-1))
-    convtest_p_percentage = float(options.get('analyze_convtest_ppercentage',0.75))
+    convtest_p_percentage = float(options.get('analyze_convtest_p_percentage',0.75))
     # only do convergence test if convergence rate and tolerance >0
     if 0.0 <= convtest_p_rate <= 1.0:
         analyze.append(Analyze_Convtest_p(convtest_p_rate, convtest_p_percentage))
@@ -331,7 +331,7 @@ class Analyze_Convtest_p(Analyze) :
             
             # 2.6   determine success rate from increasing convergence
             success = [increasing[i] >= self.percentage for i in range(nVar)]
-            print tools.blue("success convergence (if percentage >= 1.0)")
+            print tools.blue("success convergence (if percentage >= %.2f)" % self.percentage)
             print 5*" "+"".join(str(success[i]).rjust(21) for i in range(nVar))
 
             # 2.7   compare success rate with pre-defined rate, fails if not reached
