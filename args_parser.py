@@ -36,7 +36,8 @@ def getArgsAndBuilds() :
         # Setup basedir (containing CMakeLists.txt) by searching upward from current working directory 
         if args.basedir is None : args.basedir = os.getcwd() # start with current working directory
         try :
-            args.basedir = tools.find_basedir(args.basedir)
+            if args.exe is None : # only get basedir if no executbale is supplied
+                args.basedir = tools.find_basedir(args.basedir)
         except Exception,ex :
             print tools.red("Basedir (containing 'CMakeLists.txt') not found!\nEither specify the basedir on the command line or execute reggie within a project with a 'CMakeLists.txt'.")
             exit(1)
