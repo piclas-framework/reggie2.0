@@ -146,3 +146,34 @@ def diff_lists(x,x_ref,tol,tol_type) :
 
     return success
 
+def diff_value(x,x_ref,tol,tol_type) :
+    """
+    determine diff of two floats, either relative of absolute 
+    (if the reference value is zero, use absolute comparison)
+    x        : scalar
+    x_ref    : scalar (reference)
+    tol      : tolerance value
+    tol_type : tolerance type, relative or absolute
+    """
+
+    # check tolerance type: absolute/relative (is the reference value is zero, absolute comparison is used)
+    if tol_type == 'absolute' :
+        diff = abs(x-x_ref)
+    else : # relative comparison
+        # if the reference value is zero, use absolute comparison
+        if abs(x_ref) > 0.0 :
+            diff = abs(x/x_ref-1.0)
+        else :
+            diff = x
+
+    # determie success logical list for return variable
+    success = diff <= tol
+
+    # display information when a diff is not successful, display value+reference+difference
+    if not success :
+        print "Differences in vector comparison:"
+        print "%13s   %13s   %13s" % ("x","x_ref","diff")
+        print "%13.6e   %13.6e   %13.6e" % (x,x_ref,diff)
+
+    return success
+

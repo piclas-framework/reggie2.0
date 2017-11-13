@@ -5,6 +5,7 @@ import analyze_functions
 import combinations 
 import tools
 import csv
+import re
 try :
     import h5py
     h5py_module_loaded = True
@@ -51,6 +52,7 @@ def getAnalyzes(path, example) :
      2.4   h5diff (relative or absolute HDF5-file comparison of an output file with a reference file)
      2.5   check array bounds in hdf5 file
      2.6   check data file row
+     2.7   integrate data file column
     """
 
     # 1.  Read the analyze options from file 'path'
@@ -124,6 +126,24 @@ def getAnalyzes(path, example) :
         else :
             raise Exception(tools.red("initialization of compare data file failed. h5diff_tolerance_type '%s' not accepted." % h5diff_tolerance_type))
         analyze.append(Analyze_compare_data_file(compare_data_file_name, compare_data_file_reference, compare_data_file_tolerance, compare_data_file_line, compare_data_file_delimiter, compare_data_file_tolerance_type ))
+
+    # 2.7   integrate data file column
+    integrate_line_file            = options.get('integrate_line_file',None)                 # file name (path) which is analyzed
+    integrate_line_delimiter       = options.get('integrate_line_delimiter',',')             # delimter symbol if not comma-separated
+    integrate_line_colums          = options.get('integrate_line_colums',None)               # two columns for the values x and y supplied as 'x:y'
+    integrate_line_integral_value  = options.get('integrate_line_integral_value',None)       # integral value used for comparison
+    integrate_line_tolerance_value = options.get('integrate_line_tolerance_value',1e-5)      # tolerance that is used in comparison
+    integrate_line_tolerance_type  = options.get('integrate_line_tolerance_type','absolute') # type of tolerance, either 'absolute' or 'relative'
+    integrate_line_option          = options.get('integrate_line_option',None)               # special option, e.g., calculating a rate by dividing the integrated values by the timestep which is used in the values 'x'
+    integrate_line_multiplier      = options.get('integrate_line_multiplier',1)              # factor for multiplying the result (in order to accquire a physically meaning value for comparison)
+    if all([integrate_line_file,  integrate_line_delimiter, integrate_line_colums, integrate_line_integral_value]) :
+        if integrate_line_tolerance_type in ('absolute', 'delta', '--delta') :
+            integrate_line_tolerance_type = "absolute"
+        elif integrate_line_tolerance_type in ('relative', "--relative") :
+            integrate_line_tolerance_type = "relative"
+        else :
+            raise Exception(tools.red("initialization of integrate line failed. integrate_line_tolerance_type '%s' not accepted." % integrate_line_tolerance_type))
+        analyze.append(Analyze_integrate_line(integrate_line_file, integrate_line_delimiter, integrate_line_colums, integrate_line_integral_value, integrate_line_tolerance_value, integrate_line_tolerance_type, integrate_line_option, integrate_line_multiplier))
 
 
     return analyze
@@ -402,12 +422,14 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
 
     def perform(self,runs) :
 
-        # General workflow:
-        # 1.  iterate over all runs
-        # 1.2   execute the command 'cmd' = 'h5diff -r --XXX [number] ref_file file DataArray'
-        # 1.3   if the command 'cmd' returns a code != 0, set failed
-        # 1.3.1   add failed info (for return a code != 0) to run
-        # 1.3.2   set analyzes to fail (for return a code != 0)
+        '''
+        General workflow:
+        1.  iterate over all runs
+        1.2   execute the command 'cmd' = 'h5diff -r --XXX [number] ref_file file DataArray'
+        1.3   if the command 'cmd' returns a code != 0, set failed
+        1.3.1   add failed info (for return a code != 0) to run
+        1.3.2   set analyzes to fail (for return a code != 0)
+        '''
 
         # 1.  iterate over all runs
         for run in runs :
@@ -475,20 +497,24 @@ class Analyze_check_hdf5(Analyze) :
             Analyze.total_errors+=1
             return
 
-        # General workflow:
-        # 1.  iterate over all runs
-        # 1.2   Read the hdf5 file
-        # 1.3   Read the dataset from the hdf5 file
-        # 1.3.1   loop over each dimension supplied
-        # 1.3.2   Check if all values are within the supplied interval
-        # 1.3.3   set analyzes to fail if return a code != 0
+        '''
+        General workflow:
+        1.  iterate over all runs
+        1.2   Read the hdf5 file
+        1.3   Read the dataset from the hdf5 file
+        1.3.1   loop over each dimension supplied
+        1.3.2   Check if all values are within the supplied interval
+        1.3.3   set analyzes to fail if return a code != 0
+        '''
 
         # 1.  iterate over all runs
         for run in runs :
             # 1.2   Read the hdf5 file
             path = os.path.join(run.target_directory,self.file)
             if not os.path.exists(path) :
-                print tools.red("Analyze_check_hdf5: file does not exist, file=[%s]" % path)
+                s = tools.red("Analyze_check_hdf5: file does not exist, file=[%s]" % path)
+                print(s)
+                run.analyze_results.append(s)
                 run.analyze_successful=False
                 Analyze.total_errors+=1
                 return
@@ -506,7 +532,9 @@ class Analyze_check_hdf5(Analyze) :
                 # 1.3.2   Check if all values are within the supplied interval
                 if any([x < self.lower for x in b[i]]) or any([x > self.upper for x in b[i]]) :
                     print tools.red(str(b[i]))
-                    print tools.red("HDF5 array out of bounds for dimension=%2d" % i)
+                    s = tools.red("HDF5 array out of bounds for dimension=%2d" % i)
+                    print(s)
+                    run.analyze_results.append(s)
            
                     # 1.3.3   set analyzes to fail if return a code != 0
                     run.analyze_successful=False
@@ -532,13 +560,15 @@ class Analyze_compare_data_file(Analyze) :
 
     def perform(self,runs) :
 
-        # General workflow:
-        # 1.  iterate over all runs
-        # 1.2   Check existence the file and reference values
-        # 1.3.1   read data file
-        # 1.3.2   read refernece file
-        # 1.3.3   check length of vectors
-        # 1.3.4   calculate difference and determine compare with tolerance
+        '''
+        General workflow:
+        1.  iterate over all runs
+        1.2   Check existence the file and reference values
+        1.3.1   read data file
+        1.3.2   read refernece file
+        1.3.3   check length of vectors
+        1.3.4   calculate difference and determine compare with tolerance
+        '''
 
         # 1.  iterate over all runs
         for run in runs :
@@ -553,11 +583,10 @@ class Analyze_compare_data_file(Analyze) :
             
             # 1.3.1   read data file
             with open(path, 'rb') as csvfile:
-                spamreader = csv.reader(csvfile, delimiter=self.delimiter, quotechar='!')
-                #spamreader = csv.reader(csvfile, delimiter=' ', quotechar='|')
+                line_str = csv.reader(csvfile, delimiter=self.delimiter, quotechar='!')
                 i=0
                 header=0
-                for row in spamreader:
+                for row in line_str:
                     try :
                         line = np.array([float(x) for x in row])
                     except :
@@ -567,19 +596,17 @@ class Analyze_compare_data_file(Analyze) :
                     if i == self.line :
                         print tools.yellow(str(i)),
                         break
-                #print line
                 line_len = len(line)
             
             # 1.3.2   read refernece file
             with open(path_ref, 'rb') as csvfile:
-                spamreader = csv.reader(csvfile, delimiter=self.delimiter, quotechar='!')
+                line_str = csv.reader(csvfile, delimiter=self.delimiter, quotechar='!')
                 header_ref=0
-                for row in spamreader:
+                for row in line_str:
                     try :
                         line_ref = np.array([float(x) for x in row])
                     except :
                         header_ref+=1
-                #print tools.blue(str(line_ref))
                 line_ref_len = len(line_ref)
 
             # 1.3.3   check length of vectors
@@ -592,7 +619,9 @@ class Analyze_compare_data_file(Analyze) :
             # 1.3.4   calculate difference and determine compare with tolerance
             success = tools.diff_lists(line, line_ref, self.tolerance, self.tolerance_type)
             if not all(success) :
-                print tools.red("Mismatch in columns: "+", ".join([str(header_line[i]).strip() for i in range(len(success)) if not success[i]]))
+                s = tools.red("Mismatch in columns: "+", ".join([str(header_line[i]).strip() for i in range(len(success)) if not success[i]]))
+                print(s)
+                run.analyze_results.append(s)
                 run.analyze_successful=False
                 Analyze.total_errors+=1
             
@@ -602,4 +631,110 @@ class Analyze_compare_data_file(Analyze) :
 
 
 
+#==================================================================================================
+
+class Analyze_integrate_line(Analyze) :
+    def __init__(self, integrate_line_file, integrate_line_delimiter, integrate_line_colums, integrate_line_integral_value, integrate_line_tolerance_value, integrate_line_tolerance_type, integrate_line_option, integrate_line_multiplier) :
+        self.file                = integrate_line_file
+        self.delimiter           = integrate_line_delimiter
+        (self.dim1, self.dim2)   = [int(x)   for x in integrate_line_colums.split(":")]
+        self.integral_value      = float(integrate_line_integral_value)
+        self.tolerance_value     = float(integrate_line_tolerance_value)
+        self.tolerance_type      = integrate_line_tolerance_type
+        self.option              = integrate_line_option
+        self.multiplier          = float(integrate_line_multiplier)
+
+    def perform(self,runs) :
+
+        '''
+        General workflow:
+        1.  iterate over all runs
+        1.2   Check existence the file and reference values
+        1.3.1   read data file
+        1.3.2   check column numbers
+        1.3.3   get header information for integrated columns
+        1.3.4   split the data array and set the two column vector x and y for integration
+        1.4   integrate values numerically
+        '''
+
+        # 1.  iterate over all runs
+        for run in runs :
+            # 1.2   Check existence the file and reference values
+            path     = os.path.join(run.target_directory,self.file)
+            if not os.path.exists(path) :
+                s=tools.red("Analyze_integrate_line: cannot find file=[%s] " % (self.file))
+                print(s)
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                return
+            
+            data = np.array([])
+            # 1.3.1   read data file
+            with open(path, 'rb') as csvfile:
+                line_str = csv.reader(csvfile, delimiter=self.delimiter, quotechar='!')
+                max_lines=0
+                header=0
+                for row in line_str:
+                    try : # try reading a line from the data file and converting it into a numpy array
+                        line = np.array([float(x) for x in row])
+                        failed = False
+                    except : # 
+                        header+=1
+                        header_line = row
+                        failed = True
+                    if not failed :
+                        data = np.append(data, line)
+                    max_lines+=1
+
+            # 1.3.2 check column numbers
+            line_len = len(line) - 1
+            if line_len < self.dim1 or line_len < self.dim2 :
+                s="cannot perform analyze Analyze_integrate_line, because the supplied columns (%s:%s) exceed the columns (%s) in the data file (the first column starts at 0)" % (self.dim1, self.dim2, line_len)
+                print tools.red(s)
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                return
+
+            # 1.3.3   get header information for integrated columns
+            if header > 0 :
+                for i in range(line_len+1) :
+                    header_line[i] = header_line[i].replace(" ", "")
+                    #print header_line[i]
+                s1 = header_line[self.dim1]
+                s2 = header_line[self.dim2]
+                print tools.indent(tools.blue("Integrating the column [%s] over [%s]" % (s2,s1)),2)
+            
+            # 1.3.4   split the data array and set the two column vector x and y for integration
+            data = np.reshape(data, (-1, line_len +1))
+            data =  np.transpose(data)
+            x = data[self.dim1]
+            y = data[self.dim2]
+
+            # 1.4 integrate the values numerically
+            Q=0.0
+            for i in range(max_lines-header-1) :
+                # use trapezoidal rule (also known as the trapezoid rule or trapezium rule)
+                dx = x[i+1]-x[i]
+                if self.option == 'DivideByTimeStep' :
+                    dQ = (y[i+1]+y[i])/2.0
+                else :
+                    dQ = dx * (y[i+1]+y[i])/2.0
+                Q += dQ
+            Q = Q*self.multiplier
+            print "Q = ",Q
+            
+            # 1.5   calculate difference and determine compare with tolerance
+            success = tools.diff_value(Q, self.integral_value, self.tolerance_value, self.tolerance_type)
+            if not success :
+                s=tools.red("Mismatch in integrated line: value %s compared with reference value %s (tolerance %s and %s comparison)" % (Q, self.integral_value, self.tolerance_value, self.tolerance_type))
+                print(s)
+                run.analyze_successful=False
+                run.analyze_results.append(s)
+                Analyze.total_errors+=1
+
+
+    def __str__(self) :
+        return "integrate column data over line (e.g. from .csv file): file=[%s] and integrate columns %s over %s (the first column starts at 0)" % (self.file, self.dim2, self.dim1)
 
