@@ -166,6 +166,8 @@ class Analyze_L2(Analyze) :
         General workflow:
         1.  Iterate over all runs
         1.1   read L2 errors from 'std.out' file
+        1.1.1   append info for summary of errors
+        1.1.2   set analyzes to fail
         1.2   if one L2 errors is larger than the tolerance -> fail
         1.3   append info for summary of errors
         1.4   set analyzes to fail
@@ -175,15 +177,27 @@ class Analyze_L2(Analyze) :
         for run in runs :
             
             # 1.1   read L2 errors from 'std.out' file
-            L2_errors = np.array(analyze_functions.get_last_L2_error(run.stdout))
+            try:
+                L2_errors = np.array(analyze_functions.get_last_L2_error(run.stdout))
+            except :
+                s = tools.red("analysis failed: L2 error could not be read from output")
+                print(s)
+                
+                # 1.1.1   append info for summary of errors
+                run.analyze_results.append(s)
+
+                # 1.1.2   set analyzes to fail
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                break
             
             # 1.2   if one L2 errors is larger than the tolerance -> fail
             if (L2_errors > self.L2_tolerance).any() :
-                print tools.red("analysis failed: L2 error >"+str(self.L2_tolerance))
+                s = tools.red("analysis failed: L2 error >"+str(self.L2_tolerance))
+                print(s)
                 
                 # 1.3   append info for summary of errors
-                run.analyze_results.append("analysis failed: L2 error >"+str(self.L2_tolerance))
-                #global_errors+=1
+                run.analyze_results.append(s)
 
                 # 1.4   set analyzes to fail
                 run.analyze_successful=False
@@ -286,9 +300,9 @@ class Analyze_Convtest_h(Analyze) :
             s="cannot perform h-convergence test, because number of successful runs must equal the number of cells"
             print tools.red(s)
             for run in runs :
-                run.analyze_results.append(s)
-                run.analyze_successful=False
-                Analyze.total_errors+=1
+                run.analyze_results.append(s) # append info for summary of errors
+                run.analyze_successful=False  # set analyzes to fail
+                Analyze.total_errors+=1       # increment errror counter
             print tools.yellow("nRun  "+str(nRuns))
             print tools.yellow("cells "+str(len(self.cells)))
     def __str__(self) :
@@ -365,7 +379,10 @@ class Analyze_Convtest_p(Analyze) :
                     #print increasing_run,L2_order[j][i],L2_order[j][i-1]
                 print increasing_run
                 if 1==1 :
-                    increasing.append(float(sum(increasing_run))/float(len(increasing_run)))
+                    if abs(float(len(increasing_run))) > 0 :
+                        increasing.append(float(sum(increasing_run))/float(len(increasing_run)))
+                    else :
+                        increasing.append(0.)
                 else :
                     increasing.append(all(increasing_run))
             print tools.blue("Increasing order of convergence, percentage")
@@ -399,9 +416,9 @@ class Analyze_Convtest_p(Analyze) :
             s="cannot perform p-convergence test, because number of successful runs must equal the number of polynomial degrees p"
             print tools.red(s)
             for run in runs :
-                run.analyze_results.append(s)
-                run.analyze_successful=False
-                Analyze.total_errors+=1
+                run.analyze_results.append(s) # append info for summary of errors
+                run.analyze_successful=False  # set analyzes to fail
+                Analyze.total_errors+=1       # increment errror counter
             print tools.yellow("nRun   "+str(nRuns))
             print tools.yellow("len(p) "+str(len(p)))
     def __str__(self) :
