@@ -180,7 +180,7 @@ class Analyze_L2(Analyze) :
             try:
                 L2_errors = np.array(analyze_functions.get_last_L2_error(run.stdout))
             except :
-                s = tools.red("analysis failed: L2 error could not be read from output")
+                s = tools.red("L2 analysis failed: L2 error could not be read from output")
                 print(s)
                 
                 # 1.1.1   append info for summary of errors
@@ -189,7 +189,7 @@ class Analyze_L2(Analyze) :
                 # 1.1.2   set analyzes to fail
                 run.analyze_successful=False
                 Analyze.total_errors+=1
-                break
+                continue
             
             # 1.2   if one L2 errors is larger than the tolerance -> fail
             if (L2_errors > self.L2_tolerance).any() :
@@ -223,6 +223,8 @@ class Analyze_Convtest_h(Analyze) :
         1.  check if number of successful runs is euqal the number of supplied cells
         1.1   read the polynomial degree from the first run -> must not change!
         1.2   get L2 errors of all runs and create np.array
+        1.2.1   append info for summary of errors in exception
+        1.2.2   set analyzes to fail
         1.3   get number of variables from L2 error array
         1.4   determine order of convergence between two runs
         1.5   determine success rate by comparing the relative convergence error with a tolerance
@@ -248,9 +250,25 @@ class Analyze_Convtest_h(Analyze) :
             p = float(runs[0].parameters.get('N',-1))
 
             # 1.2   get L2 errors of all runs and create np.array
-            L2_errors = np.array([analyze_functions.get_last_L2_error(run.stdout) for \
-                    run in runs])
-            L2_errors = np.transpose(L2_errors)
+            try :
+                L2_errors = np.array([analyze_functions.get_last_L2_error(run.stdout) for \
+                        run in runs])
+                L2_errors = np.transpose(L2_errors)
+            except :
+                for run in runs : # find out exactly which L2 error could not be read
+                    try :
+                        L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout))
+                    except :
+                        s = tools.red("h-convergence failed: some L2 errors could not be read from output")
+                        print(s)
+                        
+                        # 1.2.1   append info for summary of errors
+                        run.analyze_results.append(s)
+
+                        # 1.2.2   set analyzes to fail
+                        run.analyze_successful=False
+                        Analyze.total_errors+=1
+                return
 
             # 1.3   get number of variables from L2 error array
             nVar = len(L2_errors)
@@ -325,6 +343,8 @@ class Analyze_Convtest_p(Analyze) :
         1.  read the polynomial degree for all runs
         2.  check if number of successful runs is equal the number of supplied cells
         2.2   get L2 errors of all runs and create np.array
+        1.2.1   append info for summary of errors
+        1.2.2   set analyzes to fail
         2.3   get number of variables from L2 error array
         2.4   determine order of convergence between two runs
         2.5   check if the order of convergence is always increasing with increasing polynomial degree
@@ -352,9 +372,25 @@ class Analyze_Convtest_p(Analyze) :
         if len(p) == nRuns :
 
             # 2.2   get L2 errors of all runs and create np.array
-            L2_errors = np.array([analyze_functions.get_last_L2_error(run.stdout) for \
-                    run in runs])
-            L2_errors = np.transpose(L2_errors)
+            try :
+                L2_errors = np.array([analyze_functions.get_last_L2_error(run.stdout) for \
+                        run in runs])
+                L2_errors = np.transpose(L2_errors)
+            except :
+                for run in runs : # find out exactly which L2 error could not be read
+                    try :
+                        L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout))
+                    except :
+                        s = tools.red("p-convergence failed: some L2 errors could not be read from output")
+                        print(s)
+                        
+                        # 1.2.1   append info for summary of errors
+                        run.analyze_results.append(s)
+
+                        # 1.2.2   set analyzes to fail
+                        run.analyze_successful=False
+                        Analyze.total_errors+=1
+                return
 
             # 2.3   get number of variables from L2 error array
             nVar = len(L2_errors)
