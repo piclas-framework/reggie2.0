@@ -297,8 +297,8 @@ class Analyze_Convtest_h(Analyze) :
 #==================================================================================================
 
 class Analyze_Convtest_p(Analyze) :
-    """Convergence test for a fixed wmesh and different (increasing!) polynomial degrees defined in 'parameter.ini'
-    The analyze routine read the L2 error norm from a set of runs and determines the order of convergence 
+    """Convergence test for a fixed mesh and different (increasing!) polynomial degrees defined in 'parameter.ini'
+    The analyze routine reads the L2 error norm from a set of runs and determines the order of convergence 
     between the runs and compares them. With increasing polynomial degree, the order of convergence must increase for this anaylsis to be successful."""
     def __init__(self, rate, percentage) :
         self.rate = rate
@@ -308,15 +308,15 @@ class Analyze_Convtest_p(Analyze) :
 
         """
         General workflow:
-        1.  read the polynomial degree  for all runs
-        2.  check if number of successful runs must be euqal the number of supplied cells
+        1.  read the polynomial degree for all runs
+        2.  check if number of successful runs is equal the number of supplied cells
         2.2   get L2 errors of all runs and create np.array
         2.3   get number of variables from L2 error array
         2.4   determine order of convergence between two runs
         2.5   check if the order of convergence is always increasing with increasing polynomial degree
         2.6   determine success rate from increasing convergence
         2.7   compare success rate with pre-defined rate, fails if not reached 
-        2.8   interate over all runs
+        2.8   iterate over all runs
         2.8.1   add failed info if success rate is not reached to all runs
         2.8.1   set analyzes to fail if success rate is not reached for all runs
         """
@@ -324,7 +324,7 @@ class Analyze_Convtest_p(Analyze) :
         # 1.  read the polynomial degree  for all runs
         p = [float(run.parameters.get('N',-1)) for run in runs] # get polynomial degree
 
-        # 2   check if number of successful runs must be euqal the number of supplied cells
+        # 2. check if number of successful runs is equal the number of supplied cells
         nRuns = len(runs)
         if nRuns < 2 :
             for run in runs :
@@ -405,7 +405,7 @@ class Analyze_Convtest_p(Analyze) :
             print tools.yellow("nRun   "+str(nRuns))
             print tools.yellow("len(p) "+str(len(p)))
     def __str__(self) :
-        return "perform L2 p-convergence test and check if the order of convergence increases with smaller grid size"
+        return "perform L2 p-convergence test and check if the order of convergence increases with increasing polynomial degree"
 
 
 
