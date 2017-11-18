@@ -757,7 +757,7 @@ class Analyze_integrate_line(Analyze) :
                     #print header_line[i]
                 s1 = header_line[self.dim1]
                 s2 = header_line[self.dim2]
-                print tools.indent(tools.blue("Integrating the column [%s] over [%s]" % (s2,s1)),2)
+                print tools.indent(tools.blue("Integrating the column [%s] over [%s]: " % (s2,s1)),2),
             
             # 1.3.4   split the data array and set the two column vector x and y for integration
             data = np.reshape(data, (-1, line_len +1))
@@ -776,7 +776,7 @@ class Analyze_integrate_line(Analyze) :
                     dQ = dx * (y[i+1]+y[i])/2.0
                 Q += dQ
             Q = Q*self.multiplier
-            print "Q = ",Q
+            print "integrated value (trapezoid rule) Q = %s" % Q
             
             # 1.5   calculate difference and determine compare with tolerance
             success = tools.diff_value(Q, self.integral_value, self.tolerance_value, self.tolerance_type)
