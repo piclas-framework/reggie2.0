@@ -154,10 +154,12 @@ def getCombinations(filename, CheckForMultipleKeys=False) :
             if CheckForMultipleKeys :
                 found, number = isKeyOf(combination,option.name)
                 if found :
+                    new_key = "MULTIPLE_KEY:"+option.name
                     print tools.yellow(str(option.name)),"is already in list (found "+str(number)+" times). Adding new key/value as ",
-                    print tools.yellow("MULTIPLE_KEY:"+option.name)," with value=",option.values[digits[option.name]]
+                    print tools.yellow(new_key)," with value=",option.values[digits[option.name]]
                     # create list for value in key/value pair for the new re-named option "MULTIPLE_KEY+X"
-                    combination.setdefault("MULTIPLE_KEY:"+option.name, []).append(option.values[digits[option.name]])
+                    combination.setdefault(new_key, []).append(option.values[digits[option.name]])
+                    digits[new_key] = -100 # default value for special key
                 else :
                     combination[option.name] = option.values[digits[option.name]]
             else :
