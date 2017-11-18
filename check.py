@@ -261,9 +261,9 @@ def getRuns(path, command_line) :
     """Get all combinations in 'parameter.ini'"""
     runs = []
     i = 1
-    combis, digits = combinations.getCombinations(path)  # path to parameter.ini (source)
-    for r in combis :
-        run = Run(r, path, command_line, i, digits)
+    combis, digits = combinations.getCombinations(path,CheckForMultipleKeys=True)  # path to parameter.ini (source)
+    for parameters in combis :
+        run = Run(parameters, path, command_line, i, digits)
         if not run.skip :
             runs.append(run)
         i += 1
