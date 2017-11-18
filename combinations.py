@@ -21,6 +21,16 @@ def splitValues(s) :
     #   \)      : matches closing bracket ')', the backslash is the escape-character
     return re.split(r',\s*(?![^()]*\))', s)
 
+def isKeyOf(a,key_IN) :
+    """Check if the dictionary 'a' contains a key 'key_IN'"""
+    found = False
+    number = 0
+    for key in a.keys() :
+        if key == key_IN :
+            number += 1
+            found = True
+    return found, number
+
 def isSubset(a, b) :
     """Check if the dictionary 'a' is a subset of the dictionary 'b'"""
     try :
@@ -87,7 +97,7 @@ def readKeyValueFile(filename) :
 
     return options, exclusions, noCrossCombinations
 
-def getCombinations(filename) :
+def getCombinations(filename, CheckForMultipleKeys=False) :
     # 1. get the key-value list from file
     # 1.1   get exclusion from line (if line starts with 'exclude:')
     # 1.2   get noCrossCombination from line (if line starts with 'nocrosscombination:')
@@ -101,19 +111,19 @@ def getCombinations(filename) :
     # 2.1 count total number of possible combinations without the exclusions
     combinations = []                          # list of all VALID combinations
 
-    noCombinationsTotal = 1
+    NumOfCombinationsTotal = 1
     for option in options :
-        option.base = noCombinationsTotal         # save total  number of combinations of all options before this option
-        noCombinationsTotal = noCombinationsTotal * len(option.values)
+        option.base = NumOfCombinationsTotal         # save total  number of combinations of all options before this option
+        NumOfCombinationsTotal = NumOfCombinationsTotal * len(option.values)
 
-    logging.getLogger('logger').debug("  Total number of combinations for '%s' = %d" % (filename, noCombinationsTotal))
+    logging.getLogger('logger').debug("  Total number of combinations for '%s' = %d" % (filename, NumOfCombinationsTotal))
 
-    if noCombinationsTotal > 10000:
+    if NumOfCombinationsTotal > 10000:
         print tools.red("more than 10000 combinations in parameter.ini not allowed!")
         exit(1) # TODO: raise exception here!
 
     # 2.2 build all valid combinations (all that do not match any exclusion)
-    for i in range(noCombinationsTotal) :         # iterate index 'i' over noCombinationsTotal
+    for i in range(NumOfCombinationsTotal) :         # iterate index 'i' over NumOfCombinationsTotal
         combination = collections.OrderedDict()
         digits = collections.OrderedDict()
         # build i-th combination by adding all options with their name and a certain value
@@ -141,12 +151,23 @@ def getCombinations(filename) :
             digits[option.name] = j
 
         for option in options : 
-            combination[option.name] = option.values[digits[option.name]]
+            if CheckForMultipleKeys :
+                found, number = isKeyOf(combination,option.name)
+                if found :
+                    print tools.yellow(str(option.name)),"is already in list (found "+str(number)+" times). Adding new key/value as ",
+                    print tools.yellow("MULTIPLE_KEY:"+option.name)," with value=",option.values[digits[option.name]]
+                    # create list for value in key/value pair for the new re-named option "MULTIPLE_KEY+X"
+                    combination.setdefault("MULTIPLE_KEY:"+option.name, []).append(option.values[digits[option.name]])
+                else :
+                    combination[option.name] = option.values[digits[option.name]]
+            else :
+                combination[option.name] = option.values[digits[option.name]]
 
         # check if the combination is valid (does not match any exclusion)
         if anyIsSubset(exclusions, combination) : 
             continue # if any exclusion matches the combination, the combination is invalid => cycle and do not add to list of valid combinations
 
+        # check if option is marked with "noCrossCombinations", these are not to be permutated
         skip = False
         for noCrossCombination in noCrossCombinations :
             if not all([digits[key] == digits[noCrossCombination[0]] for key in noCrossCombination]) :
@@ -166,14 +187,23 @@ def getCombinations(filename) :
 def writeCombinationsToFile(combinations, path) : # write one set of parameters to a file, e.g., parameter.ini
     with open(path, 'w') as f :
         for key, value in combinations.items() :
-            # for parameters with value 'crosscombinations' in the key-value pair, replace it with the value from 'crosscombinations'
-            # example: N                 = crosscombinations
-            #          N_Geo             = crosscombinations
-            #          crosscombinations = 1,2,3,4,5
-            if value == 'crosscombinations' :
-                f.write("%s=%s\n" % (key,combinations.get('crosscombinations')))
+            # check if multiple parameters with the exact same name are used within parameter.ini (examples are BoundaryName or RefState)
+            if "MULTIPLE_KEY:" in key :
+                f.write("  ! %s=%s\n" % (key, value))      # write comment into file
+                for item in value :                        # write all multiple occuring values of the multiple key without "MULTIPLE_KEY:" to file
+                    f.write("%s=%s\n" % (key[-12:], item)) # write key/value into file
             else :
-                f.write("%s=%s\n" % (key, value))
+                # for parameters with value 'crosscombinations' in the key-value pair, replace it with the value from 'crosscombinations'
+                #
+                # example: N                 = crosscombinations
+                #          N_Geo             = crosscombinations
+                #          crosscombinations = 1,2,3,4,5
+                #
+                # this results in using 1,2,3,4,5 for both "N" and "NGeo" (as an example)
+                if value == 'crosscombinations' :
+                    f.write("%s=%s\n" % (key,combinations.get('crosscombinations')))
+                else :
+                    f.write("%s=%s\n" % (key, value))
 
 #class getCombinationException(Exception) : # Exception for missing files, e.g., command_line.ini
     #def __init__(self, filename):
