@@ -5,9 +5,9 @@
 |L2 error                  | analyze\_L2                          | 1e-5                                                  | None                             | L2 upper boundary for all nVar. If one L2 error is above the boundary, this test fails                                     |
 |h-convergence test        | analyze\_Convtest\_h\_cells          | 1,2,4,8                                               | None                             | number of cells (in each direction, or in the direction of the convergence test variable)                                  |
 |                          | analyze\_Convtest\_h\_tolerance      | 0.3                                                   | 0.02                             | relative deviation from the p+1 convergence rate to the calculated one                                                     |
-|                          | analyze\_Convtest\_h\_rate           | 1.0                                                   | 1.0                              | ratio of successful tests versus failed tests regarding the numnber of nVar                                                |
-|p-convergence test        | analyze\_Convtest\_p\_rate           | 0.6                                                   | None                             | ratio of successful tests versus failed tests regarding the numnber of nVar                                                |
-|                          | analyze\_Convtest\_p\_percentage     | 0.5                                                   | 0.75                             | ratio of successful tests versus failed tests regarding the numnber of nVar                                                |
+|                          | analyze\_Convtest\_h\_rate           | 1.0                                                   | 1.0                              | ratio of successful tests versus failed tests regarding the number of nVar                                                 |
+|p-convergence test        | analyze\_Convtest\_p\_rate           | 0.6                                                   | None                             | ratio of successful tests versus failed tests regarding the number of nVar                                                 |
+|                          | analyze\_Convtest\_p\_percentage     | 0.5                                                   | 0.75                             | ratio of successful tests versus failed tests regarding the number of nVar                                                 |
 |h5diff                    | h5diff\_file                         | single-particle\_State\_000.00000000000000000.h5      | None                             | name of calculated .h5 file (output from current run)                                                                      |
 |                          | h5diff\_reference\_file              | single-particle\_State\_000.00000000000000000.h5\_ref | None                             | reference .h5 file (must be placed in repository) for comparing with the calculated one                                    |
 |                          | h5diff\_data\_set                    | DG\_Solution                                          | None                             | name of data set for comparing (e.g. DG\_Solution)                                                                         |
@@ -17,8 +17,8 @@
 |                          | check\_hdf5\_data\_set               | PartData                                              | None                             | name of data set for comparing (e.g. DG\_Solution)                                                                         |
 |                          | check\_hdf5\_dimension               | 0:2                                                   | None                             | dimension of data set                                                                                                      |
 |                          | check\_hdf5\_limits                  | -10.0:10.0                                            | None                             | bounding interval for all elements in h5 array for all dimensions supplied under check\_hdf5\_dimension                    |
-|data file line            | compare\_data\_file\_name            | Database.csv                                          | None                             | name of calculated ASCI data file (usually .csv file)                                                                      |
-|                          | compare\_data\_file\_reference       | Database.csv\_ref                                     | None                             | name of reference file (must be placed inrepository)                                                                       |
+|data file line            | compare\_data\_file\_name            | Database.csv                                          | None                             | name of calculated ASCII data file (usually .csv file)                                                                     |
+|                          | compare\_data\_file\_reference       | Database.csv\_ref                                     | None                             | name of reference file (must be placed in repository)                                                                      |
 |                          | compare\_data\_file\_tolerance       | 6e-2                                                  | None                             | relative/absolute deviation between two elements (in e.g. .csv file                                                        |
 |                          | compare\_data\_file\_tolerance\_type | relative                                              | absolute                         | relative or absolute comparison                                                                                            |
 |                          | compare\_data\_file\_line            | 50                                                    | last                             | line number in calculated data file (e.g. .csv file)                                                                       |
@@ -29,7 +29,7 @@
 |                          | integrate\_line\_tolerance_value     |                                                       | None                             | tolerance that is used in comparison                                                                                       |
 |                          | integrate\_line\_tolerance_type      |                                                       | None                             | type of tolerance, either 'absolute' or 'relative'                                                                         |
 |                          | integrate\_line\_option              | DivideByTimeStep                                      | None                             | special option, e.g., calculating a rate by dividing the integrated values by the timestep which is used in the values 'x' |
-|                          | integrate\_line\_multiplier          | 1                                                     | 1                                | factor for multiplying the result (in order to accquire a physically meaning value for comparison)                         |
+|                          | integrate\_line\_multiplier          | 1                                                     | 1                                | factor for multiplying the result (in order to acquire a physically meaning value for comparison)                          |
 
 ### L2 error
 * Compare all L2 errors calculated for all nVar against an upper boundary *analyze_L2*
@@ -109,7 +109,7 @@ compare_data_file_tolerance_type = relative
 ```
 
 ### integrate data columns
-* Integrate the data in a column over another column, e.g., x:y in a data file as integral(y(x), x, x(1), x(end)) via the trapeziod rule
+* Integrate the data in a column over another column, e.g., x:y in a data file as integral(y(x), x, x(1), x(end)) via the trapezoid rule
 * special options are available for calculating, e.g., rates (something per second)
 
 Template for copying to **analyze.ini**
@@ -121,7 +121,7 @@ Template for copying to **analyze.ini**
 ! ===================================================================================================================
 ! with   Q = integrate nPartIn(t) from t=0 to t=3E-11 = 4.500111958051274e-10 for p=9 (integrate nPartIN over time)
 !      MPF = 1e6
-!        q = 1.6022e-19 (charge of one electSron)
+!        q = 1.6022e-19 (charge of one electron)
 !       dt = ? (depends on polynomial degree and mesh)
 ! ===================================================================================================================
 ! for p = 9: 551 timesteps  -->  0.44769549409291E-09*IntegrateLineMultiplier = 44 A
