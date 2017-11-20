@@ -1,6 +1,6 @@
 ## Analyze routines
 
-|**analyze**               | **options**                          | **values**                                            | **Devault values**               | **Desciption**           
+|**analyze**               | **options**                          | **values**                                            | **Devault values**               | **Description**           
 |:------------------------:|:-------------------------------------|:------------------------------------------------------|:---------------------------------|:---------------------------------------------------------------------------------------------------------------------------|
 |L2 error                  | analyze\_L2                          | 1e-5                                                  | None                             | L2 upper boundary for all nVar. If one L2 error is above the boundary, this test fails                                     |
 |h-convergence test        | analyze\_Convtest\_h\_cells          | 1,2,4,8                                               | None                             | number of cells (in each direction, or in the direction of the convergence test variable)                                  |
@@ -80,8 +80,8 @@ h5diff_tolerance_value = 1.0e-2
 h5diff_tolerance_type  = relative
 ```
 
-### check array bounds in .h5 file
-* 
+### h5 array bounds check
+* Check if all elements of a h5 array are within a supplied interval
 * Requires *h5py* python module (analyze will fail if the module cannot be found)
 
 Template for copying to **analyze.ini**
