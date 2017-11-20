@@ -13,6 +13,10 @@
 |                          | h5diff\_data\_set                    | DG\_Solution                                          | None                             | name of data set for comparing (e.g. DG\_Solution)                                                                         |
 |                          | h5diff\_tolerance\_value             | 1.0e-2                                                | 1e-5                             | relative/absolute deviation between two elements in a .h5 array                                                            |
 |                          | h5diff\_tolerance\_type              | relative                                              | absolute                         | relative or absolute comparison                                                                                            |
+|h5 array bounds check     | check\_hdf5\_file                    | tildbox_State_001.00000000000000000.h5                | None                             | name of calculated .h5 file (output from current run)                                                                      |
+|                          | check\_hdf5\_data\_set               | PartData                                              | None                             | name of data set for comparing (e.g. DG\_Solution)                                                                         |
+|                          | check\_hdf5\_dimension               | 0:2                                                   | None                             | dimension of data set                                                                                                      |
+|                          | check\_hdf5\_limits                  | -10.0:10.0                                            | None                             | bounding interval for all elements in h5 array for all dimensions supplied under check\_hdf5\_dimension                    |
 |data file line            | compare\_data\_file\_name            | Database.csv                                          | None                             | name of calculated ASCI data file (usually .csv file)                                                                      |
 |                          | compare\_data\_file\_reference       | Database.csv\_ref                                     | None                             | name of reference file (must be placed inrepository)                                                                       |
 |                          | compare\_data\_file\_tolerance       | 6e-2                                                  | None                             | relative/absolute deviation between two elements (in e.g. .csv file                                                        |
@@ -26,7 +30,6 @@
 |                          | integrate\_line\_tolerance_type      |                                                       | None                             | type of tolerance, either 'absolute' or 'relative'                                                                         |
 |                          | integrate\_line\_option              | DivideByTimeStep                                      | None                             | special option, e.g., calculating a rate by dividing the integrated values by the timestep which is used in the values 'x' |
 |                          | integrate\_line\_multiplier          | 1                                                     | 1                                | factor for multiplying the result (in order to accquire a physically meaning value for comparison)                         |
-
 
 ### L2 error
 * Compare all L2 errors calculated for all nVar against an upper boundary *analyze_L2*
@@ -77,8 +80,23 @@ h5diff_tolerance_value = 1.0e-2
 h5diff_tolerance_type  = relative
 ```
 
-### data file line comparison
+### check array bounds in .h5 file
 * 
+* Requires *h5py* python module (analyze will fail if the module cannot be found)
+
+Template for copying to **analyze.ini**
+
+```
+! check if particles are outside of domain at tEnd
+check_hdf5_file        = tildbox_State_001.00000000000000000.h5
+check_hdf5_data_set    = PartData
+check_hdf5_dimension   = 0:2
+check_hdf5_limits      = -10.0:10.0
+```
+
+### data file line comparison
+* Compare a live in, e.g., a .csv file element-by-elements
+* relative of absolute comparsion
 
 Template for copying to **analyze.ini**
 
