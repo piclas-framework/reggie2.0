@@ -42,7 +42,7 @@ analyze_L2=1e7
 ```
 
 ### h-convergence test
-* Determine the rate of convergence versus decreasing the average sapcing between two DOF by running multiple different grids
+* Determine the rate of convergence versus decreasing the average spacing between two DOF by running multiple different grids
 * Requires multiple mesh files
 
 Template for copying to **analyze.ini**
@@ -96,7 +96,7 @@ check_hdf5_limits      = -10.0:10.0
 
 ### data file line comparison
 * Compare a live in, e.g., a .csv file element-by-elements
-* relative of absolute comparsion
+* relative of absolute comparison
 
 Template for copying to **analyze.ini**
 
@@ -126,7 +126,7 @@ Template for copying to **analyze.ini**
 ! ===================================================================================================================
 ! for p = 9: 551 timesteps  -->  0.44769549409291E-09*IntegrateLineMultiplier = 44 A
 integrate_line_file            = Database.csv          ! data file name
-integrate_line_colums          = 0:5                   ! colums x:y
+integrate_line_columns         = 0:5                   ! columns x:y
 integrate_line_integral_value  = 44.00                 ! Ampere
 integrate_line_tolerance_value = 0.8e-2                ! tolerance
 integrate_line_tolerance_type  = relative              ! special option
