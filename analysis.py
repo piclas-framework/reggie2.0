@@ -130,7 +130,7 @@ def getAnalyzes(path, example) :
     # 2.7   integrate data file column
     integrate_line_file            = options.get('integrate_line_file',None)                 # file name (path) which is analyzed
     integrate_line_delimiter       = options.get('integrate_line_delimiter',',')             # delimter symbol if not comma-separated
-    integrate_line_colums          = options.get('integrate_line_colums',None)               # two columns for the values x and y supplied as 'x:y'
+    integrate_line_columns         = options.get('integrate_line_columns',None)              # two columns for the values x and y supplied as 'x:y'
     integrate_line_integral_value  = options.get('integrate_line_integral_value',None)       # integral value used for comparison
     integrate_line_tolerance_value = options.get('integrate_line_tolerance_value',1e-5)      # tolerance that is used in comparison
     integrate_line_tolerance_type  = options.get('integrate_line_tolerance_type','absolute') # type of tolerance, either 'absolute' or 'relative'
