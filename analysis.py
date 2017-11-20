@@ -499,10 +499,10 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                     print "   reference          : "+str(self.reference_file)
                     print "   file               : "+str(self.file)
                     print "   data_set           : "+str(self.data_set)
+                    run.analyze_results.append("h5diff failed, self.return_code != 0")
 
                     # 1.3.1   add failed info if return a code != 0 to run
                     if len(self.stdout) > 20 :
-                        run.analyze_results.append("h5diff failed, self.return_code != 0")
                         for line in self.stdout[:10] : # print first 10 lines
                             print " "+line,
                         print " ... leaving out intermediate lines"

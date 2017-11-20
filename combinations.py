@@ -152,6 +152,8 @@ def getCombinations(filename, CheckForMultipleKeys=False) :
 
         for option in options : 
             if CheckForMultipleKeys :
+                # check if a parameter name occurs more than once in the list
+                # move multiple occurances to a separate key/value where the value is a list of all occurances
                 found, number = isKeyOf(combination,option.name)
                 if found :
                     new_key = "MULTIPLE_KEY:"+option.name
