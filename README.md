@@ -18,8 +18,8 @@
 |                          | compare\_data\_file\_tolerance       | 6e-2                                                  | None                             | relative/absolute deviation between two elements (in e.g. .csv file                                                        |
 |                          | compare\_data\_file\_tolerance\_type | relative                                              | absolute                         | relative or absolute comparison                                                                                            |
 |                          | compare\_data\_file\_line            | 50                                                    | last                             | line number in calculated data file (e.g. .csv file)                                                                       |
-|integrate data column     | integrate\_line\_file                | Database.csv                                          | None                             | name of calculated output file (e.g. .csv file)                                                                            |
-|                          | integrate\_line\_delimiter           | :                                                     | ,                                | delimiter symbol, default is comma ','                                                                                     |
+|integrate data columns    | integrate\_line\_file                | Database.csv                                          | None                             | name of calculated output file (e.g. .csv file)                                                                            |
+|                          | integrate\_line\_delimiter           | :                                                     | ,                                | delimiter symbol, default is comma ',' (note that a comma cannot be supplied in the file as it is a delimiter itself       |
 |                          | integrate\_line\_columns             | 0:5                                                   | None                             | two columns for the values x and y supplied as 'x:y'                                                                       |
 |                          | integrate\_line\_integral_value      |                                                       | None                             | integral value used for comparison                                                                                         |
 |                          | integrate\_line\_tolerance_value     |                                                       | None                             | tolerance that is used in comparison                                                                                       |
@@ -27,8 +27,43 @@
 |                          | integrate\_line\_option              | DivideByTimeStep                                      | None                             | special option, e.g., calculating a rate by dividing the integrated values by the timestep which is used in the values 'x' |
 |                          | integrate\_line\_multiplier          | 1                                                     | 1                                | factor for multiplying the result (in order to accquire a physically meaning value for comparison)                         |
 
+
+### L2 error
+* Compare all L2 errors calculated for all nVar against an upper boundary *analyze_L2*
+
+Template for copying to **analyze.ini**
+
+```
+!L2 error norm
+analyze_L2=1e7
+```
+
+### h-convergence test
+* Determine the rate of convergence versus decreasing the average sapcing between two DOF by running multiple different grids
+* Requires multiple mesh files
+
+Template for copying to **analyze.ini**
+
+```
+! h-convergence test
+analyze_Convtest_h_cells=1,2,4,8
+analyze_Convtest_h_tolerance=0.3
+analyze_Convtest_h_rate=1
+```
+
+### p-convergence test
+* Determine an increasing rate of convergence by increasing the polynomial degree (for a constant mesh)
+
+Template for copying to **analyze.ini**
+
+```
+! p-convergence test
+analyze_Convtest_p_rate=0.8
+analyze_Convtest_p_percentage=0.75
+```
+
 ### h5diff
-* Copares two arrays from two .h5 files element-by-element either with an absolute or relative difference (when comparing with zero, h5diff automatically uses an absolute comparison).  
+* Compares two arrays from two .h5 files element-by-element either with an absolute or relative difference (when comparing with zero, h5diff automatically uses an absolute comparison).  
 * Requires h5diff, which is compiled within the HDF5 package.  
 
 Template for copying to **analyze.ini**
@@ -40,4 +75,56 @@ h5diff_reference_file  = single-particle_reference_State_000.0000000500000000.h5
 h5diff_data_set        = DG_Source
 h5diff_tolerance_value = 1.0e-2
 h5diff_tolerance_type  = relative
+```
+
+### data file line comparison
+* 
+
+Template for copying to **analyze.ini**
+
+```
+! compare the last row in Database.csv with a reference file
+compare_data_file_name      = Database.csv
+compare_data_file_reference = Database_reference.csv
+compare_data_file_tolerance = 2.0
+compare_data_file_tolerance_type = relative
+```
+
+### integrate data columns
+* Integrate the data in a column over another column, e.g., x:y in a data file as integral(y(x), x, x(1), x(end)) via the trapeziod rule
+* special options are available for calculating, e.g., rates (something per second)
+
+Template for copying to **analyze.ini**
+
+```
+! ===================================================================================================================
+! integrate columns x:y in a data file as integral(y(x), x, x(1), x(end))
+! check the emission current of electrons: Current = Q*MPF*q/delta_t_database = 44 A
+! ===================================================================================================================
+! with   Q = integrate nPartIn(t) from t=0 to t=3E-11 = 4.500111958051274e-10 for p=9 (integrate nPartIN over time)
+!      MPF = 1e6
+!        q = 1.6022e-19 (charge of one electSron)
+!       dt = ? (depends on polynomial degree and mesh)
+! ===================================================================================================================
+! for p = 9: 551 timesteps  -->  0.44769549409291E-09*IntegrateLineMultiplier = 44 A
+integrate_line_file            = Database.csv          ! data file name
+integrate_line_colums          = 0:5                   ! colums x:y
+integrate_line_integral_value  = 44.00                 ! Ampere
+integrate_line_tolerance_value = 0.8e-2                ! tolerance
+integrate_line_tolerance_type  = relative              ! special option
+integrate_line_option          = DivideByTimeStep      ! the first column in Database.csv is used for this option
+integrate_line_multiplier      = 5.340588433333334e-03 ! = MPF*q/tend = 1e6*1.60217653E-19/3E-11
+```
+
+
+
+
+
+### template
+* 
+
+Template for copying to **analyze.ini**
+
+```
+ 
 ```
