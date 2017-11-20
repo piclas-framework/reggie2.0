@@ -136,14 +136,14 @@ def getAnalyzes(path, example) :
     integrate_line_tolerance_type  = options.get('integrate_line_tolerance_type','absolute') # type of tolerance, either 'absolute' or 'relative'
     integrate_line_option          = options.get('integrate_line_option',None)               # special option, e.g., calculating a rate by dividing the integrated values by the timestep which is used in the values 'x'
     integrate_line_multiplier      = options.get('integrate_line_multiplier',1)              # factor for multiplying the result (in order to accquire a physically meaning value for comparison)
-    if all([integrate_line_file,  integrate_line_delimiter, integrate_line_colums, integrate_line_integral_value]) :
+    if all([integrate_line_file,  integrate_line_delimiter, integrate_line_columns, integrate_line_integral_value]) :
         if integrate_line_tolerance_type in ('absolute', 'delta', '--delta') :
             integrate_line_tolerance_type = "absolute"
         elif integrate_line_tolerance_type in ('relative', "--relative") :
             integrate_line_tolerance_type = "relative"
         else :
             raise Exception(tools.red("initialization of integrate line failed. integrate_line_tolerance_type '%s' not accepted." % integrate_line_tolerance_type))
-        analyze.append(Analyze_integrate_line(integrate_line_file, integrate_line_delimiter, integrate_line_colums, integrate_line_integral_value, integrate_line_tolerance_value, integrate_line_tolerance_type, integrate_line_option, integrate_line_multiplier))
+        analyze.append(Analyze_integrate_line(integrate_line_file, integrate_line_delimiter, integrate_line_columns, integrate_line_integral_value, integrate_line_tolerance_value, integrate_line_tolerance_type, integrate_line_option, integrate_line_multiplier))
 
 
     return analyze
@@ -687,10 +687,10 @@ class Analyze_compare_data_file(Analyze) :
 #==================================================================================================
 
 class Analyze_integrate_line(Analyze) :
-    def __init__(self, integrate_line_file, integrate_line_delimiter, integrate_line_colums, integrate_line_integral_value, integrate_line_tolerance_value, integrate_line_tolerance_type, integrate_line_option, integrate_line_multiplier) :
+    def __init__(self, integrate_line_file, integrate_line_delimiter, integrate_line_columns, integrate_line_integral_value, integrate_line_tolerance_value, integrate_line_tolerance_type, integrate_line_option, integrate_line_multiplier) :
         self.file                = integrate_line_file
         self.delimiter           = integrate_line_delimiter
-        (self.dim1, self.dim2)   = [int(x)   for x in integrate_line_colums.split(":")]
+        (self.dim1, self.dim2)   = [int(x)   for x in integrate_line_columns.split(":")]
         self.integral_value      = float(integrate_line_integral_value)
         self.tolerance_value     = float(integrate_line_tolerance_value)
         self.tolerance_type      = integrate_line_tolerance_type
