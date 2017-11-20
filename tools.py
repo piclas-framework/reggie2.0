@@ -129,9 +129,11 @@ def diff_lists(x,x_ref,tol,tol_type) :
     # check tolerance type: absolute/relative (is the reference value is zero, absolute comparison is used)
     if tol_type == 'absolute' :
         diff = [abs(a-b) for (a,b) in zip(x,x_ref)]
+        executed_tolerance = ['absolute' for (b) in x_ref]
     else : # relative comparison
         # if the reference value is zero, use absolute comparison
         diff = [abs(a/b-1.0) if abs(b) > 0.0 else a for (a,b) in zip(x,x_ref) ]
+        executed_tolerance = ['relative' if abs(b) > 0.0 else 'absolute' for (b) in x_ref]
 
     # determie success logical list for return variable
     success = [d <= tol for d in diff]
@@ -139,10 +141,10 @@ def diff_lists(x,x_ref,tol,tol_type) :
     # display information when a diff is not successful, display value+reference+difference
     if not all(success) :
         print "Differences in vector comparison:"
-        print "%13s   %13s   %13s" % ("x","x_ref","diff")
+        print "%13s   %13s   %13s   %13s" % ("x","x_ref","diff","type")
         for i in range(len(diff)) :
             if diff[i] <= tol : continue
-            print "%13.6e   %13.6e   %13.6e" % (x[i],x_ref[i],diff[i])
+            print "%13.6e   %13.6e   %13.6e   %13s" % (x[i],x_ref[i],diff[i],executed_tolerance[i])
 
     return success
 
