@@ -193,7 +193,7 @@ def writeCombinationsToFile(combinations, path) : # write one set of parameters 
             if "MULTIPLE_KEY:" in key :
                 f.write("  ! %s=%s\n" % (key, value))      # write comment into file
                 for item in value :                        # write all multiple occuring values of the multiple key without "MULTIPLE_KEY:" to file
-                    f.write("%s=%s\n" % (key[-12:], item)) # write key/value into file
+                    f.write("%s=%s\n" % (key[13:], item)) # write key/value into file
             else :
                 # for parameters with value 'crosscombinations' in the key-value pair, replace it with the value from 'crosscombinations'
                 #
