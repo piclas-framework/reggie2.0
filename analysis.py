@@ -570,7 +570,7 @@ class Analyze_check_hdf5(Analyze) :
                 run.analyze_results.append(s)
                 run.analyze_successful=False
                 Analyze.total_errors+=1
-                return
+                continue
 
             f = h5py.File(path,'r')
             # available keys   : print("Keys: %s" % f.keys())
