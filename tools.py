@@ -143,8 +143,8 @@ def diff_lists(x,x_ref,tol,tol_type) :
         print "Differences in vector comparison:"
         print 5*"%13s   " % ("x","x_ref","diff","type","tolerance")
         for i in range(len(diff)) :
-            if not success[i] : continue
-            print 4*"%13.6e   " % (x[i],x_ref[i],diff[i],tol), "%12s" % (executed_tol_type[i])
+            if not success[i] : 
+                print 4*"%13.6e   " % (x[i],x_ref[i],diff[i],tol), "%12s" % (executed_tol_type[i])
 
     return success
 
