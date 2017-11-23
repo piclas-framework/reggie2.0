@@ -141,7 +141,7 @@ def diff_lists(x,x_ref,tol,tol_type) :
     # display information when a diff is not successful, display value+reference+difference
     if not all(success) :
         print "Differences in vector comparison:"
-        print 5*"%13s   " % ("x","x_ref","diff","type","tolerance")
+        print 5*"%13s   " % ("x","x_ref","diff","tolerance","type")
         for i in range(len(diff)) :
             if not success[i] : 
                 print 4*"%13.6e   " % (x[i],x_ref[i],diff[i],tol), "%12s" % (executed_tol_type[i])
@@ -174,7 +174,7 @@ def diff_value(x,x_ref,tol,tol_type) :
     # display information when a diff is not successful, display value+reference+difference
     if not success :
         print "Differences in vector comparison:"
-        print 5*"%13s   " % ("x","x_ref","diff","type","tolerance")
+        print 5*"%13s   " % ("x","x_ref","diff","tolerance","type")
         print 4*"%13.6e   " % (x,x_ref,diff,tol), "%12s" % (tol_type)
 
     return success
