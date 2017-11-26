@@ -551,6 +551,8 @@ class Analyze_check_hdf5(Analyze) :
             return
 
         '''
+        Description: check array bounds in hdf5 file
+
         General workflow:
         1.  iterate over all runs
         1.2   Read the hdf5 file
@@ -583,9 +585,15 @@ class Analyze_check_hdf5(Analyze) :
             for i in range(self.dim1, self.dim2+1) : 
 
                 # 1.3.2   Check if all values are within the supplied interval
-                if any([x < self.lower for x in b[i]]) or any([x > self.upper for x in b[i]]) :
-                    print tools.red(str(b[i]))
-                    s = tools.red("HDF5 array out of bounds for dimension=%2d" % i)
+                lower_test = any([x < self.lower for x in b[:][i]])
+                upper_test = any([x > self.upper for x in b[:][i]])
+                if lower_test or upper_test :
+                    print tools.red(str(b[:][i]))
+                    s = tools.red("HDF5 array out of bounds for dimension = %2d (array dimension index starts at 0). " % i)
+                    if lower_test :
+                        s += tools.red(" [values found  < "+str(self.lower)+"]")
+                    if upper_test :
+                        s += tools.red(" [values found  > "+str(self.upper)+"]")
                     print(s)
                     run.analyze_results.append(s)
            
