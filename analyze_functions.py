@@ -3,34 +3,34 @@ import math
 def get_last_L2_error(lines) :
    """Get L_2 eror value from a set of lines for the last timestep.
    The set of lines correspond to the output-lines of a flexi-run"""
-   for l in lines[-15:] :
-      if "L_2" in l :
-         tmp = l.split(":")[1]
+   for l in lines[-25:] : # read the last 25 lines
+       if "L_2" in l :
+           tmp = l.split(":")[1]
    return [float(x) for x in tmp.split()]
 
 def get_last_Linf_error(lines) :
    """Get L_inf eror value from a set of lines for the last timestep
    The set of lines correspond to the output-lines of a flexi-run"""
-   for l in lines[-15:] :
-      if "L_inf" in l :
-         tmp = l.split(":")[1]
-         return [float(x) for x in tmp.split()]
+   for l in lines[-25:] : # read the last 25 lines
+       if "L_inf" in l :
+           tmp = l.split(":")[1]
+           return [float(x) for x in tmp.split()]
 
 def get_last_number(lines) :
    for line in reversed(lines) :
-      tmp = line.split(' ')
-      for t in reversed(tmp) :
-         try :
-            return float(t)
-         except :
-            pass
+       tmp = line.split(' ')
+       for t in reversed(tmp) :
+           try :
+               return float(t)
+           except :
+               pass
 
 def get_cpu_per_dof(lines) :
    """Get the PID value from a set of lines
    The set of lines correspond to the output-lines of a flexi-run"""
    for line in reversed(lines) :
-      if "CALCULATION TIME PER TSTEP/DOF: [" in line :
-         return float(line.split("[")[1].split("sec")[0])
+        if "CALCULATION TIME PER TSTEP/DOF: [" in line :
+           return float(line.split("[")[1].split("sec")[0])
 
 def calcOrder_h(h,E) :
     """Determine the order of convergence for a list of grid spacings h and errors E"""

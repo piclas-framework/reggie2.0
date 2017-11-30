@@ -180,7 +180,7 @@ class Analyze_L2(Analyze) :
             try:
                 L2_errors = np.array(analyze_functions.get_last_L2_error(run.stdout))
             except :
-                s = tools.red("L2 analysis failed: L2 error could not be read from output")
+                s = tools.red("L2 analysis failed: L2 error could not be read from output (last 25 lines)")
                 print(s)
                 
                 # 1.1.1   append info for summary of errors
@@ -259,7 +259,7 @@ class Analyze_Convtest_h(Analyze) :
                     try :
                         L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout))
                     except :
-                        s = tools.red("h-convergence failed: some L2 errors could not be read from output")
+                        s = tools.red("h-convergence failed: some L2 errors could not be read from output (last 25 lines)")
                         print(s)
                         
                         # 1.2.1   append info for summary of errors
@@ -381,7 +381,7 @@ class Analyze_Convtest_p(Analyze) :
                     try :
                         L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout))
                     except :
-                        s = tools.red("p-convergence failed: some L2 errors could not be read from output")
+                        s = tools.red("p-convergence failed: some L2 errors could not be read from output (last 25 lines)")
                         print(s)
                         
                         # 1.2.1   append info for summary of errors
