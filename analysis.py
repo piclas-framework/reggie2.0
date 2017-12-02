@@ -588,7 +588,7 @@ class Analyze_check_hdf5(Analyze) :
                 lower_test = any([x < self.lower for x in b[:][i]])
                 upper_test = any([x > self.upper for x in b[:][i]])
                 if lower_test or upper_test :
-                    print tools.red(str(b[:][i]))
+                    print tools.red("values = "+str(b[:][i])+" MIN=["+str(min(b[:][i]))+"]"+" MAX=["+str(max(b[:][i]))+"]")
                     s = tools.red("HDF5 array out of bounds for dimension = %2d (array dimension index starts at 0). " % i)
                     if lower_test :
                         s += tools.red(" [values found  < "+str(self.lower)+"]")
