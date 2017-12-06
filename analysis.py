@@ -631,13 +631,22 @@ class Analyze_compare_data_file(Analyze) :
         1.3.4   calculate difference and determine compare with tolerance
         '''
 
+        j = 0
         # 1.  iterate over all runs
         for run in runs :
             # 1.2   Check existence the file and reference values
-            path     = os.path.join(run.target_directory,self.file)
-            path_ref = os.path.join(run.target_directory,self.reference)
+            path     = os.path.join(run.target_directory,self.file[j])
+            path_ref = os.path.join(run.target_directory,self.reference[j])
+            if len(self.file) > 1 :
+                j += 1
+                if (len(runs) != len(self.file)) or (len(runs) != len(self.reference)) :
+                    print tools.red("Analyze_compare_data_file: Number of data files / reference files does not match number of runs")
+                    run.analyze_successful=False
+                    Analyze.total_errors+=1
+                    return
+
             if not os.path.exists(path) or not os.path.exists(path_ref) :
-                print tools.red("Analyze_compare_data_file: cannot find both file=[%s] and reference file=[%s]" % (self.file, self.reference))
+                print tools.red("Analyze_compare_data_file: cannot find both file=[%s] and reference file=[%s]" % (self.file[j], self.reference[j]))
                 run.analyze_successful=False
                 Analyze.total_errors+=1
                 return
