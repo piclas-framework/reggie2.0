@@ -609,14 +609,33 @@ class Analyze_check_hdf5(Analyze) :
 
 class Analyze_compare_data_file(Analyze) :
     def __init__(self, compare_data_file_name, compare_data_file_reference, compare_data_file_tolerance, compare_data_file_line, compare_data_file_delimiter, compare_data_file_tolerance_type ) :
+        # set file for comparison
         self.file           = compare_data_file_name
+        if type(self.file) == type([]) :
+            self.file_number = len(self.file)
+        else :
+            self.file_number = 1
+
+        # set reference file for comparison
         self.reference      = compare_data_file_reference
+        if type(self.reference) == type([]) :
+            self.reference_number = len(self.reference)
+        else :
+            self.reference_number = 1
+
+        # set tolerance value
         self.tolerance      = float(compare_data_file_tolerance)
+
+        # set tolerance type (relative or absolute)
         self.tolerance_type = compare_data_file_tolerance_type 
+
+        # set which line in the file is to be compared with the reference file
         if compare_data_file_line == 'last' : 
             self.line = int(1e20)
         else :
             self.line = int(compare_data_file_line)
+
+        # set the delimter symbol (',' is default)
         self.delimiter = compare_data_file_delimiter
 
     def perform(self,runs) :
@@ -624,6 +643,7 @@ class Analyze_compare_data_file(Analyze) :
         '''
         General workflow:
         1.  iterate over all runs
+        1.1   Set the file and reference file for comparison
         1.2   Check existence the file and reference values
         1.3.1   read data file
         1.3.2   read refernece file
@@ -631,22 +651,48 @@ class Analyze_compare_data_file(Analyze) :
         1.3.4   calculate difference and determine compare with tolerance
         '''
 
-        j = 0
         # 1.  iterate over all runs
+        j = 0
+        nRuns = len(runs)
         for run in runs :
-            # 1.2   Check existence the file and reference values
-            path     = os.path.join(run.target_directory,self.file[j])
-            path_ref = os.path.join(run.target_directory,self.reference[j])
-            if len(self.file) > 1 :
-                j += 1
-                if (len(runs) != len(self.file)) or (len(runs) != len(self.reference)) :
-                    print tools.red("Analyze_compare_data_file: Number of data files / reference files does not match number of runs")
+            ##  1.1   Set the file and reference file for comparison
+            if self.file_number > 1 :
+                # check consistency when multiple files are supplied
+                if (nRuns != self.file_number) :
+                    s=tools.red("Analyze_compare_data_file: Number of data files [compare_data_file_name] %s does not match number of runs %s" % (self.file_number,nRuns))
+                    print(s)
+                    run.analyze_results.append(s)
                     run.analyze_successful=False
                     Analyze.total_errors+=1
                     return
+                # set the file name
+                file_name = self.file[j]
+            else :
+                file_name = self.file
+            if self.reference_number > 1 :
+                if (nRuns != self.reference_number) :
+                    s=tools.red("Analyze_compare_data_file: Number of reference files [compare_data_file_name]) %s does not match number of runs %s" % (self.reference_number,nRuns))
+                    print(s)
+                    run.analyze_results.append(s)
+                    run.analyze_successful=False
+                    Analyze.total_errors+=1
+                    return
+                # set the reference file name
+                ref_name  = self.reference[j]
+            else :
+                ref_name  = self.reference
+            j += 1
+            if self.file_number > 1 or self.reference_number > 1 :
+                print tools.blue("comparing file=[%s] and reference file=[%s]" % (file_name, ref_name))
+
+            # 1.2   Check existence the file and reference values
+            path     = os.path.join(run.target_directory,file_name)
+            path_ref = os.path.join(run.target_directory,ref_name)
 
             if not os.path.exists(path) or not os.path.exists(path_ref) :
-                print tools.red("Analyze_compare_data_file: cannot find both file=[%s] and reference file=[%s]" % (self.file[j], self.reference[j]))
+                s=tools.red("Analyze_compare_data_file: cannot find both file=[%s] and reference file=[%s]" % (file_name, ref_name))
+                print(s)
+                run.analyze_results.append(s)
                 run.analyze_successful=False
                 Analyze.total_errors+=1
                 return
@@ -681,7 +727,9 @@ class Analyze_compare_data_file(Analyze) :
 
             # 1.3.3   check length of vectors
             if line_len != line_ref_len :
-                print tools.red("Analyze_compare_data_file: length of lines in file and reference file are not of the same length")
+                s=tools.red("Analyze_compare_data_file: length of lines in file [%s] and reference file [%s] are not of the same length" % (file_name, ref_name))
+                print(s)
+                run.analyze_results.append(s)
                 run.analyze_successful=False
                 Analyze.total_errors+=1
                 return
