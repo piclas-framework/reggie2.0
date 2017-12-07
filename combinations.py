@@ -135,7 +135,7 @@ def getCombinations(filename, CheckForMultipleKeys=False) :
             #       opt2 = a,b,c
             #       opt3 = cat,dog,bird,snake
             #       opt4 = car,train
-            #   Then yout get 2*3*4*2 = 48 combinations in total. Let us imagine the options (opt1, opt2, ...)
+            #   Then you get 2*3*4*2 = 48 combinations in total. Let us imagine the options (opt1, opt2, ...)
             #   as digits in a crazy number system, where opt1 is the digit with the lowest value and 
             #   opt4 with the highest value. Since we have different number of values for every digit, the base 
             #   of each digit is not as in a standard number system like the decimal a series of powers 10^0, 10^1, 10^2, ...
