@@ -145,6 +145,7 @@ Note that for the last example, the number of supplied output files, reference f
 
 # integrate data columns
 * Integrate the data in a column over another column, e.g., x:y in a data file as integral(y(x), x, x(1), x(end)) via the trapezoid rule
+* The data is delimited by a comma on default but can be changed by setting "integrate\_line\_delimiter = :" (when, e.g., ":" is to be used as the delimiter)
 * special options are available for calculating, e.g., rates (something per second)
 
 Template for copying to **analyze.ini**
