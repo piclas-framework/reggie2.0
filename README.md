@@ -108,6 +108,28 @@ compare_data_file_tolerance = 2.0
 compare_data_file_tolerance_type = relative
 ```
 
+When different runs produce different output (e.g. changing the initial conditions, here, the temperature is varied), multiple reference files can be supplied. The following example produces the same output file (Database.csv) but compares with different reference files (Database\_TX000K\_ref.csv).
+
+```
+! compare the last row in Database.csv with a reference file
+compare_data_file_name      = Database.csv
+compare_data_file_reference = Database_T1000K_ref.csv, Database_T2000K_ref.csv, Database_T3000K_ref.csv, Database_T4000K_ref.csv, Database_T5000K_ref.csv
+compare_data_file_tolerance = 2.0
+compare_data_file_tolerance_type = relative
+```
+
+Additionally, multiple output files (Database\_TX000K.csv) can be supplied in combination with multiple reference files (Database\_TX000K\_ref.csv). See the following example. 
+
+```
+! compare the last row in Database.csv with a reference file
+compare_data_file_name      = Database_T1000K.csv, Database_T2000K.csv, Database_T3000K.csv, Database_T4000K.csv, Database_T5000K.csv
+compare_data_file_reference = Database_T1000K_ref.csv, Database_T2000K_ref.csv, Database_T3000K_ref.csv, Database_T4000K_ref.csv, Database_T5000K_ref.csv
+compare_data_file_tolerance = 2.0
+compare_data_file_tolerance_type = relative
+```
+
+Note that for the last example, the number of supplied output files, reference files and runs must be the same.
+
 ### integrate data columns
 * Integrate the data in a column over another column, e.g., x:y in a data file as integral(y(x), x, x(1), x(end)) via the trapezoid rule
 * special options are available for calculating, e.g., rates (something per second)
