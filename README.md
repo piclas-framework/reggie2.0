@@ -35,9 +35,9 @@
 |integrate data columns    | integrate\_line\_file                | Database.csv                                          | None                             | name of calculated output file (e.g. .csv file)                                                                            |
 |                          | integrate\_line\_delimiter           | :                                                     | ,                                | delimiter symbol, default is comma ',' (note that a comma cannot be supplied in this file as it is a delimiter itself)     |
 |                          | integrate\_line\_columns             | 0:5                                                   | None                             | two columns for the values x and y supplied as 'x:y'                                                                       |
-|                          | integrate\_line\_integral_value      |                                                       | None                             | integral value used for comparison                                                                                         |
-|                          | integrate\_line\_tolerance_value     |                                                       | None                             | tolerance that is used in comparison                                                                                       |
-|                          | integrate\_line\_tolerance_type      |                                                       | None                             | type of tolerance, either 'absolute' or 'relative'                                                                         |
+|                          | integrate\_line\_integral_value      | 44.00                                                 | None                             | integral value used for comparison                                                                                         |
+|                          | integrate\_line\_tolerance_value     | 0.8e-2                                                | None                             | tolerance that is used in comparison                                                                                       |
+|                          | integrate\_line\_tolerance_type      | relative                                              | None                             | type of tolerance, either 'absolute' or 'relative'                                                                         |
 |                          | integrate\_line\_option              | DivideByTimeStep                                      | None                             | special option, e.g., calculating a rate by dividing the integrated values by the timestep which is used in the values 'x' |
 |                          | integrate\_line\_multiplier          | 1                                                     | 1                                | factor for multiplying the result (in order to acquire a physically meaning value for comparison)                          |
 
@@ -168,6 +168,8 @@ integrate_line_tolerance_type  = relative              ! special option
 integrate_line_option          = DivideByTimeStep      ! the first column in Database.csv is used for this option
 integrate_line_multiplier      = 5.340588433333334e-03 ! = MPF*q/tend = 1e6*1.60217653E-19/3E-11
 ```
+
+Note that a comma is the default delimiter symbol for "integrate\_line\_delimiter" and cannot be set as custom delimiter symbol "," because the comma is used for splitting the keywords in analyze.ini. However, other symbols can be supplied using "integrate\_line\_delimiter" instead of a comma.
 
 
 
