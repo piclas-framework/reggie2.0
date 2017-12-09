@@ -1,4 +1,14 @@
-## Analyze routines
+# Table of Contents
+1. [Analyze routines overview](#analyze-routines)
+2. [L2 error](#l2-error)
+3. [h-convergence test](#h-convergence-test)
+4. [p-convergence test](#p-convergence-test)
+5. [h5diff](#h5diff)
+6. [h5 array bounds check](#h5-array-bounds-check)
+7. [Data file line comparison](#data-file-line-comparison)
+8. [integrate data columns](#integrate-data-columns)
+
+# Analyze routines
 
 |**analyze**               | **options**                          | **values**                                            | **Devault values**               | **Description**           
 |:------------------------:|:-------------------------------------|:------------------------------------------------------|:---------------------------------|:---------------------------------------------------------------------------------------------------------------------------|
@@ -31,7 +41,7 @@
 |                          | integrate\_line\_option              | DivideByTimeStep                                      | None                             | special option, e.g., calculating a rate by dividing the integrated values by the timestep which is used in the values 'x' |
 |                          | integrate\_line\_multiplier          | 1                                                     | 1                                | factor for multiplying the result (in order to acquire a physically meaning value for comparison)                          |
 
-### L2 error
+# L2 error
 * Compare all L2 errors calculated for all nVar against an upper boundary *analyze_L2*
 
 Template for copying to **analyze.ini**
@@ -41,7 +51,7 @@ Template for copying to **analyze.ini**
 analyze_L2=1e7
 ```
 
-### h-convergence test
+# h-convergence test
 * Determine the rate of convergence versus decreasing the average spacing between two DOF by running multiple different grids
 * Requires multiple mesh files
 
@@ -54,7 +64,7 @@ analyze_Convtest_h_tolerance=0.3
 analyze_Convtest_h_rate=1
 ```
 
-### p-convergence test
+# p-convergence test
 * Determine an increasing rate of convergence by increasing the polynomial degree (for a constant mesh)
 
 Template for copying to **analyze.ini**
@@ -65,7 +75,7 @@ analyze_Convtest_p_rate=0.8
 analyze_Convtest_p_percentage=0.75
 ```
 
-### h5diff
+# h5diff
 * Compares two arrays from two .h5 files element-by-element either with an absolute or relative difference (when comparing with zero, h5diff automatically uses an absolute comparison).  
 * Requires h5diff, which is compiled within the HDF5 package.  
 
@@ -80,7 +90,7 @@ h5diff_tolerance_value = 1.0e-2
 h5diff_tolerance_type  = relative
 ```
 
-### h5 array bounds check
+# h5 array bounds check
 * Check if all elements of a h5 array are within a supplied interval
 * Requires *h5py* python module (analyze will fail if the module cannot be found)
 
@@ -94,10 +104,11 @@ check_hdf5_dimension   = 0:2
 check_hdf5_limits      = -10.0:10.0
 ```
 
-### data file line comparison
+# Data file line comparison
 * Compare a live in, e.g., a .csv file element-by-elements
 * relative of absolute comparison
 
+### Example 1 of 3
 Template for copying to **analyze.ini**
 
 ```
@@ -107,6 +118,7 @@ compare_data_file_reference = Database_reference.csv
 compare_data_file_tolerance = 2.0
 compare_data_file_tolerance_type = relative
 ```
+### Example 2 of 3
 
 When different runs produce different output (e.g. changing the initial conditions, here, the temperature is varied), multiple reference files can be supplied. The following example produces the same output file (Database.csv) but compares with different reference files (Database\_TX000K\_ref.csv).
 
@@ -117,6 +129,7 @@ compare_data_file_reference = Database_T1000K_ref.csv, Database_T2000K_ref.csv, 
 compare_data_file_tolerance = 2.0
 compare_data_file_tolerance_type = relative
 ```
+### Example 3 of 3
 
 Additionally, multiple output files (Database\_TX000K.csv) can be supplied in combination with multiple reference files (Database\_TX000K\_ref.csv). See the following example. 
 
@@ -130,7 +143,7 @@ compare_data_file_tolerance_type = relative
 
 Note that for the last example, the number of supplied output files, reference files and runs must be the same.
 
-### integrate data columns
+# integrate data columns
 * Integrate the data in a column over another column, e.g., x:y in a data file as integral(y(x), x, x(1), x(end)) via the trapezoid rule
 * special options are available for calculating, e.g., rates (something per second)
 
@@ -160,7 +173,7 @@ integrate_line_multiplier      = 5.340588433333334e-03 ! = MPF*q/tend = 1e6*1.60
 
 
 
-### template
+# template
 * 
 
 Template for copying to **analyze.ini**
