@@ -46,7 +46,8 @@ def getAnalyzes(path, example) :
      General workflow:
      1.  Read the analyze options from file 'path' into dict 'options'
      2.  Initialize analyze functions
-     2.1   L2 error
+     2.0   L2 error from file
+     2.1   L2 error upper limit
      2.2   h-convergence test
      2.3   p-convergence test
      2.4   h5diff (relative or absolute HDF5-file comparison of an output file with a reference file)
@@ -66,7 +67,20 @@ def getAnalyzes(path, example) :
         else :
             options[option.name.lower()] = option.values[0] # set name to lower case
 
-    # 2.1   L2 error
+    # 2.0   L2 error from file
+    L2_file                =       options.get('analyze_l2_file',None)
+    L2_file_tolerance      = float(options.get('analyze_l2_file_tolerance',1.0e-5))
+    L2_file_tolerance_type =       options.get('analyze_l2_file_tolerance_type','absolute')
+    if L2_file :
+        if L2_file_tolerance_type in ('absolute', 'delta', '--delta') :
+            L2_file_tolerance_type = "absolute"
+        elif L2_file_tolerance_type in ('relative', "--relative") :
+            L2_file_tolerance_type = "relative"
+        else :
+            raise Exception(tools.red("initialization of L2 error from file failed. [L2_file_tolerance_type = %s] not accepted." % L2_file_tolerance_type))
+        analyze.append(Analyze_L2_file(L2_file, L2_file_tolerance, L2_file_tolerance_type))
+
+    # 2.1   L2 error upper limit
     L2_tolerance = float(options.get('analyze_l2',-1.))
     if L2_tolerance > 0 :
         analyze.append(Analyze_L2(L2_tolerance))
@@ -91,7 +105,7 @@ def getAnalyzes(path, example) :
     h5diff_reference_file  = options.get('h5diff_reference_file',None)
     h5diff_file            = options.get('h5diff_file',None)
     h5diff_data_set        = options.get('h5diff_data_set',None)
-    h5diff_tolerance_value = options.get('h5diff_tolerance_value',1e-5)
+    h5diff_tolerance_value = options.get('h5diff_tolerance_value',1.0e-5)
     h5diff_tolerance_type  = options.get('h5diff_tolerance_type','absolute')
     # only do h5diff test if all variables are defined
     if h5diff_reference_file and h5diff_file and h5diff_data_set :
@@ -152,6 +166,108 @@ def getAnalyzes(path, example) :
  
 class Analyze() : # main class from which all analyze functions are derived
     total_errors = 0
+
+#==================================================================================================
+
+class Analyze_L2_file(Analyze) :
+    """Read the L2 error norms from std.out and compare with pre-defined upper barrier"""
+    def __init__(self, L2_file, L2_file_tolerance, L2_file_tolerance_type) :
+        self.file              = L2_file
+        self.L2_tolerance      = L2_file_tolerance
+        self.L2_tolerance_type = L2_file_tolerance_type
+
+    def perform(self,runs) :
+
+        """
+        General workflow:
+        1.  Iterate over all runs
+        1.1   r
+        1.1.1   a
+        1.1.2   s
+        1.2   i
+        1.3   a
+        1.4   s
+        """
+
+        # 1.  Iterate over all runs
+        for run in runs :
+            
+            # 1.1   Read L2 errors from std out channel
+            try:
+                L2_errors = np.array(analyze_functions.get_last_L2_error(run.stdout))
+            except :
+                s = tools.red("L2 analysis failed: L2 error could not be read from output (last 25 lines)")
+                print(s)
+                
+                # 1.1.1   append info for summary of errors
+                run.analyze_results.append(s)
+
+                # 1.1.2   set analyzes to fail
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                continue # with next run
+
+            # 1.2   Check existence of the reference file
+            path_ref = os.path.join(run.target_directory,self.file)
+
+            if not os.path.exists(path_ref) :
+                s=tools.red("Analyze_L2_file: cannot find reference L2 error file=[%s]" % self.file)
+                print(s)
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                continue # with next run
+            else :
+                # 1.2.1   Read content of the reference file and store in self.file_data list
+                self.file_data = []
+                with open(path_ref) as f :
+                    for line in f.readlines() :   # iterate over all lines of the file
+                        self.file_data.append(line)
+
+            # 1.2   Read reference L2 errors from self.file_data list
+            try:
+                L2_errors_ref = np.array(analyze_functions.get_last_L2_error(self.file_data))
+            except :
+                s = tools.red("L2 analysis failed: L2 error could not be read from %s (last 25 lines)" % self.file_data)
+                print(s)
+                
+                # 1.2.1   append info for summary of errors
+                run.analyze_results.append(s)
+
+                # 1.2.2   set analyzes to fail
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                continue # with next run
+
+            # 1.3   Check length of L2 errors in std out and reference file
+            if len(L2_errors) != len(L2_errors_ref) :
+                s = tools.red("L2 analysis failed: number of L2 errors in std out [%s] do not match number of L2 errors in ref file [%s]. They must be the same." % (len(L2_errors),len(L2_errors_ref)))
+                print(s)
+                
+                # 1.2.1   append info for summary of errors
+                run.analyze_results.append(s)
+
+                # 1.2.2   set analyzes to fail
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                continue # with next run
+
+            # 1.4   calculate difference and determine compare with tolerance
+            success = tools.diff_lists(L2_errors, L2_errors_ref, self.L2_tolerance, self.L2_tolerance_type)
+            if not all(success) :
+                s = tools.red("Mismatch in L2 error comparison with reference file data: "+", ".join(["[%s with %s]" % (L2_errors[i], L2_errors_ref[i]) for i in range(len(success)) if not success[i]]))
+                print(s)
+
+                # 1.4.1   append info for summary of errors
+                run.analyze_results.append(s)
+
+                # 1.4.2   set analyzes to fail
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+
+    def __str__(self) :
+        return "perform L2 error comparison with L2 errors in file %s" % self.file
+
 
 #==================================================================================================
 
