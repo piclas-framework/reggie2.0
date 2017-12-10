@@ -271,11 +271,26 @@ def getRuns(path, command_line) :
     """Get all combinations in 'parameter.ini'"""
     runs = []
     i = 1
+    # get combis : for each run a combination of parameters is stored in a dict containing a [key]-[value] pairs
+    #              combis contains multiple dicts 'OrderedDict'
+    #              example for a key = 'N' and its value = '5' for polynomial degree of 5
+    #     digits : contains the number of variations for each [key] 
+    #              example in parameter.ini: N = 1,2,3 then digits would contain OrderedDict([('N', 2),...) for 0,1,2 = 3 different 
+    #              values for N)
     combis, digits = combinations.getCombinations(path,CheckForMultipleKeys=True)  # path to parameter.ini (source)
     for parameters in combis :
+        # check each [key] for empty [value] (e.g. wrong definition in parameter.ini file)
+        for key, value in parameters.iteritems():
+            if not value :
+                raise Exception(tools.red('parameter.ini contains an empty parameter definition for [%s]. Remove unnecessary commas!' % key))
+        # construct run information with one set of parameters (parameter.ini will be created in target directory when the setup
+        # is executed), one set of command line options (e.g. mpirun information) and the info of how many times a parameter is 
+        # varied under the variable 'digits'
         run = Run(parameters, path, command_line, i, digits)
+        # check if the run cannot be performed due to problems encountered when setting up the folder (e.g. not all files could
+        # be create or copied to the target directory)
         if not run.skip :
-            runs.append(run)
+            runs.append(run) # add/append the run to the list of runs
         i += 1
     return runs
 
