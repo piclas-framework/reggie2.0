@@ -218,7 +218,7 @@ class Run(OutputDirectory, ExternalCommand) :
         # check MPI threads for mpirun
         MPIthreads = command_line.parameters.get('MPI')
 
-        # check MPI built binary (only for reggie-compiled binaries possible)
+        # check MPI built binary (only possible for reggie-compiled binaries)
         MPI_built_flag=os.path.basename(build.binary_path).upper()+"_MPI"
         MPIbuilt = build.configuration.get(MPI_built_flag,'ON')
 
@@ -241,12 +241,21 @@ class Run(OutputDirectory, ExternalCommand) :
 
         # append restart file name
         cmd_restart_file = command_line.parameters.get('restart_file')
+        cmd_restart_file_abspath = os.path.abspath(os.path.join(self.target_directory,cmd_restart_file))
         if cmd_restart_file :
             cmd.append(cmd_restart_file)
+            found = os.path.exists(cmd_restart_file_abspath) # check if file exists
+            if not found :
+                self.return_code = -1 
+                self.result=tools.red("Restart file not found")
+                s=tools.red("Restart file '%s' not found under \n '%s'" % (cmd_restart_file,cmd_restart_file_abspath))
 
-        # execute the command 'cmd'
-        print tools.indent("Running [%s] ..." % (" ".join(cmd)), 2),
-        self.execute_cmd(cmd, self.target_directory) # run the code
+        # check if the command 'cmd' can be executed
+        if self.return_code != 0 :
+            print tools.indent("Cannot run the code: "+s,2)
+        else :
+            print tools.indent("Running [%s] ..." % (" ".join(cmd)), 2),
+            self.execute_cmd(cmd, self.target_directory) # run the code
 
         if self.return_code != 0 :
             self.successful = False
