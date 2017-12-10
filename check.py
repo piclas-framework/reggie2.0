@@ -241,10 +241,11 @@ class Run(OutputDirectory, ExternalCommand) :
 
         # append restart file name
         cmd_restart_file = command_line.parameters.get('restart_file')
-        cmd_restart_file_abspath = os.path.abspath(os.path.join(self.target_directory,cmd_restart_file))
         if cmd_restart_file :
             cmd.append(cmd_restart_file)
-            found = os.path.exists(cmd_restart_file_abspath) # check if file exists
+            # check if file exists
+            cmd_restart_file_abspath = os.path.abspath(os.path.join(self.target_directory,cmd_restart_file))
+            found = os.path.exists(cmd_restart_file_abspath)
             if not found :
                 self.return_code = -1 
                 self.result=tools.red("Restart file not found")
