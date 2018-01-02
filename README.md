@@ -1,6 +1,10 @@
-# Table of Contents
-1. [Analyze routines overview](#analyze-routines)
-2. [L2 error](#l2-error)
+# Overview
+ * Zollernblick slides [RegressionCheck2.0.pdf](/uploads/7a6718bc26615653cdd32116d968b969/RegressionCheck2.0.pdf)
+ * [Analyze routines overview](#analyze-routines)
+  
+# Table of Contents Analyze Routines
+1. [L2 error file](#l2-error-file)
+2. [L2 error upper limit](#l2-error-upper-limit)
 3. [h-convergence test](#h-convergence-test)
 4. [p-convergence test](#p-convergence-test)
 5. [h5diff](#h5diff)
@@ -10,8 +14,11 @@
 
 # Analyze routines
 
-|**analyze**               | **options**                          | **values**                                            | **Devault values**               | **Description**           
+|**analyze**               | **options**                          | **values**                                            | **Default values**               | **Description**           
 |:------------------------:|:-------------------------------------|:------------------------------------------------------|:---------------------------------|:---------------------------------------------------------------------------------------------------------------------------|
+|L2 error                  | analyze\_L2\_file                    | L2error.txt                                           | None                             | data file containing the L2 errors for comparing with                                                                      |
+|                          | analyze\_L2\_file\_tolerance         | 6e-2                                                  | None                             | relative/absolute deviation between two L2 errors (from output and from reference file)                                    |
+|                          | analyze\_L2\_file\_tolerance\_type   | relative                                              | absolute                         | relative or absolute comparison                                                                                            |
 |L2 error                  | analyze\_L2                          | 1e-5                                                  | None                             | L2 upper boundary for all nVar. If one L2 error is above the boundary, this test fails                                     |
 |h-convergence test        | analyze\_Convtest\_h\_cells          | 1,2,4,8                                               | None                             | number of cells (in each direction, or in the direction of the convergence test variable)                                  |
 |                          | analyze\_Convtest\_h\_tolerance      | 0.3                                                   | 0.02                             | relative deviation from the p+1 convergence rate to the calculated one                                                     |
@@ -29,7 +36,7 @@
 |                          | check\_hdf5\_limits                  | -10.0:10.0                                            | None                             | bounding interval for all elements in h5 array for all dimensions supplied under check\_hdf5\_dimension                    |
 |data file line            | compare\_data\_file\_name            | Database.csv                                          | None                             | name of calculated ASCII data file (usually .csv file)                                                                     |
 |                          | compare\_data\_file\_reference       | Database.csv\_ref                                     | None                             | name of reference file (must be placed in repository)                                                                      |
-|                          | compare\_data\_file\_tolerance       | 6e-2                                                  | None                             | relative/absolute deviation between two elements (in e.g. .csv file                                                        |
+|                          | compare\_data\_file\_tolerance       | 6e-2                                                  | None                             | relative/absolute deviation between two elements (in e.g. .csv file)                                                       |
 |                          | compare\_data\_file\_tolerance\_type | relative                                              | absolute                         | relative or absolute comparison                                                                                            |
 |                          | compare\_data\_file\_line            | 50                                                    | last                             | line number in calculated data file (e.g. .csv file)                                                                       |
 |                          | compare\_data\_file\_delimiter       | :                                                     | ,                                | delimiter symbol, default is comma ',' (note that a comma cannot be supplied in this file as it is a delimiter itself)     |
@@ -42,7 +49,27 @@
 |                          | integrate\_line\_option              | DivideByTimeStep                                      | None                             | special option, e.g., calculating a rate by dividing the integrated values by the timestep which is used in the values 'x' |
 |                          | integrate\_line\_multiplier          | 1                                                     | 1                                | factor for multiplying the result (in order to acquire a physically meaning value for comparison)                          |
 
-# L2 error
+
+# L2 error file
+* Compare all L2 errors calculated for all nVar against supplied values in a data file
+* relative or absolute comparison possible
+
+Template for copying to **analyze.ini**
+
+```
+ ! L2 error from file
+analyze_L2_file                = L2error.txt
+analyze_L2_file_tolerance      = 1e-2
+analyze_L2_file_tolerance_type = relative
+```
+
+Note that the errors (in this example in L2error.txt) must be supplied in the following format
+
+```
+L_2       :    1.5942413E+09   1.9238600E+09   1.2437159E+10   7.1690941E+01   1.4439652E+02   1.4360107E-01   1.5516452E+09   3.2439672E-02
+```
+
+# L2 error upper limit
 * Compare all L2 errors calculated for all nVar against an upper boundary *analyze_L2*
 
 Template for copying to **analyze.ini**
