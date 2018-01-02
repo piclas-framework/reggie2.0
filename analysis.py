@@ -6,6 +6,8 @@ import combinations
 import tools
 import csv
 import re
+
+# import h5 I/O routines
 try :
     import h5py
     h5py_module_loaded = True
@@ -13,6 +15,15 @@ except ImportError :
     #raise ImportError('Could not import h5py module. This is needed for anaylze functions.')
     print tools.red('Could not import h5py module. This is needed for anaylze functions.')
     h5py_module_loaded = False
+
+# import pyplot for creating plots
+try :
+    import matplotlib.pyplot as plt
+    pyplot_module_loaded = True
+except ImportError :
+    #raise ImportError('Could not import matplotlib.pyplot module. This is needed for anaylze functions.')
+    print tools.red('Could not import matplotlib.pyplot module. This is needed for anaylze functions.')
+    pyplot_module_loaded = False
 
 def displayTable(mylist,nVar,nRuns) :
     # mylist = [[1 2 3] [1 2 3] [1 2 3] [1 2 3] ] example with 4 nVar and 3 nRuns
@@ -392,6 +403,21 @@ class Analyze_Convtest_h(Analyze) :
             displayTable(L2_errors,nVar,nRuns)
             writeTableToFile(L2_errors,nVar,nRuns,self.cells,os.path.dirname(runs[0].target_directory),"L2_error.csv")
 
+            if pyplot_module_loaded : # this boolean is set when importing matplotlib.pyplot
+                for i in range(nVar) :
+                    f = plt.figure()
+                    plt.plot(self.cells, L2_errors[i], 'ro-')
+                    plt.xscale('log')
+                    plt.yscale('log')
+                    plt.title('nVar = '+str(i)+' (of '+str(nVar-1)+')')
+                    plt.xlabel('Number of cells')
+                    plt.ylabel('L2 error norm')
+                    #plt.show() # display the plot figure for the user (comment out when running in batch mode)
+                    f_save_path = os.path.join(os.path.dirname(runs[0].target_directory),"L2_error_nVar"+str(i)+".pdf")
+                    f.savefig(f_save_path, bbox_inches='tight')
+            else :
+                print tools.red('Could not import matplotlib.pyplot module. This is needed for creating plots under "Analyze_Convtest_h(Analyze)". Skipping plot.')
+
             # 1.4   determine order of convergence between two runs
             L2_order = np.array([analyze_functions.calcOrder_h(self.cells,L2_errors[i]) for i in range(nVar)])
             print tools.blue("L2 orders for nVar="+str(nVar))
@@ -514,6 +540,21 @@ class Analyze_Convtest_p(Analyze) :
             print tools.blue("L2 errors nVar="+str(nVar))
             displayTable(L2_errors,nVar,nRuns)
             writeTableToFile(L2_errors,nVar,nRuns,p,os.path.dirname(runs[0].target_directory),"L2_error.csv")
+
+            if pyplot_module_loaded : # this boolean is set when importing matplotlib.pyplot
+                for i in range(nVar) :
+                    f = plt.figure()
+                    plt.plot(p , L2_errors[i], 'ro-')
+                    plt.xscale('log')
+                    plt.yscale('log')
+                    plt.title('nVar = '+str(i)+' (of '+str(nVar-1)+')')
+                    plt.xlabel('Polynomial degree')
+                    plt.ylabel('L2 error norm')
+                    #plt.show() # display the plot figure for the user (comment out when running in batch mode)
+                    f_save_path = os.path.join(os.path.dirname(runs[0].target_directory),"L2_error_nVar"+str(i)+".pdf")
+                    f.savefig(f_save_path, bbox_inches='tight')
+            else :
+                print tools.red('Could not import matplotlib.pyplot module. This is needed for creating plots under "Analyze_Convtest_h(Analyze)". Skipping plot.')
 
             # 2.4   determine order of convergence between two runs
             L2_order = \
