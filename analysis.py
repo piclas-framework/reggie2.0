@@ -19,6 +19,7 @@ except ImportError :
 # import pyplot for creating plots
 try :
     import matplotlib.pyplot as plt
+    from matplotlib.ticker import MaxNLocator # needed for setting axis format to integer only (p-convergence)
     pyplot_module_loaded = True
 except ImportError :
     #raise ImportError('Could not import matplotlib.pyplot module. This is needed for anaylze functions.')
@@ -405,16 +406,16 @@ class Analyze_Convtest_h(Analyze) :
 
             if pyplot_module_loaded : # this boolean is set when importing matplotlib.pyplot
                 for i in range(nVar) :
-                    f = plt.figure()
-                    plt.plot(self.cells, L2_errors[i], 'ro-')
-                    plt.xscale('log')
-                    plt.yscale('log')
-                    plt.title('nVar = '+str(i)+' (of '+str(nVar-1)+')')
-                    plt.xlabel('Number of cells')
-                    plt.ylabel('L2 error norm')
+                    f = plt.figure()                             # create figure
+                    plt.plot(self.cells, L2_errors[i], 'ro-')    # create plot
+                    plt.xscale('log')                            # set x-axis to log scale
+                    plt.yscale('log')                            # set y-axis to log scale
+                    plt.title('nVar = %s (of %s), MIN = %4.2e, MAX = %4.2e' % (i, nVar-1, min(L2_errors[i]), max(L2_errors[i]))) # set title
+                    plt.xlabel('Number of cells')                # set x-label
+                    plt.ylabel('L2 error norm')                  # set y-label
                     #plt.show() # display the plot figure for the user (comment out when running in batch mode)
-                    f_save_path = os.path.join(os.path.dirname(runs[0].target_directory),"L2_error_nVar"+str(i)+".pdf")
-                    f.savefig(f_save_path, bbox_inches='tight')
+                    f_save_path = os.path.join(os.path.dirname(runs[0].target_directory),"L2_error_nVar"+str(i)+".pdf") # set file path for saving the figure to the disk
+                    f.savefig(f_save_path, bbox_inches='tight')                                                         # save figure to .pdf file
             else :
                 print tools.red('Could not import matplotlib.pyplot module. This is needed for creating plots under "Analyze_Convtest_h(Analyze)". Skipping plot.')
 
@@ -543,16 +544,18 @@ class Analyze_Convtest_p(Analyze) :
 
             if pyplot_module_loaded : # this boolean is set when importing matplotlib.pyplot
                 for i in range(nVar) :
-                    f = plt.figure()
-                    plt.plot(p , L2_errors[i], 'ro-')
-                    plt.xscale('log')
-                    plt.yscale('log')
-                    plt.title('nVar = '+str(i)+' (of '+str(nVar-1)+')')
-                    plt.xlabel('Polynomial degree')
-                    plt.ylabel('L2 error norm')
+                    f = plt.figure()                                    # create figure
+                    ax = f.gca()                                        # set axis handle
+                    plt.plot(p , L2_errors[i], 'ro-')                   # create plot
+                    #plt.xscale('log')                                  # set x-xis to log scale
+                    plt.yscale('log')                                   # set y-xis to log scale
+                    plt.title('nVar = %s (of %s), MIN = %4.2e, MAX = %4.2e' % (i, nVar-1, min(L2_errors[i]), max(L2_errors[i]))) # set title
+                    plt.xlabel('Polynomial degree')                     # set x-label
+                    plt.ylabel('L2 error norm')                         # set y-label
+                    ax.xaxis.set_major_locator(MaxNLocator(integer=True)) # set x-axis format to integer only
                     #plt.show() # display the plot figure for the user (comment out when running in batch mode)
-                    f_save_path = os.path.join(os.path.dirname(runs[0].target_directory),"L2_error_nVar"+str(i)+".pdf")
-                    f.savefig(f_save_path, bbox_inches='tight')
+                    f_save_path = os.path.join(os.path.dirname(runs[0].target_directory),"L2_error_nVar"+str(i)+".pdf") # set file path for saving the figure to the disk
+                    f.savefig(f_save_path, bbox_inches='tight')                                                         # save figure to .pdf file
             else :
                 print tools.red('Could not import matplotlib.pyplot module. This is needed for creating plots under "Analyze_Convtest_h(Analyze)". Skipping plot.')
 
