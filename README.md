@@ -123,6 +123,20 @@ h5diff_tolerance_value = 1.0e-2
 h5diff_tolerance_type  = relative
 ```
 
+# h5diff_mult
+* Compares multiple arrays from multiple .h5 files element-by-element either with an absolute or relative difference (when comparing with zero, h5diff automatically uses an absolute comparison).  
+* Requires h5diff, which is compiled within the HDF5 package.  
+
+Template for copying to **analyze.ini**
+
+```
+! hdf5 diff
+h5diff_mult_file            = sharpSOD_State_0000000.100000000.h5,sharpSOD_State_0000000.100000000.h5       
+h5diff_mult_reference_file  = reggie_sharpSOD_State_0000000.100000000.h5,reggie_sharpSOD_State_0000000.100000000.h5
+h5diff_mult_data_set        = DG_Solution,FieldData                                
+h5diff_mult_tolerance_value = 1.0e-12,1.0e-12                                   
+h5diff_mult_tolerance_type  = absolute,absolute 
+
 # h5 array bounds check
 * Check if all elements of a h5 array are within a supplied interval
 * Requires *h5py* python module (analyze will fail if the module cannot be found)
