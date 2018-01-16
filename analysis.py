@@ -63,6 +63,7 @@ def getAnalyzes(path, example) :
      2.2   h-convergence test
      2.3   p-convergence test
      2.4   h5diff (relative or absolute HDF5-file comparison of an output file with a reference file)
+     2.4.1 h5diff_mult (relative or absolute HDF5-file comparison of an output file with a reference file)
      2.5   check array bounds in hdf5 file
      2.6   check data file row
      2.7   integrate data file column
@@ -129,6 +130,18 @@ def getAnalyzes(path, example) :
             raise Exception(tools.red("initialization of h5diff failed. h5diff_tolerance_type '%s' not accepted." % h5diff_tolerance_type))
         analyze.append(Analyze_h5diff(h5diff_reference_file, h5diff_file,h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type))
     
+    # 2.4.1   h5diff_mult (relative or absolute HDF5-file comparison of an output file with a reference file) 
+    # options can be read in multiple times to realize multiple compares for each run
+    h5diff_reference_file  = options.get('h5diff_mult_reference_file',None)
+    h5diff_file            = options.get('h5diff_mult_file',None)
+    h5diff_data_set        = options.get('h5diff_mult_data_set',None)
+    h5diff_tolerance_value = options.get('h5diff_mult_tolerance_value',1.0e-5)
+    h5diff_tolerance_type  = options.get('h5diff_mult_tolerance_type','absolute')
+    # only do h5diff test if all variables are defined
+    if h5diff_reference_file and h5diff_file and h5diff_data_set :
+        analyze.append(Analyze_h5diff_mult(h5diff_reference_file, h5diff_file,h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type))
+
+
     # 2.5   check array bounds in hdf5 file
     check_hdf5_file      = options.get('check_hdf5_file',None) 
     check_hdf5_data_set  = options.get('check_hdf5_data_set',None) 
@@ -694,6 +707,128 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
     def __str__(self) :
         return "perform h5diff between two files: ["+str(self.file)+"] + reference ["+str(self.reference_file)+"]"
 
+#==================================================================================================
+
+class Analyze_h5diff_mult(Analyze,ExternalCommand) :
+    def __init__(self, h5diff_reference_file, h5diff_file, h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type) :
+        self.reference_file   = h5diff_reference_file
+        self.file             = h5diff_file
+        self.data_set         = h5diff_data_set
+        self.tolerance_value  = h5diff_tolerance_value
+        self.tolerance_type   = h5diff_tolerance_type
+        ExternalCommand.__init__(self)
+        
+        if type(self.file) == type([]) :
+            self.file_number = len(self.file)
+        else :
+            self.file_number = 1
+        if type(self.reference_file) == type([]) :
+            self.reference_file_number = len(self.reference_file)
+        else :
+            self.reference_file_number = 1
+        if type(self.data_set) == type([]) :
+            self.data_set_number = len(self.data_set)
+        else :
+            self.data_set_number = 1
+        if type(self.tolerance_value) == type([]) :
+            self.tolerance_value_number = len(self.tolerance_value)
+        else :
+            self.tolerance_value_number = 1
+        if type(self.tolerance_type) == type([]) :
+            self.tolerance_type_number = len(self.tolerance_type)
+        else :
+            self.tolerance_type_number = 1
+        if (self.file_number + self.reference_file_number + self.data_set_number + self.tolerance_type_number + self.tolerance_value_number)%5 != 0 :
+            raise Exception(tools.red("Number of multiple data sets for multiple h5diffs is inconsitent. Please ensure all options have the same length.")) 
+
+        for compares in range(self.file_number) :
+            print compares
+            if self.file_number == 1 :
+                tolerance_type_loc   = self.tolerance_type 
+            else :
+                tolerance_type_loc   = self.tolerance_type[compares]  
+            if tolerance_type_loc in ('absolute', 'delta', '--delta') :
+                self.tolerance_type[compares] = "--delta"
+            elif tolerance_type_loc in ('relative', "--relative") :
+                self.tolerance_type_loc[compares] = "--relative"
+            else :
+                raise Exception(tools.red("initialization of h5diff failed. h5diff_tolerance_type '%s' not accepted." % tolerance_type_loc))
+
+    def perform(self,runs) :
+
+        '''
+        General workflow:
+        1.  iterate over all runs
+        1.2   execute the command 'cmd' = 'h5diff -r --XXX [number] ref_file file DataArray'
+        1.3   if the command 'cmd' returns a code != 0, set failed
+        1.3.1   add failed info (for return a code != 0) to run
+        1.3.2   set analyzes to fail (for return a code != 0)
+        '''
+
+        # 1.  iterate over all runs
+        for run in runs :
+            for compares in range(self.file_number) :
+                if self.file_number == 1 :
+                    reference_file_loc   = self.reference_file 
+                    file_loc             = self.file           
+                    data_set_loc         = self.data_set       
+                    tolerance_value_loc  = self.tolerance_value
+                    tolerance_type_loc   = self.tolerance_type 
+                else :
+                    reference_file_loc   = self.reference_file[compares] 
+                    file_loc             = self.file[compares]           
+                    data_set_loc         = self.data_set[compares]        
+                    tolerance_value_loc  = self.tolerance_value[compares] 
+                    tolerance_type_loc   = self.tolerance_type[compares]  
+
+
+                # 1.2   execute the command 'cmd' = 'h5diff -r [--type] [number] [ref_file] [file] [DataSetName]'
+                cmd = ["h5diff","-r",tolerance_type_loc,str(tolerance_value_loc),str(reference_file_loc),str(file_loc),str(data_set_loc)]
+                print tools.indent("Running [%s]" % (" ".join(cmd)), 2),
+                try :
+                    self.execute_cmd(cmd, run.target_directory,"h5diff") # run the code
+
+                    # 1.3   if the comman 'cmd' return a code != 0, set failed
+                    if self.return_code != 0 :
+                        print "   tolerance_type     : "+tolerance_type_loc
+                        print "   tolernace_value    : "+str(tolerance_value_loc)
+                        print "   reference          : "+str(reference_file_loc)
+                        print "   file               : "+str(file_loc)
+                        print "   data_set           : "+str(data_set_loc)
+                        run.analyze_results.append("h5diff failed, self.return_code != 0")
+
+                        # 1.3.1   add failed info if return a code != 0 to run
+                        if len(self.stdout) > 20 :
+                            for line in self.stdout[:10] : # print first 10 lines
+                                print " "+line,
+                            print " ... leaving out intermediate lines"
+                            for line in self.stdout[-10:] : # print last 10 lines
+                                print " "+line,
+                        else :
+                            print " "+str(self.stdout)
+                            if len(self.stdout) == 1 :
+                                run.analyze_results.append(str(self.stdout))
+
+                        # 1.3.2   set analyzes to fail if return a code != 0
+                        run.analyze_successful=False
+                        Analyze.total_errors+=1
+
+                        #global_errors+=1
+                except Exception,ex :
+                    self.result=tools.red("h5diff failed."+str(ex)) # print result here, because it was not added in "execute_cmd"
+                    print " "+self.result
+
+                    # 1.3.1   add failed info if return a code != 0 to run
+                    run.analyze_results.append(tools.red("h5diff failed."+str(ex)))
+                    run.analyze_results.append(tools.red("try adding 'export PATH=/opt/hdf5/1.X/bin/:$PATH'"))
+
+                    # 1.3.2   set analyzes to fail if return a code != 0
+                    run.analyze_successful=False
+                    Analyze.total_errors+=1
+
+    # FIXME: the info message might be incorrect
+    def __str__(self) :
+        return "perform h5diff between two files: ["+str(self.file)+"] + reference ["+str(self.reference_file)+"]"
 #==================================================================================================
 
 class Analyze_check_hdf5(Analyze) :
