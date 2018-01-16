@@ -136,6 +136,7 @@ h5diff_mult_reference_file  = reggie_sharpSOD_State_0000000.100000000.h5,reggie_
 h5diff_mult_data_set        = DG_Solution,FieldData                                
 h5diff_mult_tolerance_value = 1.0e-12,1.0e-12                                   
 h5diff_mult_tolerance_type  = absolute,absolute 
+```
 
 # h5 array bounds check
 * Check if all elements of a h5 array are within a supplied interval
