@@ -1,7 +1,8 @@
 # Overview
  * Zollernblick slides [RegressionCheck2.0.pdf](/uploads/7a6718bc26615653cdd32116d968b969/RegressionCheck2.0.pdf)
- * [Analyze routines overview for **analyze.ini**](#analyze-routines)
- * [Command line arguments overview for **command_line.ini**](#command-line)
+ * [Analyze routines in **analyze.ini**](#analyze-routines)
+ * [Command line arguments in **command_line.ini**](#command-line)
+ * [Build in **builds.ini**](#builds)
   
 # Table of Contents Analyze Routines for "analyze.ini"
 1. [L2 error file](#l2-error-file)
@@ -259,4 +260,61 @@ Template for copying to `command_line.ini`
 ! command line parameters
 MPI=2
 cmd_suffix=DSMC.ini
+```
+
+
+
+
+# Builds
+
+parameters used in `builds.ini` and example arguments
+
+|**function**              | **options**                          | **values**                                            | **Default values**               | **Description**           
+|:------------------------:|:-------------------------------------|:------------------------------------------------------|:---------------------------------|:---------------------------------------------------------------------------------------------------------------------------|
+|program to execute        | binary                               | ./bin/flexi                                           | None                             | set the relative binary path in build directory                                                                            |
+|compile flags             | CMAKE\_BUILD\_TYPE                   | DEBUG                                                 | None                             | set compile flags to the corresponding settings                                                                            |
+|exclude combinations      | EXCLUDE:                             | FLEXI_VISCOSITY=sutherland,FLEXI_PARABOLIC=OFF        | None                             | exclude specific combinations of compile flags, these will be skipped                                                      |
+
+
+# Example
+
+Template for copying to `builds.ini`
+
+```
+! relative binary path in build directory
+binary=./bin/flexi
+
+! fixed compiler flags
+CMAKE_BUILD_TYPE=DEBUG
+FLEXI_BUILD_HDF5=OFF
+FLEXI_PAPI=OFF
+FLEXI_POLYNOMIAL_DEGREE=N
+FLEXI_MKL=OFF
+FLEXI_SPLIT_DG=OFF
+
+! include combinations
+FLEXI_2D=OFF,ON
+FLEXI_EQNSYSNAME=navierstokes,linearscalaradvection
+FLEXI_LIFTING=br1,br2
+FLEXI_MPI=ON!,OFF
+FLEXI_NODETYPE=GAUSS,GAUSS-LOBATTO
+FLEXI_PARABOLIC=ON,OFF
+FLEXI_VISCOSITY=constant,sutherland,powerlaw
+FLEXI_FV=ON,OFF
+FLEXI_FV_RECONSTRUCTION=ON,OFF
+FLEXI_GCL=ON,OFF
+
+! exclude combinations
+EXCLUDE:FLEXI_VISCOSITY=sutherland,FLEXI_PARABOLIC=OFF
+EXCLUDE:FLEXI_VISCOSITY=powerlaw,FLEXI_PARABOLIC=OFF
+EXCLUDE:FLEXI_VISCOSITY=sutherland,FLEXI_EQNSYSNAME=linearscalaradvection
+EXCLUDE:FLEXI_VISCOSITY=powerlaw,FLEXI_EQNSYSNAME=linearscalaradvection
+EXCLUDE:FLEXI_LIFTING=br2,FLEXI_EQNSYSNAME=linearscalaradvection
+EXCLUDE:FLEXI_FV=ON,FLEXI_FV_RECONSTRUCTION=OFF,FLEXI_PARABOLIC=ON
+EXCLUDE:FLEXI_FV=OFF,FLEXI_FV_RECONSTRUCTION=ON
+EXCLUDE:FLEXI_GCL=ON,FLEXI_FV=ON ! Not yet implemented
+EXCLUDE:FLEXI_NODETYPE=GAUSS-LOBATTO,FLEXI_VISCOSITY=sutherland
+EXCLUDE:FLEXI_NODETYPE=GAUSS-LOBATTO,FLEXI_VISCOSITY=powerlaw
+EXCLUDE:FLEXI_LIFTING=br2,FLEXI_VISCOSITY=sutherland
+EXCLUDE:FLEXI_LIFTING=br2,FLEXI_VISCOSITY=powerlaw
 ```
