@@ -1,8 +1,9 @@
 # Overview
  * Zollernblick slides [RegressionCheck2.0.pdf](/uploads/7a6718bc26615653cdd32116d968b969/RegressionCheck2.0.pdf)
- * [Analyze routines overview](#analyze-routines)
+ * [Analyze routines overview for **analyze.ini**](#analyze-routines)
+ * [Command line arguments overview for **command_line.ini**](#command-line)
   
-# Table of Contents Analyze Routines
+# Table of Contents Analyze Routines for "analyze.ini"
 1. [L2 error file](#l2-error-file)
 2. [L2 error upper limit](#l2-error-upper-limit)
 3. [h-convergence test](#h-convergence-test)
@@ -13,6 +14,7 @@
 8. [integrate data columns](#integrate-data-columns)
 
 # Analyze routines
+parameters used in `analyze.ini` and example arguments
 
 |**analyze**               | **options**                          | **values**                                            | **Default values**               | **Description**           
 |:------------------------:|:-------------------------------------|:------------------------------------------------------|:---------------------------------|:---------------------------------------------------------------------------------------------------------------------------|
@@ -229,11 +231,32 @@ Note that a comma is the default delimiter symbol for reading the data from the 
 
 
 
-# template
+## template
 * 
 
 Template for copying to **analyze.ini**
 
 ```
  
+```
+
+# Command Line
+
+parameters used in `command_line.ini` and example arguments
+
+|**function**              | **options**                          | **values**                                            | **Default values**               | **Description**           
+|:------------------------:|:-------------------------------------|:------------------------------------------------------|:---------------------------------|:---------------------------------------------------------------------------------------------------------------------------|
+|mpirun                    | MPI                                  | 1,2,4,8                                               | None                             | number of MPI threads with which the runs are repeated                                                                     |
+|additional info           | cmd\_suffix                          | DSMC.ini                                              | None                             | additional information that is appended to the command line argument that is used for running a program                    |
+
+# Example
+* run multiple different MPI threads
+* use additional parameter file *DSMC.ini*
+
+Template for copying to `command_line.ini`
+
+```
+! command line parameters
+MPI=2
+cmd_suffix=DSMC.ini
 ```
