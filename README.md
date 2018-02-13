@@ -3,8 +3,10 @@
  * [Analyze routines in **analyze.ini**](#analyze-routines)
  * [Command line arguments in **command_line.ini**](#command-line)
  * [Build in **builds.ini**](#builds)
+
+
+# Analyze routines for "analyze.ini"
   
-# Table of Contents Analyze Routines for "analyze.ini"
 1. [L2 error file](#l2-error-file)
 2. [L2 error upper limit](#l2-error-upper-limit)
 3. [h-convergence test](#h-convergence-test)
@@ -14,7 +16,6 @@
 7. [Data file line comparison](#data-file-line-comparison)
 8. [integrate data columns](#integrate-data-columns)
 
-# Analyze routines
 parameters used in `analyze.ini` and example arguments
 
 |**analyze**               | **options**                          | **values**                                            | **Default values**               | **Description**           
