@@ -179,3 +179,12 @@ def diff_value(x,x_ref,tol,tol_type) :
 
     return success
 
+def isKeyOf(a,key_IN) :
+    """Check if the dictionary 'a' contains a key 'key_IN'"""
+    found = False
+    number = 0
+    for key in a.keys() :
+        if key == key_IN :
+            number += 1
+            found = True
+    return found, number
