@@ -22,12 +22,13 @@ General workflow:
 print(132*'='+"\n"+"gitlab-ci processing tool, add nice ASCII art here"+"\n"+132*'=')
 start = timer()
 
-
+# argument parser
 parser = argparse.ArgumentParser(description='Script for executing the regression checker for NRG codes multiple times with gitlab-ci.yml.', formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument('gitlab_ci', help='Path to gitlab-ci.yml')
 parser.add_argument('-s', '--stage', default='DO_NIGHTLY', help='Supply DO_NIGHTLY, DO_WEEKLY, etc. flag.')
-parser.add_argument('-i', '--i_start', type=int, default=1,  help='Number of the case: where to start with the run')
-parser.add_argument('-d', '--debug', type=int, default=0, help='Debug level.')
+parser.add_argument('-b', '--begin', type=int, default=1,  help='Number of the case: where to start with the run')
+parser.add_argument('-d', '--debug', type=int, default=0, help='Debug level for this program.')
+parser.add_argument('-i', '--info', type=int, default=1, help='Debug level for the subsequent program execution.')
 parser.add_argument('-o', '--only', action='store_true',help='only run one case and exit afterwards')
 
 # get reggie command line arguments
@@ -96,18 +97,23 @@ for case in cases :
     c = str(basedir+c).strip()
     case_dir=c.split(" ")[0]
     if not os.path.exists(case_dir) : # check if folder exists: use only the part of the string up to the first (whitespace (" ")
-        print tools.red("case directory not found under: '%s'" % case_dir2)
+        print tools.red("case directory not found under: '%s'" % case_dir)
         exit(1)
 
     # set the command line "cmd"
     cmd=["python", reggie_path]
     for x in c.split(" ") :
         cmd.append(str(x).strip())
+
+    # add debug level to gitlab-ci command line
+    if args.info :
+        cmd.append("-d1")
+
     cmd_string=" ".join(cmd)
     #cmd = ["ls","-l"] # for testing some other commands
 
-    # run case depending on supplied (or default) number "i_start"
-    if i >= args.i_start : # run this case
+    # run case depending on supplied (or default) number "begin"
+    if i >= args.begin : # run this case
         print str("[%5d] Running  " % i)+cmd_string,
         if args.debug > 0 :
             print " "
@@ -127,7 +133,14 @@ for case in cases :
         # move the std.out file
         old_std=os.path.join(target_directory, 'std.out')
         new_std=os.path.join(target_directory, 'std-%s.out' % i)
-        os.rename(old_std,new_std)
+        if os.path.exists(os.path.abspath(old_std)) : # check if file exists
+            os.rename(old_std,new_std)
+
+        # move the err.out file
+        old_err=os.path.join(target_directory, 'std.err')
+        new_err=os.path.join(target_directory, 'std-%s.err' % i)
+        if os.path.exists(os.path.abspath(old_err)) : # check if file exists
+            os.rename(old_err,new_err)
 
         # exit, if user wants to
         if args.only : # if only one case is to be run -> exit(0)
