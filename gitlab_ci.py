@@ -49,8 +49,8 @@ if not os.path.exists(args.gitlab_ci) :
     exit(1)
 
 # set the basedir (where the code is) and the reggiedir (where the reggie.py is)
-basedir = os.path.dirname(args.gitlab_ci)
-reggiedir = os.path.dirname(os.path.realpath(__file__))
+basedir = os.path.abspath(os.path.dirname(args.gitlab_ci))
+reggiedir = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 
 print tools.blue("Using code under      [basedir]: "+str(basedir))
 print tools.blue("Using reggie under  [reggiedir]: "+str(reggiedir))
@@ -98,8 +98,13 @@ for case in cases :
     c     = case.command[case.command.find("reggie.py")+9:].strip()
     c     = c[c.find("/regressioncheck/checks"):].strip()
     case_dir = str(basedir+c).strip()
-    if not os.path.exists(case_dir) : # check if file exists
-        print tools.red("case directory not found under: '%s'" % case_dir)
+    index=case_dir.find(" ")
+    if index > 0 :
+        case_dir2=case_dir[:index]
+    else :
+        case_dir2=case_dir
+    if not os.path.exists(case_dir2) : # check if file exists
+        print tools.red("case directory not found under: '%s'" % case_dir2)
         exit(1)
     
 
