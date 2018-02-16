@@ -402,22 +402,6 @@ class Analyze_Convtest_h(Analyze) :
             nVar = len(L2_errors)
             print tools.blue("L2 errors for nVar="+str(nVar))
             displayTable(L2_errors,nVar,nRuns)
-            writeTableToFile(L2_errors,nVar,nRuns,self.cells,os.path.dirname(runs[0].target_directory),"L2_error.csv")
-
-            if pyplot_module_loaded : # this boolean is set when importing matplotlib.pyplot
-                for i in range(nVar) :
-                    f = plt.figure()                             # create figure
-                    plt.plot(self.cells, L2_errors[i], 'ro-')    # create plot
-                    plt.xscale('log')                            # set x-axis to log scale
-                    plt.yscale('log')                            # set y-axis to log scale
-                    plt.title('nVar = %s (of %s), MIN = %4.2e, MAX = %4.2e' % (i, nVar-1, min(L2_errors[i]), max(L2_errors[i]))) # set title
-                    plt.xlabel('Number of cells')                # set x-label
-                    plt.ylabel('L2 error norm')                  # set y-label
-                    #plt.show() # display the plot figure for the user (comment out when running in batch mode)
-                    f_save_path = os.path.join(os.path.dirname(runs[0].target_directory),"L2_error_nVar"+str(i)+".pdf") # set file path for saving the figure to the disk
-                    f.savefig(f_save_path, bbox_inches='tight')                                                         # save figure to .pdf file
-            else :
-                print tools.red('Could not import matplotlib.pyplot module. This is needed for creating plots under "Analyze_Convtest_h(Analyze)". Skipping plot.')
 
             # 1.4   determine order of convergence between two runs
             L2_order = np.array([analyze_functions.calcOrder_h(self.cells,L2_errors[i]) for i in range(nVar)])
@@ -428,6 +412,29 @@ class Analyze_Convtest_h(Analyze) :
             mean = [np.mean(L2_order[i]) for i in range(nVar)]
             print tools.blue("L2 average order for nVar=%s (exprected order = %s)" % (nVar,p+1))
             displayVector(mean,nVar)
+
+            if pyplot_module_loaded : # this boolean is set when importing matplotlib.pyplot
+                for i in range(nVar) :
+                    f = plt.figure()                             # create figure
+                    if 1 == 2 :
+                        self.grid_spacing = [1.0/((p+1)*float(x)) for x in self.cells]
+                        plt.plot(self.grid_spacing, L2_errors[i], 'ro-')    # create plot
+                        plt.xlabel('Average grid spacing for unit domain lenght L_domain=1')                # set x-label
+                    else :
+                        plt.plot(self.cells, L2_errors[i], 'ro-')    # create plot
+                        plt.xlabel('Number of cells')                # set x-label
+                    plt.xscale('log')                            # set x-axis to log scale
+                    plt.yscale('log')                            # set y-axis to log scale
+                    plt.title('nVar = %s (of %s), MIN = %4.2e, MAX = %4.2e, O(%.2f)' % (i, nVar-1, min(L2_errors[i]), max(L2_errors[i]),mean[i])) # set title
+                    plt.ylabel('L2 error norm')                  # set y-label
+                    #plt.show() # display the plot figure for the user (comment out when running in batch mode)
+                    f_save_path = os.path.join(os.path.dirname(runs[0].target_directory),"L2_error_nVar"+str(i)+"_order%.2f.pdf" % mean[i]) # set file path for saving the figure to the disk
+                    f.savefig(f_save_path, bbox_inches='tight')                                                         # save figure to .pdf file
+            else :
+                print tools.red('Could not import matplotlib.pyplot module. This is needed for creating plots under "Analyze_Convtest_h(Analyze)". Skipping plot.')
+
+            # write L2 error data to file
+            writeTableToFile(L2_errors,nVar,nRuns,self.cells,os.path.dirname(runs[0].target_directory),"L2_error_order%.2f.csv" % mean[0])
             
             # 1.5   determine success rate by comparing the relative convergence error with a tolerance
             print tools.blue( "relative order error (tolerance = %.4e)" % self.tolerance)
