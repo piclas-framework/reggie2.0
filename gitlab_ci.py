@@ -71,7 +71,7 @@ with open(args.gitlab_ci, 'rb') as f :        # read file as "f"
                 if s.find("python") > 0 :     # find lines which contain "python"
                     c=s[s.find("python"):]    # create string "c" starting at "python"
                     if c.find(";") > 0 :      # find lines which contain ";"
-                        c=c[:c.find(";")-1]   # remove everything aver ";2
+                        c=c[:c.find(";")]     # remove everything aver ";"
                     if c not in commands:     # add the new command line only if it is unique
                         commands.append(c)    # add command line to list
                         cases.append(gitlab_ci_tools.Case(c)) # and the case to the list of cases
@@ -91,52 +91,58 @@ print "Creating output under %s" % target_directory
 
 print " "
 i=1
+nErrors=0
 for case in cases :
-
-    #print tools.blue("Running ["+str(c)+"]")
-
-    c     = case.command[case.command.find("reggie.py")+9:].strip()
-    c     = c[c.find("/regressioncheck/checks"):].strip()
-    case_dir = str(basedir+c).strip()
-    index=case_dir.find(" ")
-    if index > 0 :
-        case_dir2=case_dir[:index]
-    else :
-        case_dir2=case_dir
-    if not os.path.exists(case_dir2) : # check if file exists
+    # extract the reggie case from the command in the gitlay-ci.yml line by looking for "reggie.py" and "/regressioncheck/checks"
+    c = case.command[case.command.find("reggie.py")+9:].strip()
+    c = c[c.find("/regressioncheck/checks"):].strip()
+    c = str(basedir+c).strip()
+    case_dir=c.split(" ")[0]
+    if not os.path.exists(case_dir) : # check if folder exists: use only the part of the string up to the first (whitespace (" ")
         print tools.red("case directory not found under: '%s'" % case_dir2)
         exit(1)
-    
 
-    #cmd="python "+reggie_path+" "+case_dir
-    cmd=["python", reggie_path, case_dir]
-    if i == args.i_start :
-        print str("[%5d] Running  " % i)+" ".join(cmd),
+    # set the command line "cmd"
+    cmd=["python", reggie_path]
+    for x in c.split(" ") :
+        cmd.append(str(x).strip())
+    cmd_string=" ".join(cmd)
+    #cmd = ["ls","-l"] # for testing some other commands
+
+    # run case depending on supplied (or default) number "i_start"
+    if i == args.i_start : # run this case
+        print str("[%5d] Running  " % i)+cmd_string,
         if args.debug > 0 :
             print " "
-
-        #cmd = ["ls","-l"]
 
         # run the code and generate output
         try :
             if case.execute_cmd(cmd, target_directory) != 0 : # use unclolored string for cmake
-                raise gitlab_ci_tools.CaseFailedException(self) # "CMAKE failed"
-        except :
-            print tools.red("Failed command %s" % " ".join(cmd))
+                raise gitlab_ci_tools.CaseFailedException(self) # "run failed" -> fails, if the execution of reggie (or subsequently the code) returns non-zero value
+                case.failed=True
+        except : # this fails, if the supplied command line is corrupted
+            print tools.red("Failed command %s" % cmd_string)
             case.failed=True
 
+        # if case fails, add error to number of errors
+        if case.failed :
+            nErrors += 1
+
+        # move the std.out file
         old_std=os.path.join(target_directory, 'std.out')
         new_std=os.path.join(target_directory, 'std-%s.out' % i)
         os.rename(old_std,new_std)
+
+        # exit, if user wants to
         if args.only : # if only one case is to be run -> exit(0)
             gitlab_ci_tools.finalize(start, 0, 0, 0)
             exit(0)
-    else :
-        print tools.yellow(str("[%5d] Skipping " % i)+" ".join(cmd))
+    else : # skip this case
+        print tools.yellow(str("[%5d] Skipping " % i)+cmd_string)
 
 
 
     #exit(0)
     i += 1
 
-gitlab_ci_tools.finalize(start, 0, 0, 0)
+gitlab_ci_tools.finalize(start, 0, nErrors, 0)
