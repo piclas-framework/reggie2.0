@@ -12,9 +12,10 @@
 3. [h-convergence test](#h-convergence-test)
 4. [p-convergence test](#p-convergence-test)
 5. [h5diff](#h5diff)
-6. [h5 array bounds check](#h5-array-bounds-check)
-7. [Data file line comparison](#data-file-line-comparison)
-8. [integrate data columns](#integrate-data-columns)
+6. [h5diff_mult](#h5diff_mult)
+7. [h5 array bounds check](#h5-array-bounds-check)
+8. [Data file line comparison](#data-file-line-comparison)
+9. [integrate data columns](#integrate-data-columns)
 
 parameters used in `analyze.ini` and example arguments
 
