@@ -1,8 +1,12 @@
 # Overview
  * Zollernblick slides [RegressionCheck2.0.pdf](/uploads/7a6718bc26615653cdd32116d968b969/RegressionCheck2.0.pdf)
- * [Analyze routines overview](#analyze-routines)
+ * [Analyze routines in **analyze.ini**](#analyze-routines)
+ * [Command line arguments in **command_line.ini**](#command-line)
+ * [Build in **builds.ini**](#builds)
+
+
+# Analyze routines for "analyze.ini"
   
-# Table of Contents Analyze Routines
 1. [L2 error file](#l2-error-file)
 2. [L2 error upper limit](#l2-error-upper-limit)
 3. [h-convergence test](#h-convergence-test)
@@ -12,7 +16,7 @@
 7. [Data file line comparison](#data-file-line-comparison)
 8. [integrate data columns](#integrate-data-columns)
 
-# Analyze routines
+parameters used in `analyze.ini` and example arguments
 
 |**analyze**               | **options**                          | **values**                                            | **Default values**               | **Description**           
 |:------------------------:|:-------------------------------------|:------------------------------------------------------|:---------------------------------|:---------------------------------------------------------------------------------------------------------------------------|
@@ -30,6 +34,11 @@
 |                          | h5diff\_data\_set                    | DG\_Solution                                          | None                             | name of data set for comparing (e.g. DG\_Solution)                                                                         |
 |                          | h5diff\_tolerance\_value             | 1.0e-2                                                | 1e-5                             | relative/absolute deviation between two elements in a .h5 array                                                            |
 |                          | h5diff\_tolerance\_type              | relative                                              | absolute                         | relative or absolute comparison                                                                                            |
+|h5diff_mult               | h5diff\_files                        | \_State\_0.0.h5,\_State\_0.0.h5                       | None                             | name of calculated .h5 file (output from current run)                                                                      |
+|                          | h5diff\_reference\_files             | \_State\_0.0.h5\_ref,\_State\_0.0.h5\_ref             | None                             | reference .h5 file (must be placed in repository) for comparing with the calculated one                                    |
+|                          | h5diff\_data\_sets                   | DG\_Solution,FieldData                                | None                             | name of data set for comparing (e.g. DG\_Solution)                                                                         |
+|                          | h5diff\_tolerance\_values            | 1.0e-2,1.0e-10                                        | 1e-5                             | relative/absolute deviation between two elements in a .h5 array                                                            |
+|                          | h5diff\_tolerance\_types             | relative,absolute                                     | absolute                         | relative or absolute comparison                                                                                            |
 |h5 array bounds check     | check\_hdf5\_file                    | tildbox_State_001.00000000000000000.h5                | None                             | name of calculated .h5 file (output from current run)                                                                      |
 |                          | check\_hdf5\_data\_set               | PartData                                              | None                             | name of data set for comparing (e.g. DG\_Solution)                                                                         |
 |                          | check\_hdf5\_dimension               | 0:2                                                   | None                             | dimension of data set ( note that dimensions start at 0)                                                                   |
@@ -116,6 +125,21 @@ h5diff_reference_file  = single-particle_reference_State_000.0000000500000000.h5
 h5diff_data_set        = DG_Source
 h5diff_tolerance_value = 1.0e-2
 h5diff_tolerance_type  = relative
+```
+
+# h5diff_mult
+* Compares multiple arrays from multiple .h5 files element-by-element either with an absolute or relative difference (when comparing with zero, h5diff automatically uses an absolute comparison).  
+* Requires h5diff, which is compiled within the HDF5 package.  
+
+Template for copying to **analyze.ini**
+
+```
+! hdf5 diff
+h5diff_mult_file            = sharpSOD_State_0000000.100000000.h5,sharpSOD_State_0000000.100000000.h5       
+h5diff_mult_reference_file  = reggie_sharpSOD_State_0000000.100000000.h5,reggie_sharpSOD_State_0000000.100000000.h5
+h5diff_mult_data_set        = DG_Solution,FieldData                                
+h5diff_mult_tolerance_value = 1.0e-12,1.0e-12                                   
+h5diff_mult_tolerance_type  = absolute,absolute 
 ```
 
 # h5 array bounds check
@@ -209,11 +233,89 @@ Note that a comma is the default delimiter symbol for reading the data from the 
 
 
 
-# template
+## template
 * 
 
 Template for copying to **analyze.ini**
 
 ```
  
+```
+
+# Command Line
+
+parameters used in `command_line.ini` and example arguments
+
+|**function**              | **options**                          | **values**                                            | **Default values**               | **Description**           
+|:------------------------:|:-------------------------------------|:------------------------------------------------------|:---------------------------------|:---------------------------------------------------------------------------------------------------------------------------|
+|mpirun                    | MPI                                  | 1,2,4,8                                               | None                             | number of MPI threads with which the runs are repeated                                                                     |
+|additional info           | cmd\_suffix                          | DSMC.ini                                              | None                             | additional information that is appended to the command line argument that is used for running a program                    |
+
+# Example
+* run multiple different MPI threads
+* use additional parameter file *DSMC.ini*
+
+Template for copying to `command_line.ini`
+
+```
+! command line parameters
+MPI=2
+cmd_suffix=DSMC.ini
+```
+
+
+
+
+# Builds
+
+parameters used in `builds.ini` and example arguments
+
+|**function**              | **options**                          | **values**                                            | **Default values**               | **Description**           
+|:------------------------:|:-------------------------------------|:------------------------------------------------------|:---------------------------------|:---------------------------------------------------------------------------------------------------------------------------|
+|program to execute        | binary                               | ./bin/flexi                                           | None                             | set the relative binary path in build directory                                                                            |
+|compile flags             | CMAKE\_BUILD\_TYPE                   | DEBUG                                                 | None                             | set compile flags to the corresponding settings                                                                            |
+|exclude combinations      | EXCLUDE:                             | FLEXI_VISCOSITY=sutherland,FLEXI_PARABOLIC=OFF        | None                             | exclude specific combinations of compile flags, these will be skipped                                                      |
+
+
+# Example
+
+Template for copying to `builds.ini`
+
+```
+! relative binary path in build directory
+binary=./bin/flexi
+
+! fixed compiler flags
+CMAKE_BUILD_TYPE=DEBUG
+FLEXI_BUILD_HDF5=OFF
+FLEXI_PAPI=OFF
+FLEXI_POLYNOMIAL_DEGREE=N
+FLEXI_MKL=OFF
+FLEXI_SPLIT_DG=OFF
+
+! include combinations
+FLEXI_2D=OFF,ON
+FLEXI_EQNSYSNAME=navierstokes,linearscalaradvection
+FLEXI_LIFTING=br1,br2
+FLEXI_MPI=ON!,OFF
+FLEXI_NODETYPE=GAUSS,GAUSS-LOBATTO
+FLEXI_PARABOLIC=ON,OFF
+FLEXI_VISCOSITY=constant,sutherland,powerlaw
+FLEXI_FV=ON,OFF
+FLEXI_FV_RECONSTRUCTION=ON,OFF
+FLEXI_GCL=ON,OFF
+
+! exclude combinations
+EXCLUDE:FLEXI_VISCOSITY=sutherland,FLEXI_PARABOLIC=OFF
+EXCLUDE:FLEXI_VISCOSITY=powerlaw,FLEXI_PARABOLIC=OFF
+EXCLUDE:FLEXI_VISCOSITY=sutherland,FLEXI_EQNSYSNAME=linearscalaradvection
+EXCLUDE:FLEXI_VISCOSITY=powerlaw,FLEXI_EQNSYSNAME=linearscalaradvection
+EXCLUDE:FLEXI_LIFTING=br2,FLEXI_EQNSYSNAME=linearscalaradvection
+EXCLUDE:FLEXI_FV=ON,FLEXI_FV_RECONSTRUCTION=OFF,FLEXI_PARABOLIC=ON
+EXCLUDE:FLEXI_FV=OFF,FLEXI_FV_RECONSTRUCTION=ON
+EXCLUDE:FLEXI_GCL=ON,FLEXI_FV=ON ! Not yet implemented
+EXCLUDE:FLEXI_NODETYPE=GAUSS-LOBATTO,FLEXI_VISCOSITY=sutherland
+EXCLUDE:FLEXI_NODETYPE=GAUSS-LOBATTO,FLEXI_VISCOSITY=powerlaw
+EXCLUDE:FLEXI_LIFTING=br2,FLEXI_VISCOSITY=sutherland
+EXCLUDE:FLEXI_LIFTING=br2,FLEXI_VISCOSITY=powerlaw
 ```
