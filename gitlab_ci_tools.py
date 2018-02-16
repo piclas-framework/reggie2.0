@@ -31,17 +31,10 @@ class Case(ExternalCommand) :
         ExternalCommand.__init__(self)
 
 
-class CaseFailedException(Exception) :
-    #def __init__(self, build):
-        #self.build = build
-    def __str__(self):
-        return "build.compile failed in directory '%s'." % (self.command)
 
-
-
-def finalize(start, build_errors, run_errors, analyze_errors) :
+def finalize(start, run_errors) :
     """Display if gitlab_ci script check was successful or not and return the corresponding error code"""
-    if build_errors + run_errors + analyze_errors > 0 :
+    if run_errors > 0 :
         print bcolors.RED + 132*'='
         print "gitlab-ci processing tool  FAILED!",
         return_code = 1
@@ -56,9 +49,7 @@ def finalize(start, build_errors, run_errors, analyze_errors) :
     else :
         print ""
 
-    #print "Number of build   errors: %d" % build_errors
     print "Number of run     errors: %d" % run_errors
-    #print "Number of analyze errors: %d" % analyze_errors
 
     print '='*132 + bcolors.ENDC
     exit(return_code)

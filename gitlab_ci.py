@@ -76,17 +76,14 @@ with open(args.gitlab_ci, 'rb') as f :        # read file as "f"
                         commands.append(c)    # add command line to list
                         cases.append(gitlab_ci_tools.Case(c)) # and the case to the list of cases
 
-#switch to basedir+/output_dir_gitlab_tool
-
-
-
 print(132*'=')
+
+#switch to basedir+/output_dir_gitlab_tool
 target_directory=os.path.join(basedir, 'output_dir_gitlab_tool')
 shutil.rmtree(target_directory,ignore_errors=True)
 os.makedirs(target_directory)
 os.chdir(target_directory)
 print "Creating output under %s" % target_directory
-
 
 
 print " "
@@ -110,7 +107,7 @@ for case in cases :
     #cmd = ["ls","-l"] # for testing some other commands
 
     # run case depending on supplied (or default) number "i_start"
-    if i == args.i_start : # run this case
+    if i >= args.i_start : # run this case
         print str("[%5d] Running  " % i)+cmd_string,
         if args.debug > 0 :
             print " "
@@ -118,10 +115,9 @@ for case in cases :
         # run the code and generate output
         try :
             if case.execute_cmd(cmd, target_directory) != 0 : # use unclolored string for cmake
-                raise gitlab_ci_tools.CaseFailedException(self) # "run failed" -> fails, if the execution of reggie (or subsequently the code) returns non-zero value
                 case.failed=True
         except : # this fails, if the supplied command line is corrupted
-            print tools.red("Failed command %s" % cmd_string)
+            print tools.red("Failed")
             case.failed=True
 
         # if case fails, add error to number of errors
@@ -135,14 +131,11 @@ for case in cases :
 
         # exit, if user wants to
         if args.only : # if only one case is to be run -> exit(0)
-            gitlab_ci_tools.finalize(start, 0, 0, 0)
+            gitlab_ci_tools.finalize(start, nErrors)
             exit(0)
     else : # skip this case
         print tools.yellow(str("[%5d] Skipping " % i)+cmd_string)
 
-
-
-    #exit(0)
     i += 1
 
-gitlab_ci_tools.finalize(start, 0, nErrors, 0)
+gitlab_ci_tools.finalize(start, nErrors)
