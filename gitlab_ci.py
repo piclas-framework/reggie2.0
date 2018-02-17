@@ -30,6 +30,7 @@ parser.add_argument('-b', '--begin', type=int, default=1,  help='Number of the c
 parser.add_argument('-d', '--debug', type=int, default=0, help='Debug level for this program.')
 parser.add_argument('-i', '--info', type=int, default=1, help='Debug level for the subsequent program execution.')
 parser.add_argument('-o', '--only', action='store_true',help='only run one case and exit afterwards')
+parser.add_argument('-n', '--dryrun', action='store_true',help='simply list all possible cases without performing any run')
 
 # get reggie command line arguments
 args = parser.parse_args()
@@ -79,12 +80,15 @@ with open(args.gitlab_ci, 'rb') as f :        # read file as "f"
 
 print(132*'=')
 
-#switch to basedir+/output_dir_gitlab_tool
-target_directory=os.path.join(basedir, 'output_dir_gitlab_tool')
-shutil.rmtree(target_directory,ignore_errors=True)
-os.makedirs(target_directory)
-os.chdir(target_directory)
-print "Creating output under %s" % target_directory
+if not args.dryrun : # do not execute anythin in dryrun mode
+    #switch to basedir+/output_dir_gitlab_tool
+    target_directory=os.path.join(basedir, 'output_dir_gitlab_tool')
+    shutil.rmtree(target_directory,ignore_errors=True)
+    os.makedirs(target_directory)
+    os.chdir(target_directory)
+    print "Creating output under %s" % target_directory
+else :
+    print "List of possible cases from gitlab-ci.yml are"
 
 
 print " "
@@ -115,40 +119,43 @@ for case in cases :
     # run case depending on supplied (or default) number "begin"
     if i >= args.begin : # run this case
         print str("[%5d] Running  " % i)+cmd_string,
-        if args.debug > 0 :
+        if args.debug > 0 or args.dryrun :
             print " "
 
-        # run the code and generate output
-        try :
-            if case.execute_cmd(cmd, target_directory) != 0 : # use unclolored string for cmake
+        if not args.dryrun : # do not execute anythin in dryrun mode
+            # run the code and generate output
+            try :
+                if case.execute_cmd(cmd, target_directory) != 0 : # use unclolored string for cmake
+                    case.failed=True
+            except : # this fails, if the supplied command line is corrupted
+                print tools.red("Failed")
                 case.failed=True
-        except : # this fails, if the supplied command line is corrupted
-            print tools.red("Failed")
-            case.failed=True
 
-        # if case fails, add error to number of errors
-        if case.failed :
-            nErrors += 1
+            # if case fails, add error to number of errors
+            if case.failed :
+                nErrors += 1
 
-        # move the std.out file
-        old_std=os.path.join(target_directory, 'std.out')
-        new_std=os.path.join(target_directory, 'std-%s.out' % i)
-        if os.path.exists(os.path.abspath(old_std)) : # check if file exists
-            os.rename(old_std,new_std)
+            # move the std.out file
+            old_std=os.path.join(target_directory, 'std.out')
+            new_std=os.path.join(target_directory, 'std-%s.out' % i)
+            if os.path.exists(os.path.abspath(old_std)) : # check if file exists
+                os.rename(old_std,new_std)
 
-        # move the err.out file
-        old_err=os.path.join(target_directory, 'std.err')
-        new_err=os.path.join(target_directory, 'std-%s.err' % i)
-        if os.path.exists(os.path.abspath(old_err)) : # check if file exists
-            os.rename(old_err,new_err)
+            # move the err.out file
+            old_err=os.path.join(target_directory, 'std.err')
+            new_err=os.path.join(target_directory, 'std-%s.err' % i)
+            if os.path.exists(os.path.abspath(old_err)) : # check if file exists
+                os.rename(old_err,new_err)
 
-        # exit, if user wants to
-        if args.only : # if only one case is to be run -> exit(0)
-            gitlab_ci_tools.finalize(start, nErrors)
-            exit(0)
+            # exit, if user wants to
+            if args.only : # if only one case is to be run -> exit(0)
+                print " "
+                gitlab_ci_tools.finalize(start, nErrors)
+                exit(0)
     else : # skip this case
-        print tools.yellow(str("[%5d] Skipping " % i)+cmd_string)
+        print str("[%5d] Skipping " % i)+cmd_string
 
     i += 1
 
+print " "
 gitlab_ci_tools.finalize(start, nErrors)
