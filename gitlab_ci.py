@@ -116,13 +116,15 @@ for case in cases :
     cmd_string=" ".join(cmd)
     #cmd = ["ls","-l"] # for testing some other commands
 
-    # run case depending on supplied (or default) number "begin"
-    if i >= args.begin : # run this case
-        print str("[%5d] Running  " % i)+cmd_string,
-        if args.debug > 0 or args.dryrun :
-            print " "
+    if args.dryrun : # do not execute anythin in dryrun mode
+        print str("[%5d] " % i)+cmd_string
+    else :
+        # run case depending on supplied (or default) number "begin"
+        if i >= args.begin : # run this case
+            print str("[%5d]" % i)+tools.blue(" Running  ")+cmd_string,
+            if args.debug > 0 :
+                print " "
 
-        if not args.dryrun : # do not execute anythin in dryrun mode
             # run the code and generate output
             try :
                 if case.execute_cmd(cmd, target_directory) != 0 : # use unclolored string for cmake
@@ -152,8 +154,8 @@ for case in cases :
                 print " "
                 gitlab_ci_tools.finalize(start, nErrors)
                 exit(0)
-    else : # skip this case
-        print str("[%5d] Skipping " % i)+cmd_string
+        else : # skip this case
+            print str("[%5d]" % i)+tools.yellow(" Skipping ")+cmd_string
 
     i += 1
 
