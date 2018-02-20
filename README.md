@@ -1,8 +1,55 @@
-# Overview
- * Zollernblick slides [RegressionCheck2.0.pdf](/uploads/7a6718bc26615653cdd32116d968b969/RegressionCheck2.0.pdf)
- * [Analyze routines in **analyze.ini**](#analyze-routines)
- * [Command line arguments in **command_line.ini**](#command-line)
- * [Build in **builds.ini**](#builds)
+# Reggie2.0 toolbox
+```mermaid
+graph TD;
+    reggie.py-->builds.ini;
+    reggie.py-->analyze.ini;
+    reggie.py-->command_line.ini;
+    reggie.py-->excludeBuild.ini;
+    gitlab_ci.py-->reggie
+```
+
+
+Try typing the following
+```
+python reggie.py --help
+```
+
+```
+python gitlab-ci.py --help
+```
+
+## Overview
+Zollernblick slides [RegressionCheck2.0.pdf](/uploads/7a6718bc26615653cdd32116d968b969/RegressionCheck2.0.pdf)
+ * [General code hierarchy in Reggie2.0](#code-hierarchy-and-required-ini-files)
+ * [Analyze routines for post-processing in **analyze.ini**](#analyze-routines)
+ * [Command line arguments for program execution in **command_line.ini**](#command-line)
+ * [Compile flag combinations for c-make in **builds.ini**](#builds)
+ * 
+
+
+## Code hierarchy and required *.ini* files
+```
+gitlab-ci.py
+│   gitlab-ci.yml
+│
+└───reggie.py
+    │   builds.ini
+    │   analyze.ini;
+    |   command_line.ini;
+    |   excludeBuild.ini;
+    │
+    └───flexi
+    |   parameter_flexi.ini
+    |   ...
+    └───boltzplatz
+    │   parameter_boltzplatz.ini
+    │   ...
+    └───hopr
+        parameter_hopr.ini
+        ...
+```
+
+
 
 
 # Analyze routines for "analyze.ini"
