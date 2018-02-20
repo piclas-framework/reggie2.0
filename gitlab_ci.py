@@ -23,14 +23,14 @@ print(132*'='+"\n"+"gitlab-ci processing tool, add nice ASCII art here"+"\n"+132
 start = timer()
 
 # argument parser
-parser = argparse.ArgumentParser(description='Script for executing the regression checker for NRG codes multiple times with gitlab-ci.yml.', formatter_class=argparse.RawTextHelpFormatter)
-parser.add_argument('gitlab_ci', help='Path to gitlab-ci.yml')
-parser.add_argument('-s', '--stage', default='DO_NIGHTLY', help='Supply DO_NIGHTLY, DO_WEEKLY, etc. flag.')
-parser.add_argument('-b', '--begin', type=int, default=1,  help='Number of the case: where to start with the run')
-parser.add_argument('-d', '--debug', type=int, default=0, help='Debug level for this program.')
-parser.add_argument('-i', '--info', type=int, default=1, help='Debug level for the subsequent program execution.')
-parser.add_argument('-o', '--only', action='store_true',help='only run one case and exit afterwards')
-parser.add_argument('-n', '--dryrun', action='store_true',help='simply list all possible cases without performing any run')
+parser = argparse.ArgumentParser(description='DESCRIPTION:\nScript for executing the regression checker for NRG codes multiple times with gitlab-ci.yml.\nSupply the path to the gitlab-ci.yml of the repository that also contains a /regressioncheck/checks structure supporting reggie2.0 and multiple tests can automatically be performed.\nThe output will be stored in the top repository directory under /output_dir_gitlab_tool/.', formatter_class=argparse.RawTextHelpFormatter)
+parser.add_argument('gitlab_ci', help='Path to gitlab-ci.yml which also contains a /regressioncheck/checks/... structure')
+parser.add_argument('-s', '--stage', default='DO_NIGHTLY', help='Supply DO_NIGHTLY, DO_WEEKLY, etc. flag for extracting the command from gitlab-ci.yml.')
+parser.add_argument('-b', '--begin', type=int, default=1,  help='Number of the case: where to start with the run (from the list that this tools creates)')
+parser.add_argument('-d', '--debug', type=int, default=0, help='Debug level for this program. Dumps all info to the screen.')
+parser.add_argument('-i', '--info', type=int, default=1, help='Debug level for the subsequent program execution (e.g. flexi).')
+parser.add_argument('-o', '--only', action='store_true',help='Only run one case and exit afterwards (from the list that this tools creates).')
+parser.add_argument('-n', '--dryrun', action='store_true',help='Simply list all possible cases without performing any run.')
 
 # get reggie command line arguments
 args = parser.parse_args()

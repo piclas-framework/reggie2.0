@@ -6,7 +6,7 @@ from outputdirectory import OutputDirectory
 
 def getArgsAndBuilds() :
     """get command line arguments and builds in check directory from 'builds.ini'"""
-    parser = argparse.ArgumentParser(description='Regression checker for NRG codes.', formatter_class=argparse.RawTextHelpFormatter)
+    parser = argparse.ArgumentParser(description='DESCRIPTION:\nRegression checker for NRG codes.\nSupply the path to a /regressioncheck/checks/ directory within a repository containing a CMakeLists.txt file which can automatically be build using cmake. ', formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-c', '--carryon', action='store_true', help='''Continue build/run process. 
       --carryon         : build non-existing binary-combinations and run all examples for thoses builds
       --carryon --run   : run all failed examples''')
@@ -14,9 +14,9 @@ def getArgsAndBuilds() :
     parser.add_argument('-d', '--debug', type=int, default=0, help='Debug level.')
     parser.add_argument('-j', '--buildprocs', type=int, default=0, help='Number of processors used for compiling (make -j XXX).')
     parser.add_argument('-b', '--basedir', help='Path to basedir of code that should be tested (contains CMakeLists.txt).')
-    parser.add_argument('-y', '--dummy', action='store_true',help='use dummy_basedir and dummy_checks for fast testing on dummy code')
-    parser.add_argument('-r', '--run', action='store_true' ,help='run all binaries for all examples with all run-combinations for all existing binaries')
-    parser.add_argument('-s', '--save', action='store_true',help='do not remove output directories buildsXXXX in output_dir after successful run')
+    parser.add_argument('-y', '--dummy', action='store_true',help='Use dummy_basedir and dummy_checks for fast testing on dummy code')
+    parser.add_argument('-r', '--run', action='store_true' ,help='Run all binaries for all examples with all run-combinations for all existing binaries')
+    parser.add_argument('-s', '--save', action='store_true',help='Do not remove output directories buildsXXXX in output_dir after successful run')
     parser.add_argument('check', help='Path to check-/example-directory.')
     
     # get reggie command line arguments
