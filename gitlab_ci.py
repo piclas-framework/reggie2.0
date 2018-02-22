@@ -127,7 +127,7 @@ for case in cases :
 
             # run the code and generate output
             try :
-                if case.execute_cmd(cmd, target_directory) != 0 : # use unclolored string for cmake
+                if case.execute_cmd(cmd, target_directory) != 0 : # use uncolored string for cmake
                     case.failed=True
             except : # this fails, if the supplied command line is corrupted
                 print tools.red("Failed")

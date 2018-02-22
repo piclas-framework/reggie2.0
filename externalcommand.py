@@ -20,6 +20,9 @@ class ExternalCommand() :
         """Execute an external program specified by 'cmd'. The working directory of this program is set to target_directory.
         Returns the return_code of the external program.
         """
+        if type(cmd) != type([]) : # check that only cmd arguments of type 'list' are supplied to this function
+            print tools.red("cmd must be of type 'list'\ncmd=")+str(cmd)+tools.red(" and type(cmd)="),type(cmd)
+            exit(1)
         sys.stdout.flush() # flush output here, because the subprocess will force buffering until it is finished
         log = logging.getLogger('logger')
 

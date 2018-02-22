@@ -33,7 +33,7 @@ class Case(ExternalCommand) :
 
 
 def finalize(start, run_errors) :
-    """Display if gitlab_ci script check was successful or not and return the corresponding error code"""
+    """Display if gitlab_ci script check was successful or not and return the number of errors that were encountered"""
     if run_errors > 0 :
         print bcolors.RED + 132*'='
         print "gitlab-ci processing tool  FAILED!",
