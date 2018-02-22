@@ -436,8 +436,9 @@ class Analyze_Convtest_h(Analyze) :
                     else :
                         plt.plot(self.cells, L2_errors[i], 'ro-')    # create plot
                         plt.xlabel('Number of cells')                # set x-label
-                    plt.xscale('log')                            # set x-axis to log scale
-                    plt.yscale('log')                            # set y-axis to log scale
+                    if min(L2_errors[i]) > 0.0 :                     # log plot only if greater zero 
+                        plt.xscale('log')                            # set x-axis to log scale
+                        plt.yscale('log')                            # set y-axis to log scale
                     plt.title('nVar = %s (of %s), MIN = %4.2e, MAX = %4.2e, O(%.2f)' % (i, nVar-1, min(L2_errors[i]), max(L2_errors[i]),mean[i])) # set title
                     plt.ylabel('L2 error norm')                  # set y-label
                     #plt.show() # display the plot figure for the user (comment out when running in batch mode)
@@ -568,7 +569,8 @@ class Analyze_Convtest_p(Analyze) :
                     ax = f.gca()                                        # set axis handle
                     plt.plot(p , L2_errors[i], 'ro-')                   # create plot
                     #plt.xscale('log')                                  # set x-xis to log scale
-                    plt.yscale('log')                                   # set y-xis to log scale
+                    if min(L2_errors[i]) > 0.0 :                        # log plot only if greater zero 
+                        plt.yscale('log')                               # set y-xis to log scale
                     plt.title('nVar = %s (of %s), MIN = %4.2e, MAX = %4.2e' % (i, nVar-1, min(L2_errors[i]), max(L2_errors[i]))) # set title
                     plt.xlabel('Polynomial degree')                     # set x-label
                     plt.ylabel('L2 error norm')                         # set y-label
