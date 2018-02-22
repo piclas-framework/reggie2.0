@@ -10,7 +10,7 @@ import re
 # import h5 I/O routines
 try :
     import h5py
-    h5py_module_loaded = True # will be set false if user does not supply read-in flag in getAnalyzes(path, example) function
+    h5py_module_loaded = True
 except ImportError :
     #raise ImportError('Could not import h5py module. This is needed for anaylze functions.')
     print tools.red('Could not import h5py module. This is needed for anaylze functions.')
@@ -20,7 +20,7 @@ except ImportError :
 try :
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator # needed for setting axis format to integer only (p-convergence)
-    pyplot_module_loaded = True
+    pyplot_module_loaded = True # will be set false if user does not supply read-in flag in getAnalyzes(path, example) function
 except ImportError :
     #raise ImportError('Could not import matplotlib.pyplot module. This is needed for anaylze functions.')
     print tools.red('Could not import matplotlib.pyplot module. This is needed for anaylze functions.')
@@ -52,6 +52,7 @@ def displayVector(vector,nVar) :
 #==================================================================================================
 
 def getAnalyzes(path, example) :
+    global pyplot_module_loaded
     """For every example a list of analyzes is built from the specified anaylzes in 'analyze.ini'. 
     The anaylze list is performed after a set of runs is completed.
 
@@ -84,9 +85,9 @@ def getAnalyzes(path, example) :
     # 1.1   Check for general analyze options
     # only use matplot lib if the user wants to (can cause problems on some systems causing "system call itnerrupt" errors randomly aborting the program)
     use_matplot_lib = options.get('use_matplot_lib','False')
-    if h5py_module_loaded :
+    if pyplot_module_loaded :
         if use_matplot_lib in ('True', 'true', 't', 'T') :
-            h5py_module_loaded = True
+            pyplot_module_loaded = True
 
     # 2.0   L2 error from file
     L2_file                =       options.get('analyze_l2_file',None)
@@ -367,6 +368,7 @@ class Analyze_Convtest_h(Analyze) :
         self.rate = rate
 
     def perform(self,runs) :
+        global pyplot_module_loaded
         """
         General workflow:
         1.  check if number of successful runs is euqal the number of supplied cells
@@ -509,6 +511,7 @@ class Analyze_Convtest_p(Analyze) :
         self.percentage = percentage
 
     def perform(self,runs) :
+        global pyplot_module_loaded
 
         """
         General workflow:
@@ -856,6 +859,7 @@ class Analyze_check_hdf5(Analyze) :
         (self.lower, self.upper) = [float(x) for x in check_hdf5_limits.split(":")]
 
     def perform(self,runs) :
+        global h5py_module_loaded
         # check if this analysis can be performed: h5py must be imported
         if not h5py_module_loaded : # this boolean is set when importing h5py
             print tools.red('Could not import h5py module. This is needed for "Analyze_check_hdf5". Aborting.')
