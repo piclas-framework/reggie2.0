@@ -88,6 +88,9 @@ def getAnalyzes(path, example) :
     if pyplot_module_loaded :
         if use_matplot_lib in ('True', 'true', 't', 'T') :
             pyplot_module_loaded = True
+        else :
+            pyplot_module_loaded = False 
+
 
     # 2.0   L2 error from file
     L2_file                =       options.get('analyze_l2_file',None)
