@@ -10,7 +10,7 @@ import re
 # import h5 I/O routines
 try :
     import h5py
-    h5py_module_loaded = True
+    h5py_module_loaded = True # will be set false if user does not supply read-in flag in getAnalyzes(path, example) function
 except ImportError :
     #raise ImportError('Could not import h5py module. This is needed for anaylze functions.')
     print tools.red('Could not import h5py module. This is needed for anaylze functions.')
@@ -57,6 +57,7 @@ def getAnalyzes(path, example) :
 
      General workflow:
      1.  Read the analyze options from file 'path' into dict 'options'
+     1.1   Check for general analyze options
      2.  Initialize analyze functions
      2.0   L2 error from file
      2.1   L2 error upper limit
@@ -79,6 +80,13 @@ def getAnalyzes(path, example) :
             options[option.name.lower()] = option.values    # set name to lower case
         else :
             options[option.name.lower()] = option.values[0] # set name to lower case
+
+    # 1.1   Check for general analyze options
+    # only use matplot lib if the user wants to (can cause problems on some systems causing "system call itnerrupt" errors randomly aborting the program)
+    use_matplot_lib = options.get('use_matplot_lib','False')
+    if h5py_module_loaded :
+        if use_matplot_lib in ('True', 'true', 't', 'T') :
+            h5py_module_loaded = True
 
     # 2.0   L2 error from file
     L2_file                =       options.get('analyze_l2_file',None)
