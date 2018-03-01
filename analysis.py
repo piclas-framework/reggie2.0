@@ -144,14 +144,15 @@ def getAnalyzes(path, example) :
     
     # 2.4.1   h5diff_mult (relative or absolute HDF5-file comparison of an output file with a reference file) 
     # options can be read in multiple times to realize multiple compares for each run
-    h5diff_reference_file  = options.get('h5diff_mult_reference_file',None)
-    h5diff_file            = options.get('h5diff_mult_file',None)
-    h5diff_data_set        = options.get('h5diff_mult_data_set',None)
-    h5diff_tolerance_value = options.get('h5diff_mult_tolerance_value',1.0e-5)
-    h5diff_tolerance_type  = options.get('h5diff_mult_tolerance_type','absolute')
+    h5diff_one_diff_per_run = options.get('h5diff_mult_one_diff_per_run',False)
+    h5diff_reference_file   = options.get('h5diff_mult_reference_file',None)
+    h5diff_file             = options.get('h5diff_mult_file',None)
+    h5diff_data_set         = options.get('h5diff_mult_data_set',None)
+    h5diff_tolerance_value  = options.get('h5diff_mult_tolerance_value',1.0e-5)
+    h5diff_tolerance_type   = options.get('h5diff_mult_tolerance_type','absolute')
     # only do h5diff test if all variables are defined
     if h5diff_reference_file and h5diff_file and h5diff_data_set :
-        analyze.append(Analyze_h5diff_mult(h5diff_reference_file, h5diff_file,h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type))
+        analyze.append(Analyze_h5diff_mult(h5diff_one_diff_per_run,h5diff_reference_file, h5diff_file,h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type))
 
 
     # 2.5   check array bounds in hdf5 file
@@ -733,47 +734,31 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
 #==================================================================================================
 
 class Analyze_h5diff_mult(Analyze,ExternalCommand) :
-    def __init__(self, h5diff_reference_file, h5diff_file, h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type) :
-        self.reference_file   = h5diff_reference_file
-        self.file             = h5diff_file
-        self.data_set         = h5diff_data_set
-        self.tolerance_value  = h5diff_tolerance_value
-        self.tolerance_type   = h5diff_tolerance_type
+    def __init__(self, h5diff_one_diff_per_run, h5diff_reference_file, h5diff_file, h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type) :
+        self.one_diff_per_run = h5diff_one_diff_per_run
+        self.prms = { "reference_file" : h5diff_reference_file, "file" : h5diff_file, "data_set" : h5diff_data_set, "tolerance_value" : h5diff_tolerance_value, "tolerance_type" : h5diff_tolerance_type }
+        for key, prm in self.prms.iteritems() : 
+           if type(prm) != type([]) :
+              self.prms[key] = [prm]
+        numbers = {key: len(prm) for key, prm in self.prms.iteritems()}
+
         ExternalCommand.__init__(self)
         
-        if type(self.file) == type([]) :
-            self.file_number = len(self.file)
-        else :
-            self.file_number = 1
-        if type(self.reference_file) == type([]) :
-            self.reference_file_number = len(self.reference_file)
-        else :
-            self.reference_file_number = 1
-        if type(self.data_set) == type([]) :
-            self.data_set_number = len(self.data_set)
-        else :
-            self.data_set_number = 1
-        if type(self.tolerance_value) == type([]) :
-            self.tolerance_value_number = len(self.tolerance_value)
-        else :
-            self.tolerance_value_number = 1
-        if type(self.tolerance_type) == type([]) :
-            self.tolerance_type_number = len(self.tolerance_type)
-        else :
-            self.tolerance_type_number = 1
-        if (self.file_number + self.reference_file_number + self.data_set_number + self.tolerance_type_number + self.tolerance_value_number)%5 != 0 :
-            raise Exception(tools.red("Number of multiple data sets for multiple h5diffs is inconsitent. Please ensure all options have the same length.")) 
+        self.nCompares = numbers[ max( numbers, key = numbers.get ) ]
+        for key, number in numbers.iteritems() : 
+            if number == 1 : 
+                self.prms[key] = [ self.prms[key][0] for i in range(self.nCompares) ]
+                numbers[key] = self.nCompares
 
-        for compares in range(self.file_number) :
-            print compares
-            if self.file_number == 1 :
-                tolerance_type_loc   = self.tolerance_type 
-            else :
-                tolerance_type_loc   = self.tolerance_type[compares]  
+        if any( [ (number != self.nCompares) for number in numbers.itervalues() ] ) : 
+            raise Exception(tools.red("Number of multiple data sets for multiple h5diffs is inconsitent. Please ensure all options have the same length or length 1.")) 
+
+        for compare in range(self.nCompares) :
+            tolerance_type_loc = self.prms["tolerance_type"][compare]  
             if tolerance_type_loc in ('absolute', 'delta', '--delta') :
-                self.tolerance_type[compares] = "--delta"
+                self.prms["tolerance_type"][compare] = "--delta"
             elif tolerance_type_loc in ('relative', "--relative") :
-                self.tolerance_type_loc[compares] = "--relative"
+                self.prms["tolerance_type"][compare] = "--relative"
             else :
                 raise Exception(tools.red("initialization of h5diff failed. h5diff_tolerance_type '%s' not accepted." % tolerance_type_loc))
 
@@ -782,30 +767,28 @@ class Analyze_h5diff_mult(Analyze,ExternalCommand) :
         '''
         General workflow:
         1.  iterate over all runs
-        1.2   execute the command 'cmd' = 'h5diff -r --XXX [number] ref_file file DataArray'
+        1.2   execute the command 'cmd' = 'h5diff -r --XXX [value] ref_file file DataArray'
         1.3   if the command 'cmd' returns a code != 0, set failed
         1.3.1   add failed info (for return a code != 0) to run
         1.3.2   set analyzes to fail (for return a code != 0)
         '''
+        if self.one_diff_per_run and ( self.nCompares != len(runs)) :
+            raise Exception(tools.red("Number of h5diffs and runs is inconsitent. Please ensure all options have the same length or set h5diff_mult_one_diff_per_run=F.")) 
 
         # 1.  iterate over all runs
-        for run in runs :
-            for compares in range(self.file_number) :
-                if self.file_number == 1 :
-                    reference_file_loc   = self.reference_file 
-                    file_loc             = self.file           
-                    data_set_loc         = self.data_set       
-                    tolerance_value_loc  = self.tolerance_value
-                    tolerance_type_loc   = self.tolerance_type 
-                else :
-                    reference_file_loc   = self.reference_file[compares] 
-                    file_loc             = self.file[compares]           
-                    data_set_loc         = self.data_set[compares]        
-                    tolerance_value_loc  = self.tolerance_value[compares] 
-                    tolerance_type_loc   = self.tolerance_type[compares]  
+        for iRun, run in enumerate(runs) :
+            if self.one_diff_per_run : 
+                compares = [iRun]
+            else : 
+                compares = range(self.nCompares)
+            for compare in compares : 
+                reference_file_loc   = self.prms["reference_file"][compare] 
+                file_loc             = self.prms["file"][compare]           
+                data_set_loc         = self.prms["data_set"][compare]        
+                tolerance_value_loc  = self.prms["tolerance_value"][compare] 
+                tolerance_type_loc   = self.prms["tolerance_type"][compare]  
 
-
-                # 1.2   execute the command 'cmd' = 'h5diff -r [--type] [number] [ref_file] [file] [DataSetName]'
+                # 1.2   execute the command 'cmd' = 'h5diff -r [--type] [value] [ref_file] [file] [DataSetName]'
                 cmd = ["h5diff","-r",tolerance_type_loc,str(tolerance_value_loc),str(reference_file_loc),str(file_loc),str(data_set_loc)]
                 print tools.indent("Running [%s]" % (" ".join(cmd)), 2),
                 try :
@@ -849,9 +832,8 @@ class Analyze_h5diff_mult(Analyze,ExternalCommand) :
                     run.analyze_successful=False
                     Analyze.total_errors+=1
 
-    # FIXME: the info message might be incorrect
     def __str__(self) :
-        return "perform h5diff between two files: ["+str(self.file)+"] + reference ["+str(self.reference_file)+"]"
+        return "perform h5diff between two files, e.g.: ["+str(self.prms["file"][0])+"] + reference ["+str(self.prms["reference_file"][0])+"]"
 #==================================================================================================
 
 class Analyze_check_hdf5(Analyze) :
