@@ -35,20 +35,25 @@ parser.add_argument('-n', '--dryrun', action='store_true',help='Simply list all 
 # get reggie command line arguments
 args = parser.parse_args()
 
-# display all command line arguments
-print "Running with the following command line options"
-for arg in args.__dict__ :
-    print arg.ljust(15)," = [",getattr(args,arg),"]"
-print('='*132)
-
 # set the logger 'log' with the debug level from 'args' to determine the level of logging which displays output to the user
 tools.setup_logger(args.debug)
 log = logging.getLogger('logger')
 
 # check if file exists
+if os.path.isdir(args.gitlab_ci) :
+    print tools.yellow("Supplied path is [%s]. Searching for '.gitlab-ci.yml' there." % args.gitlab_ci)
+    args.gitlab_ci=os.path.join(args.gitlab_ci, '.gitlab-ci.yml')
 if not os.path.exists(args.gitlab_ci) :
     print tools.red("gitlab-ci.yml file not found under: '%s'" % args.gitlab_ci)
     exit(1)
+
+# display all command line arguments
+print "Running with the following command line options"
+for arg in args.__dict__ :
+    #print arg.ljust(15)," = [",getattr(args,arg),"]"
+    print "%s = [ %s ]" % (arg.ljust(15), getattr(args,arg))
+print('='*132)
+
 
 # set the basedir (where the code is) and the reggiedir (where the reggie.py is)
 basedir = os.path.abspath(os.path.dirname(args.gitlab_ci))
