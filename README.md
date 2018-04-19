@@ -326,6 +326,23 @@ parameters used in `builds.ini` and example arguments
 
 
 # Runs
+
+## Exclude runs directly
+
+In order to exclude runs see the following example
+```
+! =============================================================================== !
+! Species1 - CH4
+! =============================================================================== !
+Part-Species1-MWTemperatureIC=1000,4000
+Part-Species1-TempVib=2000,3000
+
+! exclude combinations
+EXCLUDE:Part-Species1-MWTemperatureIC=1000,Part-Species1-TempVib=3000
+```
+
+## Use the same paramete list for multiple parameters in parameter.ini
+
 In order to exclude runs see the following example in which 10 runs are performed, but the parameters are exchanged parallelly. Modify the `parameter.ini` file.
 ```
 ! =============================================================================== !
