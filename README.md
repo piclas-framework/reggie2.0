@@ -24,7 +24,7 @@ Zollernblick slides [RegressionCheck2.0.pdf](/uploads/7a6718bc26615653cdd32116d9
  * [Analyze routines for post-processing in **analyze.ini**](#analyze-routines)
  * [Command line arguments for program execution in **command_line.ini**](#command-line)
  * [Compile flag combinations for c-make in **builds.ini**](#builds)
- * 
+ * [Exclude runs in **parameter.ini**](#runs)
 
 
 ## Code hierarchy and required *.ini* files
@@ -324,6 +324,41 @@ parameters used in `builds.ini` and example arguments
 |compile flags             | CMAKE\_BUILD\_TYPE                   | DEBUG                                                 | None                             | set compile flags to the corresponding settings                                                                            |
 |exclude combinations      | EXCLUDE:                             | FLEXI_VISCOSITY=sutherland,FLEXI_PARABOLIC=OFF        | None                             | exclude specific combinations of compile flags, these will be skipped                                                      |
 
+
+# Runs
+In order to exclude runs see the following example in which 10 runs are performed, but the parameters are exchanged parallelly. Modify the `parameter.ini` file.
+```
+! =============================================================================== !
+! Species1 - CH4
+! =============================================================================== !
+Part-Species1-MWTemperatureIC=crosscombinations
+Part-Species1-TempVib=crosscombinations
+Part-Species1-TempRot=crosscombinations
+Part-Species1-TempElec=crosscombinations
+! =============================================================================== !
+! Species2 - CH3
+! =============================================================================== !
+Part-Species2-MWTemperatureIC=crosscombinations
+Part-Species2-TempVib=crosscombinations
+Part-Species2-TempRot=crosscombinations
+Part-Species2-TempElec=crosscombinations
+! =============================================================================== !
+! Species3 - H2
+! =============================================================================== !
+
+Part-Species3-MWTemperatureIC=crosscombinations
+Part-Species3-TempVib=crosscombinations
+Part-Species3-TempRot=crosscombinations
+Part-Species3-TempElec=crosscombinations
+! =============================================================================== !
+! Species4 - H
+! =============================================================================== !
+Part-Species4-MWTemperatureIC=crosscombinations
+Part-Species4-TempElec=crosscombinations
+```
+
+
+crosscombinations=1000,2000,3000,4000,5000,6000,7000,8000,9000,10000
 
 # Example
 
