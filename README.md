@@ -298,6 +298,9 @@ parameters used in `command_line.ini` and example arguments
 |:------------------------:|:-------------------------------------|:------------------------------------------------------|:---------------------------------|:---------------------------------------------------------------------------------------------------------------------------|
 |mpirun                    | MPI                                  | 1,2,4,8                                               | None                             | number of MPI threads with which the runs are repeated                                                                     |
 |additional info           | cmd\_suffix                          | DSMC.ini                                              | None                             | additional information that is appended to the command line argument that is used for running a program                    |
+|restart from file         | restart\_file                        | My_State_000.0000005123.h5                            | None                             | supply the name of a state file from wich all simulations are to be re-started                                             |
+
+
 
 # Example
 * run multiple different MPI threads
