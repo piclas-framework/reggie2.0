@@ -24,7 +24,7 @@ Zollernblick slides [RegressionCheck2.0.pdf](/uploads/7a6718bc26615653cdd32116d9
  * [Analyze routines for post-processing in **analyze.ini**](#analyze-routines)
  * [Command line arguments for program execution in **command_line.ini**](#command-line)
  * [Compile flag combinations for c-make in **builds.ini**](#builds)
- * 
+ * [Exclude runs in **parameter.ini**](#runs)
 
 
 ## Code hierarchy and required *.ini* files
@@ -298,6 +298,9 @@ parameters used in `command_line.ini` and example arguments
 |:------------------------:|:-------------------------------------|:------------------------------------------------------|:---------------------------------|:---------------------------------------------------------------------------------------------------------------------------|
 |mpirun                    | MPI                                  | 1,2,4,8                                               | None                             | number of MPI threads with which the runs are repeated                                                                     |
 |additional info           | cmd\_suffix                          | DSMC.ini                                              | None                             | additional information that is appended to the command line argument that is used for running a program                    |
+|restart from file         | restart\_file                        | My_State_000.0000005123.h5                            | None                             | supply the name of a state file from wich all simulations are to be re-started                                             |
+
+
 
 # Example
 * run multiple different MPI threads
@@ -323,6 +326,58 @@ parameters used in `builds.ini` and example arguments
 |program to execute        | binary                               | ./bin/flexi                                           | None                             | set the relative binary path in build directory                                                                            |
 |compile flags             | CMAKE\_BUILD\_TYPE                   | DEBUG                                                 | None                             | set compile flags to the corresponding settings                                                                            |
 |exclude combinations      | EXCLUDE:                             | FLEXI_VISCOSITY=sutherland,FLEXI_PARABOLIC=OFF        | None                             | exclude specific combinations of compile flags, these will be skipped                                                      |
+
+
+# Runs
+
+## Exclude runs directly
+
+In order to exclude runs see the following example
+```
+! =============================================================================== !
+! Species1 - CH4
+! =============================================================================== !
+Part-Species1-MWTemperatureIC=1000,4000
+Part-Species1-TempVib=2000,3000
+
+! exclude combinations
+EXCLUDE:Part-Species1-MWTemperatureIC=1000,Part-Species1-TempVib=3000
+```
+
+## Use the same paramete list for multiple parameters in parameter.ini
+
+In order to exclude runs see the following example in which 10 runs are performed, but the parameters are exchanged parallelly. Modify the `parameter.ini` file.
+```
+! =============================================================================== !
+! Species1 - CH4
+! =============================================================================== !
+Part-Species1-MWTemperatureIC=crosscombinations
+Part-Species1-TempVib=crosscombinations
+Part-Species1-TempRot=crosscombinations
+Part-Species1-TempElec=crosscombinations
+! =============================================================================== !
+! Species2 - CH3
+! =============================================================================== !
+Part-Species2-MWTemperatureIC=crosscombinations
+Part-Species2-TempVib=crosscombinations
+Part-Species2-TempRot=crosscombinations
+Part-Species2-TempElec=crosscombinations
+! =============================================================================== !
+! Species3 - H2
+! =============================================================================== !
+
+Part-Species3-MWTemperatureIC=crosscombinations
+Part-Species3-TempVib=crosscombinations
+Part-Species3-TempRot=crosscombinations
+Part-Species3-TempElec=crosscombinations
+! =============================================================================== !
+! Species4 - H
+! =============================================================================== !
+Part-Species4-MWTemperatureIC=crosscombinations
+Part-Species4-TempElec=crosscombinations
+
+crosscombinations=1000,2000,3000,4000,5000,6000,7000,8000,9000,10000
+```
 
 
 # Example
