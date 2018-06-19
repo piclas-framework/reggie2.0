@@ -365,6 +365,8 @@ class Analyze_Convtest_h(Analyze) :
         1.2.2   set analyzes to fail
         1.3   get number of variables from L2 error array
         1.4   determine order of convergence between two runs
+        1.4.1   determine average convergence rate
+        1.4.2   write L2 error data to file
         1.5   determine success rate by comparing the relative convergence error with a tolerance
         1.6   compare success rate with pre-defined rate
         1.7     interate over all runs
@@ -418,7 +420,7 @@ class Analyze_Convtest_h(Analyze) :
             print tools.blue("L2 orders for nVar="+str(nVar))
             displayTable(L2_order,nVar,nRuns-1)
 
-            # determine average convergence rate
+            # 1.4.1   determine average convergence rate
             mean = [np.mean(L2_order[i]) for i in range(nVar)]
             print tools.blue("L2 average order for nVar=%s (exprected order = %s)" % (nVar,p+1))
             displayVector(mean,nVar)
@@ -444,7 +446,7 @@ class Analyze_Convtest_h(Analyze) :
             else :
                 print tools.red('Could not import matplotlib.pyplot module. This is needed for creating plots under "Analyze_Convtest_h(Analyze)". Skipping plot.')
 
-            # write L2 error data to file
+            # 1.4.2   write L2 error data to file
             writeTableToFile(L2_errors,nVar,nRuns,self.cells,os.path.dirname(runs[0].target_directory),"L2_error_order%.2f.csv" % mean[0])
             
             # 1.5   determine success rate by comparing the relative convergence error with a tolerance
