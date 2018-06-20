@@ -66,7 +66,7 @@ gitlab-ci.py
 
 parameters used in `analyze.ini` and example arguments
 
-|**analyze**               | **options**                          | **values**                                            | **Default values**               | **Description**           
+|**analyze**               | **options**                          | **values (examples)**                                 | **Default values**               | **Description**           
 |:------------------------:|:-------------------------------------|:------------------------------------------------------|:---------------------------------|:---------------------------------------------------------------------------------------------------------------------------|
 |L2 error                  | analyze\_L2\_file                    | L2error.txt                                           | None                             | data file containing the L2 errors for comparing with                                                                      |
 |                          | analyze\_L2\_file\_tolerance         | 6e-2                                                  | None                             | relative/absolute deviation between two L2 errors (from output and from reference file)                                    |
