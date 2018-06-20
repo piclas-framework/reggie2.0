@@ -9,6 +9,24 @@ def get_last_L2_error(lines,name) :
            tmp = l.split(":")[1]
    return [float(x) for x in tmp.split()]
 
+def get_last_number_of_timesteps(lines,name) :
+   """Get the number of total timesteps used for the simulation.
+   The set of lines correspond to the output-lines of a flexi-run"""
+   for l in lines[-25:] : # read the last 25 lines
+       # search for name, e.g., "#Timesteps"
+       if name in l :
+           tmp = l.split(":")[1]
+   return [float(x) for x in tmp.split()]
+
+def get_last_initial_timesteps(lines,name) :
+   """Get the initial timestep used for the simulation.
+   The set of lines correspond to the output-lines of a flexi-run"""
+   for l in lines[-25:] : # read the last 25 lines
+       # search for name, e.g., "#Timesteps"
+       if name in l :
+           tmp = l.split(":")[1]
+   return [float(x) for x in tmp.split()]
+
 def get_last_Linf_error(lines) :
    """Get L_inf eror value from a set of lines for the last timestep
    The set of lines correspond to the output-lines of a flexi-run"""

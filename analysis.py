@@ -6,6 +6,7 @@ import combinations
 import tools
 import csv
 import re
+import logging
 
 # import h5 I/O routines
 try :
@@ -64,11 +65,11 @@ def getAnalyzes(path, example) :
      2.1   L2 error upper limit
      2.2   h-convergence test
      2.3   p-convergence test
-     2.4   h5diff (relative or absolute HDF5-file comparison of an output file with a reference file)
-     2.4.1 h5diff (relative or absolute HDF5-file comparison of an output file with a reference file)
-     2.5   check array bounds in hdf5 file
-     2.6   check data file row
-     2.7   integrate data file column
+     2.4   t-convergence test
+     2.5   h5diff (relative or absolute HDF5-file comparison of an output file with a reference file)
+     2.6   check array bounds in hdf5 file
+     2.7   check data file row
+     2.8   integrate data file column
     """
 
     # 1.  Read the analyze options from file 'path'
@@ -116,7 +117,7 @@ def getAnalyzes(path, example) :
     convtest_h_cells      = [float(cell) for cell in options.get('analyze_convtest_h_cells',['-1.'])]
     convtest_h_tolerance  = float(options.get('analyze_convtest_h_tolerance',1e-2))
     convtest_h_rate       = float(options.get('analyze_convtest_h_rate',1))
-    convtest_h_error_name =       options.get('convtest_h_error_name','L_2')
+    convtest_h_error_name =       options.get('analyze_convtest_h_error_name','L_2')
     # only do convergence test if supplied cells count > 0
     if min(convtest_h_cells) > 0 and convtest_h_tolerance > 0 and 0.0 <= convtest_h_rate <= 1.0:
         analyze.append(Analyze_Convtest_h(convtest_h_error_name, convtest_h_cells, convtest_h_tolerance, convtest_h_rate))
@@ -125,12 +126,47 @@ def getAnalyzes(path, example) :
     #convtest_p_tolerance = float(options.get('analyze_convtest_p_tolerance',1e-2))
     convtest_p_rate       = float(options.get('analyze_convtest_p_rate',-1))
     convtest_p_percentage = float(options.get('analyze_convtest_p_percentage',0.75))
-    convtest_p_error_name = options.get('convtest_p_error_name','L_2')
+    convtest_p_error_name = options.get('analyze_convtest_p_error_name','L_2')
     # only do convergence test if convergence rate and tolerance >0
     if 0.0 <= convtest_p_rate <= 1.0:
         analyze.append(Analyze_Convtest_p(convtest_p_error_name,convtest_p_rate, convtest_p_percentage))
 
-    # 2.4   h5diff (relative or absolute HDF5-file comparison of an output file with a reference file) 
+    # 2.4   t-convergence test
+    
+    # One of the four following methods can be used
+    # 2.4.1   must have the following form: "Initial Timestep  :    1.8503722E-01"
+    convtest_t_initial_timestep = options.get('analyze_convtest_t_initial_timestep',None)
+
+    # 2.4.2   supply the timesteps externally
+    convtest_t_timestep         = [float(timestep) for timestep in options.get('analyze_convtest_t_timestep',['-1.'])]
+
+    # 2.4.3   automatically get the total number of iterations must have the following form: "#Timesteps :    1.6600000E+02"
+    convtest_t_total_timesteps  = options.get('analyze_convtest_t_total_timesteps',None)
+    
+    # 2.4.4   supply the iterations externally
+    convtest_t_iterations       = [float(iteration) for iteration in options.get('analyze_convtest_t_iterations',['-1.'])]
+
+    convtest_t_tolerance  = float(options.get('analyze_convtest_t_tolerance',1e-2))
+    convtest_t_rate       = float(options.get('analyze_convtest_t_rate',1))
+    convtest_t_error_name =       options.get('analyze_convtest_t_error_name','L_2')
+   # print convtest_t_error_name
+   # # only do convergence test if supplied cells count > 0
+   # if convtest_t_tolerance > 0 and 0.0 <= convtest_t_rate <= 1.0:
+   #     print convtest_t_timestep
+   #     print convtest_t_initial_timestep
+   #     print convtest_t_iterations
+   #     print convtest_t_total_timesteps
+   #     if min(convtest_t_timestep) > 0 or min(convtest_t_iterations) > 0 or convtest_t_initial_timestep or convtest_t_total_timesteps:
+   #         print "1"
+   #         logging.getLogger('logger').info("t-convergence test: Choosing")
+   #         #analyze.append(Analyze_Convtest_t(convtest_t_error_name, convtest_t_cells, convtest_t_tolerance, convtest_t_rate))
+
+
+   # exit(0)
+
+
+
+    # 2.5   h5diff (relative or absolute HDF5-file comparison of an output file with a reference file) 
     # options can be read in multiple times to realize multiple compares for each run
     h5diff_one_diff_per_run = options.get('h5diff_one_diff_per_run',False)
     h5diff_reference_file   = options.get('h5diff_reference_file',None)
@@ -142,7 +178,7 @@ def getAnalyzes(path, example) :
     if h5diff_reference_file and h5diff_file and h5diff_data_set :
         analyze.append(Analyze_h5diff(h5diff_one_diff_per_run,h5diff_reference_file, h5diff_file,h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type))
 
-    # 2.5   check array bounds in hdf5 file
+    # 2.6   check array bounds in hdf5 file
     check_hdf5_file      = options.get('check_hdf5_file',None) 
     check_hdf5_data_set  = options.get('check_hdf5_data_set',None) 
     check_hdf5_dimension = options.get('check_hdf5_dimension',None) 
@@ -150,7 +186,7 @@ def getAnalyzes(path, example) :
     if all([check_hdf5_file, check_hdf5_data_set, check_hdf5_dimension, check_hdf5_limits]) :
         analyze.append(Analyze_check_hdf5(check_hdf5_file, check_hdf5_data_set, check_hdf5_dimension, check_hdf5_limits))
 
-    # 2.6   check data file row
+    # 2.7   check data file row
     compare_data_file_name           = options.get('compare_data_file_name',None)
     compare_data_file_reference      = options.get('compare_data_file_reference',None)
     compare_data_file_tolerance      = options.get('compare_data_file_tolerance',None)
@@ -166,7 +202,7 @@ def getAnalyzes(path, example) :
             raise Exception(tools.red("initialization of compare data file failed. h5diff_tolerance_type '%s' not accepted." % h5diff_tolerance_type))
         analyze.append(Analyze_compare_data_file(compare_data_file_name, compare_data_file_reference, compare_data_file_tolerance, compare_data_file_line, compare_data_file_delimiter, compare_data_file_tolerance_type ))
 
-    # 2.7   integrate data file column
+    # 2.8   integrate data file column
     integrate_line_file            = options.get('integrate_line_file',None)                 # file name (path) which is analyzed
     integrate_line_delimiter       = options.get('integrate_line_delimiter',',')             # delimter symbol if not comma-separated
     integrate_line_columns         = options.get('integrate_line_columns',None)              # two columns for the values x and y supplied as 'x:y'
@@ -400,13 +436,13 @@ class Analyze_Convtest_h(Analyze) :
 
             # 1.2   get L2 errors of all runs and create np.array
             try :
-                L2_errors = np.array([analyze_functions.get_last_L2_error(run.stdout,"L2_Part") for \
+                L2_errors = np.array([analyze_functions.get_last_L2_error(run.stdout,self.error_name) for \
                         run in runs])
                 L2_errors = np.transpose(L2_errors)
             except :
                 for run in runs : # find out exactly which L2 error could not be read
                     try :
-                        L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout,"L2_Part"))
+                        L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name))
                     except :
                         s = tools.red("h-convergence failed: some L2 errors could not be read from output (last 25 lines)")
                         print(s)
