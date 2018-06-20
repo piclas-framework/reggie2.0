@@ -96,6 +96,7 @@ def getAnalyzes(path, example) :
     L2_file                =       options.get('analyze_l2_file',None)
     L2_file_tolerance      = float(options.get('analyze_l2_file_tolerance',1.0e-5))
     L2_file_tolerance_type =       options.get('analyze_l2_file_tolerance_type','absolute')
+    L2_file_error_name     =       options.get('L2_file_error_name','L_2')
     if L2_file :
         if L2_file_tolerance_type in ('absolute', 'delta', '--delta') :
             L2_file_tolerance_type = "absolute"
@@ -103,28 +104,31 @@ def getAnalyzes(path, example) :
             L2_file_tolerance_type = "relative"
         else :
             raise Exception(tools.red("initialization of L2 error from file failed. [L2_file_tolerance_type = %s] not accepted." % L2_file_tolerance_type))
-        analyze.append(Analyze_L2_file(L2_file, L2_file_tolerance, L2_file_tolerance_type))
+        analyze.append(Analyze_L2_file(L2_file_error_name, L2_file, L2_file_tolerance, L2_file_tolerance_type))
 
     # 2.1   L2 error upper limit
-    L2_tolerance = float(options.get('analyze_l2',-1.))
+    L2_tolerance  = float(options.get('analyze_l2',-1.))
+    L2_error_name =       options.get('L2_error_name','L_2')
     if L2_tolerance > 0 :
-        analyze.append(Analyze_L2(L2_tolerance))
+        analyze.append(Analyze_L2(L2_error_name,L2_tolerance))
     
     # 2.2   h-convergence test
-    convtest_h_cells     = [float(cell) for cell in options.get('analyze_convtest_h_cells',['-1.'])]
-    convtest_h_tolerance = float(options.get('analyze_convtest_h_tolerance',1e-2))
-    convtest_h_rate      = float(options.get('analyze_convtest_h_rate',1))
+    convtest_h_cells      = [float(cell) for cell in options.get('analyze_convtest_h_cells',['-1.'])]
+    convtest_h_tolerance  = float(options.get('analyze_convtest_h_tolerance',1e-2))
+    convtest_h_rate       = float(options.get('analyze_convtest_h_rate',1))
+    convtest_h_error_name =       options.get('convtest_h_error_name','L_2')
     # only do convergence test if supplied cells count > 0
     if min(convtest_h_cells) > 0 and convtest_h_tolerance > 0 and 0.0 <= convtest_h_rate <= 1.0:
-        analyze.append(Analyze_Convtest_h(convtest_h_cells,convtest_h_tolerance,convtest_h_rate))
+        analyze.append(Analyze_Convtest_h(convtest_h_error_name, convtest_h_cells, convtest_h_tolerance, convtest_h_rate))
 
     # 2.3   p-convergence test
     #convtest_p_tolerance = float(options.get('analyze_convtest_p_tolerance',1e-2))
     convtest_p_rate       = float(options.get('analyze_convtest_p_rate',-1))
     convtest_p_percentage = float(options.get('analyze_convtest_p_percentage',0.75))
+    convtest_p_error_name = options.get('convtest_p_error_name','L_2')
     # only do convergence test if convergence rate and tolerance >0
     if 0.0 <= convtest_p_rate <= 1.0:
-        analyze.append(Analyze_Convtest_p(convtest_p_rate, convtest_p_percentage))
+        analyze.append(Analyze_Convtest_p(convtest_p_error_name,convtest_p_rate, convtest_p_percentage))
 
     # 2.4   h5diff (relative or absolute HDF5-file comparison of an output file with a reference file) 
     # options can be read in multiple times to realize multiple compares for each run
@@ -192,10 +196,11 @@ class Analyze() : # main class from which all analyze functions are derived
 
 class Analyze_L2_file(Analyze) :
     """Read the L2 error norms from std.out and compare with pre-defined upper barrier"""
-    def __init__(self, L2_file, L2_file_tolerance, L2_file_tolerance_type) :
+    def __init__(self, name, L2_file, L2_file_tolerance, L2_file_tolerance_type) :
         self.file              = L2_file
         self.L2_tolerance      = L2_file_tolerance
         self.L2_tolerance_type = L2_file_tolerance_type
+        self.error_name        = name                   # string name of the L2 error in the std.out file (default is "L_2")                             
 
     def perform(self,runs) :
 
@@ -215,7 +220,7 @@ class Analyze_L2_file(Analyze) :
             
             # 1.1   Read L2 errors from std out channel
             try:
-                L2_errors = np.array(analyze_functions.get_last_L2_error(run.stdout))
+                L2_errors = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name))
             except :
                 s = tools.red("L2 analysis failed: L2 error could not be read from output (last 25 lines)")
                 print(s)
@@ -247,7 +252,7 @@ class Analyze_L2_file(Analyze) :
 
             # 1.2   Read reference L2 errors from self.file_data list
             try:
-                L2_errors_ref = np.array(analyze_functions.get_last_L2_error(self.file_data))
+                L2_errors_ref = np.array(analyze_functions.get_last_L2_error(self.file_data,self.error_name))
             except :
                 s = tools.red("L2 analysis failed: L2 error could not be read from %s (last 25 lines)" % self.file_data)
                 print(s)
@@ -294,8 +299,9 @@ class Analyze_L2_file(Analyze) :
 
 class Analyze_L2(Analyze) :
     """Read the L2 error norms from std.out and compare with pre-defined upper barrier"""
-    def __init__(self, L2_tolerance) :
-        self.L2_tolerance = L2_tolerance
+    def __init__(self, name, L2_tolerance) :
+        self.L2_tolerance = L2_tolerance # tolerance value for comparison with the L_2 error from std.out
+        self.error_name   = name         # string name of the L2 error in the std.out file (default is "L_2")                             
 
     def perform(self,runs) :
 
@@ -315,7 +321,7 @@ class Analyze_L2(Analyze) :
             
             # 1.1   read L2 errors from 'std.out' file
             try:
-                L2_errors = np.array(analyze_functions.get_last_L2_error(run.stdout))
+                L2_errors = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name))
             except :
                 s = tools.red("L2 analysis failed: L2 error could not be read from output (last 25 lines)")
                 print(s)
@@ -349,10 +355,13 @@ class Analyze_Convtest_h(Analyze) :
     """Convergence test for a fixed polynomial degree and different meshes defined in 'parameter.ini'
     The analyze routine read the L2 error norm from a set of runs and determines the order of convergence 
     between the runs and averages the values. The average is compared with the polynomial degree p+1."""
-    def __init__(self, cells, tolerance, rate) :
-        self.cells = cells
-        self.tolerance = tolerance
-        self.rate = rate
+    def __init__(self, name, cells, tolerance, rate) :
+        self.cells = cells           # number of cells used for h-convergence calculation (only the ratio of two 
+                                     # consecutive values is important for the EOC calcultion)
+        self.tolerance = tolerance   # determine success rate by comparing the relative convergence error with a tolerance
+        self.rate = rate             # success rate: for each nVar, the EOC is determined (the number of successful EOC vs. 
+                                     # the number of total EOC tests determines the success rate which is compared with this rate)
+        self.error_name = name       # string name of the L2 error in the std.out file (default is "L_2")                             
 
     def perform(self,runs) :
         global pyplot_module_loaded
@@ -391,13 +400,13 @@ class Analyze_Convtest_h(Analyze) :
 
             # 1.2   get L2 errors of all runs and create np.array
             try :
-                L2_errors = np.array([analyze_functions.get_last_L2_error(run.stdout) for \
+                L2_errors = np.array([analyze_functions.get_last_L2_error(run.stdout,"L2_Part") for \
                         run in runs])
                 L2_errors = np.transpose(L2_errors)
             except :
                 for run in runs : # find out exactly which L2 error could not be read
                     try :
-                        L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout))
+                        L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout,"L2_Part"))
                     except :
                         s = tools.red("h-convergence failed: some L2 errors could not be read from output (last 25 lines)")
                         print(s)
@@ -495,9 +504,12 @@ class Analyze_Convtest_p(Analyze) :
     """Convergence test for a fixed mesh and different (increasing!) polynomial degrees defined in 'parameter.ini'
     The analyze routine reads the L2 error norm from a set of runs and determines the order of convergence 
     between the runs and compares them. With increasing polynomial degree, the order of convergence must increase for this anaylsis to be successful."""
-    def __init__(self, rate, percentage) :
-        self.rate = rate
-        self.percentage = percentage
+    def __init__(self, name, rate, percentage) :
+        self.rate       = rate       # success rate: for each nVar, the EOC is determined (the number of successful EOC vs. 
+                                     # the number of total EOC tests determines the success rate which is compared with this rate)
+        self.percentage = percentage # for the p-convergence, the EOC must increase with p, hence the sloop must increase
+                                     # percentage yields the minimum ratio of increasing EOC vs. the total number of EOC for each nVar
+        self.error_name = name       # string name of the L2 error in the std.out file (default is "L_2")                             
 
     def perform(self,runs) :
         global pyplot_module_loaded
@@ -537,13 +549,13 @@ class Analyze_Convtest_p(Analyze) :
 
             # 2.2   get L2 errors of all runs and create np.array
             try :
-                L2_errors = np.array([analyze_functions.get_last_L2_error(run.stdout) for \
+                L2_errors = np.array([analyze_functions.get_last_L2_error(run.stdout,self.error_name) for \
                         run in runs])
                 L2_errors = np.transpose(L2_errors)
             except :
                 for run in runs : # find out exactly which L2 error could not be read
                     try :
-                        L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout))
+                        L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name))
                     except :
                         s = tools.red("p-convergence failed: some L2 errors could not be read from output (last 25 lines)")
                         print(s)

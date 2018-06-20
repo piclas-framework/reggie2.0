@@ -1,10 +1,11 @@
 import math
 
-def get_last_L2_error(lines) :
+def get_last_L2_error(lines,name) :
    """Get L_2 eror value from a set of lines for the last timestep.
    The set of lines correspond to the output-lines of a flexi-run"""
    for l in lines[-25:] : # read the last 25 lines
-       if "L_2" in l :
+       # search for name, e.g., "L2_Part" or "L_2"
+       if name in l :
            tmp = l.split(":")[1]
    return [float(x) for x in tmp.split()]
 
