@@ -28,7 +28,7 @@ except ImportError :
     pyplot_module_loaded = False
 
 def displayTable(mylist,nVar,nRuns) :
-    # mylist = [[1 2 3] [1 2 3] [1 2 3] [1 2 3] ] example with 4 nVar and 3 nRuns
+    # mylist = [ [1 2 3] [1 2 3] [1 2 3] [1 2 3] ] example with 4 nVar and 3 nRuns
     print " nRun   "+"   ".join(7*" "+"nVar=["+str(i).rjust(4)+"]" for i in range(nVar))
     for j in range(nRuns) :
         print str(j).rjust(5),
@@ -78,10 +78,15 @@ def getAnalyzes(path, example) :
     
     options = {} # dict
     for option in options_list :
+        # set all upper case characters to lower case
         if len(option.values) > 1 :
             options[option.name.lower()] = option.values    # set name to lower case
         else :
             options[option.name.lower()] = option.values[0] # set name to lower case
+
+        # check for empty lists and abort
+        if option.values[0]=='' :
+            raise Exception(tools.red("initialization of analyze.ini failed due to empty parameter [%s = %s], which is not allowed." % (option.name,option.values) ))
 
     # 1.1   Check for general analyze options
     # only use matplot lib if the user wants to (can cause problems on some systems causing "system call itnerrupt" errors randomly aborting the program)
@@ -132,39 +137,52 @@ def getAnalyzes(path, example) :
         analyze.append(Analyze_Convtest_p(convtest_p_error_name,convtest_p_rate, convtest_p_percentage))
 
     # 2.4   t-convergence test
-    
-    # One of the four following methods can be used
+    # One of the four following methods can be used. The sequence is of selection is fixed
+
+    # set default values
+    convtest_t_initial_timestep = None
+    convtest_t_timestep_factor  = [-1.]
+    convtest_t_total_timesteps  = None
+    convtest_t_timesteps       = [-1.]
+
     # 2.4.1   must have the following form: "Initial Timestep  :    1.8503722E-01"
     convtest_t_initial_timestep = options.get('analyze_convtest_t_initial_timestep',None)
 
-    # 2.4.2   supply the timesteps externally
-    convtest_t_timestep         = [float(timestep) for timestep in options.get('analyze_convtest_t_timestep',['-1.'])]
+    if convtest_t_initial_timestep is None :
+        # 2.4.2   supply the timestep_factor externally
+        convtest_t_timestep_factor         = [float(timestep) for timestep in options.get('analyze_convtest_t_timestep_factor',['-1.'])]
 
-    # 2.4.3   automatically get the total number of iterations must have the following form: "#Timesteps :    1.6600000E+02"
-    convtest_t_total_timesteps  = options.get('analyze_convtest_t_total_timesteps',None)
-    
-    # 2.4.4   supply the iterations externally
-    convtest_t_iterations       = [float(iteration) for iteration in options.get('analyze_convtest_t_iterations',['-1.'])]
+        if min(convtest_t_timestep_factor) <= 0.0 :
+            # 2.4.3   automatically get the total number of timesteps must have the following form: "#Timesteps :    1.6600000E+02"
+            convtest_t_total_timesteps   = options.get('analyze_convtest_t_total_timesteps',None)
+            
+            if convtest_t_total_timesteps is None :
+                # 2.4.4   supply the timesteps externally
+                convtest_t_timesteps       = [float(timesteps) for timesteps in options.get('analyze_convtest_t_timesteps',['-1.'])]
+                if min(convtest_t_timesteps) <= 0.0 :
+                    convtest_t_method = 0
+                    convtest_t_name = None
+                else :
+                    convtest_t_method = 4
+                    convtest_t_name   = 'timesteps from analyze.ini'
+            else :
+                convtest_t_method = 3
+                convtest_t_name   = 'total number of timesteps ['+convtest_t_total_timesteps+']'
+        else :
+            convtest_t_method = 2
+            convtest_t_name   = 'timestep_factor from analyze.ini'
+    else :
+        convtest_t_method = 1
+        convtest_t_name   = 'initial_timestep ['+convtest_t_initial_timestep+']'
 
     convtest_t_tolerance  = float(options.get('analyze_convtest_t_tolerance',1e-2))
     convtest_t_rate       = float(options.get('analyze_convtest_t_rate',1))
     convtest_t_error_name =       options.get('analyze_convtest_t_error_name','L_2')
-   # print convtest_t_error_name
-   # # only do convergence test if supplied cells count > 0
-   # if convtest_t_tolerance > 0 and 0.0 <= convtest_t_rate <= 1.0:
-   #     print convtest_t_timestep
-   #     print convtest_t_initial_timestep
-   #     print convtest_t_iterations
-   #     print convtest_t_total_timesteps
-   #     if min(convtest_t_timestep) > 0 or min(convtest_t_iterations) > 0 or convtest_t_initial_timestep or convtest_t_total_timesteps:
-   #         print "1"
-   #         logging.getLogger('logger').info("t-convergence test: Choosing")
-   #         #analyze.append(Analyze_Convtest_t(convtest_t_error_name, convtest_t_cells, convtest_t_tolerance, convtest_t_rate))
-
-
-   # exit(0)
-
-
+    convtest_t_order      = float(options.get('analyze_convtest_t_order',-1000))
+    # only do convergence test if supplied cells count > 0
+    if convtest_t_tolerance > 0 and 0.0 <= convtest_t_rate <= 1.0 and convtest_t_name and convtest_t_order > -1000:
+        logging.getLogger('logger').info("t-convergence test: Choosing "+convtest_t_name+" (method = "+str(convtest_t_method)+")")
+        analyze.append(Analyze_Convtest_t(convtest_t_order, convtest_t_error_name, convtest_t_tolerance, convtest_t_rate, convtest_t_method, convtest_t_name, convtest_t_initial_timestep, convtest_t_timestep_factor, convtest_t_total_timesteps, convtest_t_timesteps))
 
     # 2.5   h5diff (relative or absolute HDF5-file comparison of an output file with a reference file) 
     # options can be read in multiple times to realize multiple compares for each run
@@ -243,12 +261,13 @@ class Analyze_L2_file(Analyze) :
         """
         General workflow:
         1.  Iterate over all runs
-        1.1   r
-        1.1.1   a
-        1.1.2   s
-        1.2   i
-        1.3   a
-        1.4   s
+        1.1   read the reference L2 errors from the std.out
+        1.1.1   append info for summary of errors
+        1.1.2   set analyzes to fail
+        1.2   Check existence of the reference file
+        1.2.1   Read content of the reference file and store in self.file_data list
+        1.3   Check length of L2 errors in std out and reference file
+        1.4   calculate difference and determine compare with tolerance
         """
 
         # 1.  Iterate over all runs
@@ -258,7 +277,7 @@ class Analyze_L2_file(Analyze) :
             try:
                 L2_errors = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name))
             except :
-                s = tools.red("L2 analysis failed: L2 error could not be read from output (last 25 lines)")
+                s = tools.red("L2 analysis failed: L2 error could not be read from output (searching in the last 25 lines)")
                 print(s)
                 
                 # 1.1.1   append info for summary of errors
@@ -290,7 +309,7 @@ class Analyze_L2_file(Analyze) :
             try:
                 L2_errors_ref = np.array(analyze_functions.get_last_L2_error(self.file_data,self.error_name))
             except :
-                s = tools.red("L2 analysis failed: L2 error could not be read from %s (last 25 lines)" % self.file_data)
+                s = tools.red("L2 analysis failed: L2 error could not be read from %s (searching in the last 25 lines)" % self.file_data)
                 print(s)
                 
                 # 1.2.1   append info for summary of errors
@@ -359,7 +378,7 @@ class Analyze_L2(Analyze) :
             try:
                 L2_errors = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name))
             except :
-                s = tools.red("L2 analysis failed: L2 error could not be read from output (last 25 lines)")
+                s = tools.red("L2 analysis failed: L2 error could not be read from output (searching in the last 25 lines)")
                 print(s)
                 
                 # 1.1.1   append info for summary of errors
@@ -403,7 +422,7 @@ class Analyze_Convtest_h(Analyze) :
         global pyplot_module_loaded
         """
         General workflow:
-        1.  check if number of successful runs is euqal the number of supplied cells
+        1.  check if number of successful runs is equal the number of supplied cells
         1.1   read the polynomial degree from the first run -> must not change!
         1.2   get L2 errors of all runs and create np.array
         1.2.1   append info for summary of errors in exception
@@ -419,7 +438,7 @@ class Analyze_Convtest_h(Analyze) :
         1.7.2   set analyzes to fail if success rate is not reached for all runs
         """
 
-        # 1.  check if number of successful runs is euqal the number of supplied cells
+        # 1.  check if number of successful runs is equal the number of supplied cells
         nRuns = len(runs)
         if nRuns < 2 :
             for run in runs :
@@ -444,7 +463,7 @@ class Analyze_Convtest_h(Analyze) :
                     try :
                         L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name))
                     except :
-                        s = tools.red("h-convergence failed: some L2 errors could not be read from output (last 25 lines)")
+                        s = tools.red("h-convergence failed: some L2 errors could not be read from output (searching in the last 25 lines)")
                         print(s)
                         
                         # 1.2.1   append info for summary of errors
@@ -489,7 +508,7 @@ class Analyze_Convtest_h(Analyze) :
                     f_save_path = os.path.join(os.path.dirname(runs[0].target_directory),"L2_error_nVar"+str(i)+"_order%.2f.pdf" % mean[i]) # set file path for saving the figure to the disk
                     f.savefig(f_save_path, bbox_inches='tight')                                                         # save figure to .pdf file
             else :
-                print tools.red('Could not import matplotlib.pyplot module. This is needed for creating plots under "Analyze_Convtest_h(Analyze)". Skipping plot.')
+                print tools.yellow('Could not import matplotlib.pyplot module. This is needed for creating plots under "Analyze_Convtest_h(Analyze)". \nSet "use_matplot_lib=True" in analyze.ini in order to activate plotting.')
 
             # 1.4.2   write L2 error data to file
             writeTableToFile(L2_errors,nVar,nRuns,self.cells,os.path.dirname(runs[0].target_directory),"L2_error_order%.2f.csv" % mean[0])
@@ -533,6 +552,221 @@ class Analyze_Convtest_h(Analyze) :
             print tools.yellow("cells "+str(len(self.cells)))
     def __str__(self) :
         return "perform L2 h-convergence test and compare the order of convergence with the polynomial degree"
+
+#==================================================================================================
+
+class Analyze_Convtest_t(Analyze) :
+    """Convergence test for different time steps defined in 'parameter.ini' (e.g. CFLScale)
+    The analyze routine read the L2 error norm from a set of runs and determines the order of convergence 
+    between the runs and averages the values. The average is compared with the temporal order supplied by the user."""
+    def __init__(self, order, name, tolerance, rate, method, method_name, ini_timestep, timestep_factor, total_iter, iters) :
+        # 1.   set the order of convergence, tolerance, rate and error name (name of the error in the std.out)
+        self.order      = order      # user-supplied convergence order
+        self.tolerance  = tolerance  # determine success rate by comparing the relative convergence error with a tolerance
+        self.rate       = rate       # success rate: for each nVar, the EOC is determined (the number of successful EOC vs. 
+                                     # the number of total EOC tests determines the success rate which is compared with this rate)
+        self.error_name = name       # string name of the L2 error in the std.out file (default is "L_2")                             
+
+        # 3.   set the method and input variables
+        self.method     = method      # choose between four methods: initial timestep, list of timestep_factor, total number of timesteps, list of timesteps. 
+                                      # The lists are user-supplied and the other methods are read automatically from the std.out
+        self.name       = method_name # string for the name of the method (used for pyplot)
+        self.ini_timestep    = ini_timestep    # 1.) initial timestep (automatically from std.out)
+        self.timestep_factor = timestep_factor # 2.) list of timestep_factor (user-supplied list)
+        self.total_iter      = total_iter      # 3.) total number of timesteps (automatically from std.out)
+        self.iters           = iters           # 4.) list of timesteps (user-supplied list)
+
+        # 3.   set variables depending on the method
+        if self.method == 2 :
+            self.number_of_x_values = len(self.timestep_factor)
+            self.x_values           = self.timestep_factor
+        elif self.method == 4:
+            self.number_of_x_values = len(self.iters)
+            self.x_values           = self.iters
+        else :
+            self.number_of_x_values = -1
+            if self.method == 1 :
+                self.get_x_values   = self.ini_timestep
+            else :
+                self.get_x_values   = self.total_iter
+
+
+    def perform(self,runs) :
+        global pyplot_module_loaded
+        """
+        General workflow:
+        1.  check if number of successful runs is equal the number of supplied timestep_factor/timesteps (only method 2 and 4)
+        1.1   for method 1.) or 3.) det the values for x_values from std.out
+        1.2   get L2 errors of all runs and create np.array
+        1.2.1   append info for summary of errors in exception
+        1.2.2   set analyzes to fail
+        1.3   get number of variables from L2 error array
+        1.4   determine order of convergence between two runs
+        1.4.1   determine average convergence rate
+        1.4.2   write L2 error data to file
+        1.5   determine success rate by comparing the relative convergence error with a tolerance
+        1.6   compare success rate with pre-defined rate
+        1.7     interate over all runs
+        1.7.1   add failed info if success rate is not reached to all runs
+        1.7.2   set analyzes to fail if success rate is not reached for all runs
+        """
+
+        # 1.  check if number of successful runs is at least two
+        nRuns = len(runs)
+        if nRuns < 2 :
+            for run in runs :
+                s="analysis failed: t-convergence not possible with only 1 run"
+                print tools.red(s)
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                return
+        if self.number_of_x_values in (-1,nRuns) :
+            # 1.1   for method 1.) or 3.) det the values for x_values from std.out
+            if self.method in (1,3) :
+                print self.get_x_values
+                if self.method == 1 :   # 1.) initial timestep (automatically from std.out)
+                    try :
+                        self.x_values = np.array([analyze_functions.get_initial_timesteps(run.stdout,self.get_x_values) for run in runs])
+                    except :
+                        for run in runs : # find out exactly which L2 error could not be read
+                            try :
+                                self.x_values_test = np.array(analyze_functions.get_initial_timesteps(run.stdout,self.get_x_values))
+                            except :
+                                s = tools.red("t-convergence failed: could not read [%s] from output (searching in all lines)" % self.get_x_values)
+                                print(s)
+                                
+                                # 1.2.1   append info for summary of errors
+                                run.analyze_results.append(s)
+
+                                # 1.2.2   set analyzes to fail
+                                run.analyze_successful=False
+                                Analyze.total_errors+=1
+                        return
+                elif self.method == 3 : # 3.) total number of timesteps (automatically from std.out)
+                    try :
+                        self.x_values = np.array([analyze_functions.get_last_number_of_timesteps(run.stdout,self.get_x_values) for run in runs])
+                    except :
+                        for run in runs : # find out exactly which L2 error could not be read
+                            try :
+                                self.x_values_test = np.array(analyze_functions.get_last_number_of_timesteps(run.stdout,self.get_x_values))
+                            except :
+                                s = tools.red("t-convergence failed: could not read [%s] from output (searching in the last 25 lines)" % self.get_x_values)
+                                print(s)
+                                
+                                # 1.2.1   append info for summary of errors
+                                run.analyze_results.append(s)
+
+                                # 1.2.2   set analyzes to fail
+                                run.analyze_successful=False
+                                Analyze.total_errors+=1
+                        return
+                # transpose the vector and reduce the dimension of the array from 2 to 1
+                self.x_values = np.transpose(self.x_values)
+                self.x_values = self.x_values[0]
+
+            # 1.2   get L2 errors of all runs and create np.array
+            try :
+                L2_errors = np.array([analyze_functions.get_last_L2_error(run.stdout,self.error_name) for \
+                        run in runs])
+                L2_errors = np.transpose(L2_errors)
+            except :
+                for run in runs : # find out exactly which L2 error could not be read
+                    try :
+                        L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name))
+                    except :
+                        s = tools.red("t-convergence failed: some L2 errors could not be read from output (searching in the last 25 lines)")
+                        print(s)
+                        
+                        # 1.2.1   append info for summary of errors
+                        run.analyze_results.append(s)
+
+                        # 1.2.2   set analyzes to fail
+                        run.analyze_successful=False
+                        Analyze.total_errors+=1
+                return
+
+            # 1.3   get number of variables from L2 error array
+            nVar = len(L2_errors)
+            print tools.blue("L2 errors for nVar="+str(nVar))
+            displayTable(L2_errors,nVar,nRuns)
+
+            # 1.4   determine order of convergence between two runs
+            if self.method == 1 :   # 1.) initial timestep (automatically from std.out)
+                L2_order = np.array([analyze_functions.calcOrder_h(self.x_values,L2_errors[i],True) for i in range(nVar)]) # invert (e.g. the timestep) for positive order calculation (eg. O(-4) -> O(4))
+            else :
+                L2_order = np.array([analyze_functions.calcOrder_h(self.x_values,L2_errors[i]) for i in range(nVar)])
+            print tools.blue("L2 orders for nVar="+str(nVar))
+            displayTable(L2_order,nVar,nRuns-1)
+
+            # 1.4.1   determine average convergence rate
+            mean = [np.mean(L2_order[i]) for i in range(nVar)]
+            print tools.blue("L2 average order for nVar=%s (exprected order = %s)" % (nVar,self.order))
+            displayVector(mean,nVar)
+
+            if pyplot_module_loaded : # this boolean is set when importing matplotlib.pyplot
+                for i in range(nVar) :
+                    f = plt.figure()                             # create figure
+                    if 1 == 2 :
+                        self.grid_spacing = [1.0/((self.order)*float(x)) for x in self.x_values]
+                        plt.plot(self.grid_spacing, L2_errors[i], 'ro-')    # create plot
+                        plt.xlabel('Average grid spacing for unit domain lenght L_domain=1')                # set x-label
+                    else :
+                        plt.plot(self.x_values, L2_errors[i], 'ro-')    # create plot
+                        plt.xlabel('x: %s' % self.name)                # set x-label
+                    if min(L2_errors[i]) > 0.0 :                     # log plot only if greater zero 
+                        plt.xscale('log')                            # set x-axis to log scale
+                        plt.yscale('log')                            # set y-axis to log scale
+                    plt.title('nVar = %s (of %s), MIN = %4.2e, MAX = %4.2e, O(%.2f)' % (i, nVar-1, min(L2_errors[i]), max(L2_errors[i]),mean[i])) # set title
+                    plt.ylabel('L2 error norm')                  # set y-label
+                    #plt.show() # display the plot figure for the user (comment out when running in batch mode)
+                    f_save_path = os.path.join(os.path.dirname(runs[0].target_directory),"L2_error_nVar"+str(i)+"_order%.2f.pdf" % mean[i]) # set file path for saving the figure to the disk
+                    f.savefig(f_save_path, bbox_inches='tight')                                                         # save figure to .pdf file
+            else :
+                print tools.yellow('Could not import matplotlib.pyplot module. This is needed for creating plots under "Analyze_Convtest_t(Analyze)". \nSet "use_matplot_lib=True" in analyze.ini in order to activate plotting.')
+
+            # 1.4.2   write L2 error data to file
+            writeTableToFile(L2_errors,nVar,nRuns,self.x_values,os.path.dirname(runs[0].target_directory),"L2_error_order%.2f.csv" % mean[0])
+            
+            # 1.5   determine success rate by comparing the relative convergence error with a tolerance
+            print tools.blue( "relative order error (tolerance = %.4e)" % self.tolerance)
+            relErr = [abs(mean[i]/(self.order)-1) for i in range(nVar)]
+            displayVector(relErr,nVar)
+            success = [relErr[i] < self.tolerance for i in range(nVar)]
+            print tools.blue("success convergence")
+            print 5*" "+"".join(str(success[i]).rjust(21) for i in range(nVar))
+
+
+            # 1.6   compare success rate with pre-defined rate, fails if not reached
+            if float(sum(success))/nVar >= self.rate :
+                print tools.blue("t-convergence successful")
+            else :
+                print tools.red("t-convergence failed"+"\n"+\
+                        "success rate="+str(float(sum(success))/nVar)+\
+                        " tolerance rate="+str(self.rate))
+
+                # 1.7     interate over all runs
+                for run in runs :
+
+                    # 1.6.1   add failed info if success rate is not reached to all runs
+                    run.analyze_results.append("analysis failed: t-convergence "\
+                            +str(success))
+
+                    # 1.6.2   set analyzes to fail if success rate is not reached for all runs
+                    run.analyze_successful=False
+                    Analyze.total_errors+=1
+
+        else :
+            s="cannot perform t-convergence test, because number of successful runs must equal the number of supplied %s in the user-supplied list" % self.name
+            print tools.red(s)
+            for run in runs :
+                run.analyze_results.append(s) # append info for summary of errors
+                run.analyze_successful=False  # set analyzes to fail
+                Analyze.total_errors+=1       # increment errror counter
+            print tools.yellow("[nRun] = [%s]" % nRuns)
+            print tools.yellow("[%s] = [%s] values for x_values (must equal the number of nRun)" % (self.name,len(self.x_values)))
+    def __str__(self) :
+        return "perform L2 t-convergence test and compare the order of convergence with %s against the supplied order of convergence" % self.name
 
 #==================================================================================================
 
@@ -593,7 +827,7 @@ class Analyze_Convtest_p(Analyze) :
                     try :
                         L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name))
                     except :
-                        s = tools.red("p-convergence failed: some L2 errors could not be read from output (last 25 lines)")
+                        s = tools.red("p-convergence failed: some L2 errors could not be read from output (searching in the last 25 lines)")
                         print(s)
                         
                         # 1.2.1   append info for summary of errors
@@ -627,7 +861,7 @@ class Analyze_Convtest_p(Analyze) :
                     f_save_path = os.path.join(os.path.dirname(runs[0].target_directory),"L2_error_nVar"+str(i)+".pdf") # set file path for saving the figure to the disk
                     f.savefig(f_save_path, bbox_inches='tight')                                                         # save figure to .pdf file
             else :
-                print tools.red('Could not import matplotlib.pyplot module. This is needed for creating plots under "Analyze_Convtest_h(Analyze)". Skipping plot.')
+                print tools.yellow('Could not import matplotlib.pyplot module. This is needed for creating plots under "Analyze_Convtest_p(Analyze)". \nSet "use_matplot_lib=True" in analyze.ini in order to activate plotting.')
 
             # 2.4   determine order of convergence between two runs
             L2_order = \
