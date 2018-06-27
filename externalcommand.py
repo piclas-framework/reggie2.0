@@ -44,14 +44,18 @@ class ExternalCommand() :
         while process.poll() is None:
             # Loop long as the selct mechanism indicates there
             # is data to be read from the buffer
+
+            # 1.   std.out
             while len(select.select([pipeOut_r], [], [], 0)[0]) == 1:
                 # Read up to a 1 KB chunk of data
                 bufOut = bufOut + os.read(pipeOut_r, 1024)
                 tmp = bufOut.split('\n') 
                 for line in tmp[:-1] :
                     self.stdout.append(line+'\n')
-                    log.info(line)
+                    log.debug(line)
                 bufOut = tmp[-1]
+
+            # 1.   err.out
             while len(select.select([pipeErr_r], [], [], 0)[0]) == 1:
                 # Read up to a 1 KB chunk of data
                 bufErr = bufErr + os.read(pipeErr_r, 1024)
