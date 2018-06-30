@@ -12,16 +12,16 @@ def get_last_L2_error(lines,name) :
 def get_last_number_of_timesteps(lines,name) :
    """Get the number of total timesteps used for the simulation.
    The set of lines correspond to the output-lines of a flexi-run"""
-   for l in lines[-25:] : # read the last 25 lines
+   for l in lines[-35:] : # read the last 25 lines
        # search for name, e.g., "#Timesteps"
        if name in l :
            tmp = l.split(":")[1]
    return [float(x) for x in tmp.split()]
 
-def get_last_initial_timesteps(lines,name) :
+def get_initial_timesteps(lines,name) :
    """Get the initial timestep used for the simulation.
    The set of lines correspond to the output-lines of a flexi-run"""
-   for l in lines[-25:] : # read the last 25 lines
+   for l in lines: # read all
        # search for name, e.g., "#Timesteps"
        if name in l :
            tmp = l.split(":")[1]
@@ -51,9 +51,12 @@ def get_cpu_per_dof(lines) :
         if "CALCULATION TIME PER TSTEP/DOF: [" in line :
            return float(line.split("[")[1].split("sec")[0])
 
-def calcOrder_h(h,E) :
+def calcOrder_h(h,E,invert_h=False) :
     """Determine the order of convergence for a list of grid spacings h and errors E"""
-    h = [float(elem) for elem in h]
+    if invert_h :
+        h = [1./float(elem) for elem in h]
+    else :
+        h = [float(elem) for elem in h]
     E = [float(elem) for elem in E]
     if len(h) != len(E) :
         return -1

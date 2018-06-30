@@ -64,7 +64,9 @@ gitlab-ci.py
 8. [Data file line comparison](#data-file-line-comparison)
 9. [integrate data columns](#integrate-data-columns)
 
-parameters used in `analyze.ini` and example arguments
+The parameters used in `analyze.ini` and example arguments are given in the following table. Note that if you intend to use whitespaces in variable names they must be supplied in form of `\s` in the variable name. 
+Example: `"Initial Timestep"` becomes `"Initial\sTimestep"` (or `"Initial\s Timestep"`) because all whitespaces are removed from the variable name automatically. 
+The intention of a whitespace must be stated explcitly. 
 
 |**analyze**               | **options**                          | **values (examples)**                                 | **Default values**               | **Description**           
 |:------------------------:|:-------------------------------------|:------------------------------------------------------|:---------------------------------|:---------------------------------------------------------------------------------------------------------------------------|
