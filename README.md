@@ -55,14 +55,14 @@ gitlab-ci.py
 # Analyze routines for "analyze.ini"
   
 1. [L2 error file](#l2-error-file)
-2. [L2 error upper limit](#l2-error-upper-limit)
-3. [h-convergence test](#h-convergence-test)
-4. [p-convergence test](#p-convergence-test)
-5. [h5diff](#h5diff)
-6. [h5diff_mult](#h5diff_mult)
-7. [h5 array bounds check](#h5-array-bounds-check)
-8. [Data file line comparison](#data-file-line-comparison)
-9. [integrate data columns](#integrate-data-columns)
+1. [L2 error upper limit](#l2-error-upper-limit)
+1. [h-convergence test](#h-convergence-test)
+1. [p-convergence test](#p-convergence-test)
+1. [h5diff](#h5diff)
+    1. [h5diff (multiple files)](#h5diff-multiple-files)
+1. [h5 array bounds check](#h5-array-bounds-check)
+1. [Data file line comparison](#data-file-line-comparison)
+1. [integrate data columns](#integrate-data-columns)
 
 The parameters used in `analyze.ini` and example arguments are given in the following table. Note that if you intend to use whitespaces in variable names they must be supplied in form of `\s` in the variable name. 
 Example: `"Initial Timestep"` becomes `"Initial\sTimestep"` (or `"Initial\s Timestep"`) because all whitespaces are removed from the variable name automatically. 
@@ -88,11 +88,7 @@ The intention of a whitespace must be stated explcitly.
 |                          | h5diff\_data\_set                    | DG\_Solution                                          | None                             | name of data set for comparing (e.g. DG\_Solution)                                                                         |
 |                          | h5diff\_tolerance\_value             | 1.0e-2                                                | 1e-5                             | relative/absolute deviation between two elements in a .h5 array                                                            |
 |                          | h5diff\_tolerance\_type              | relative                                              | absolute                         | relative or absolute comparison                                                                                            |
-|h5diff_mult               | h5diff\_files                        | \_State\_0.0.h5,\_State\_0.0.h5                       | None                             | name of calculated .h5 file (output from current run)                                                                      |
-|                          | h5diff\_reference\_files             | \_State\_0.0.h5\_ref,\_State\_0.0.h5\_ref             | None                             | reference .h5 file (must be placed in repository) for comparing with the calculated one                                    |
-|                          | h5diff\_data\_sets                   | DG\_Solution,FieldData                                | None                             | name of data set for comparing (e.g. DG\_Solution)                                                                         |
-|                          | h5diff\_tolerance\_values            | 1.0e-2,1.0e-10                                        | 1e-5                             | relative/absolute deviation between two elements in a .h5 array                                                            |
-|                          | h5diff\_tolerance\_types             | relative,absolute                                     | absolute                         | relative or absolute comparison                                                                                            |
+|                          | h5diff\_one\_diff\_per\_run          | True                                                  | False                            | if multiple reference files are supplied, these can either be used in every run or one each run                            |
 |h5 array bounds check     | check\_hdf5\_file                    | tildbox_State_001.00000000000000000.h5                | None                             | name of calculated .h5 file (output from current run)                                                                      |
 |                          | check\_hdf5\_data\_set               | PartData                                              | None                             | name of data set for comparing (e.g. DG\_Solution)                                                                         |
 |                          | check\_hdf5\_dimension               | 0:2                                                   | None                             | dimension of data set ( note that dimensions start at 0)                                                                   |
@@ -178,22 +174,39 @@ h5diff_file            =          single-particle_State_000.00000005000000000.h5
 h5diff_reference_file  = single-particle_reference_State_000.0000000500000000.h5
 h5diff_data_set        = DG_Source
 h5diff_tolerance_value = 1.0e-2
-h5diff_tolerance_type  = relative
+h5diff_tolerance_typhttps://gitlabext.iag.uni-stuttgart.de/reggie/reggie/edit/master/README.md#previewe  = relative
 ```
 
-# h5diff_mult
+## h5diff (multiple files)
 * Compares multiple arrays from multiple .h5 files element-by-element either with an absolute or relative difference (when comparing with zero, h5diff automatically uses an absolute comparison).  
 * Requires h5diff, which is compiled within the HDF5 package.  
+
+### Example with `h5diff_one_diff_per_run = F`
+This setup considers 2 runs and compares two files with two different reference files in each run, hence, multiple file output can be analyzed.
 
 Template for copying to **analyze.ini**
 
 ```
 ! hdf5 diff
-h5diff_mult_file            = sharpSOD_State_0000000.100000000.h5,sharpSOD_State_0000000.100000000.h5       
-h5diff_mult_reference_file  = reggie_sharpSOD_State_0000000.100000000.h5,reggie_sharpSOD_State_0000000.100000000.h5
+h5diff_mult_file            = sharpSOD_State_0000000.100000000.h5,sharpSOD_QDS_0000000.100000000.h5       
+h5diff_mult_reference_file  = reggie_sharpSOD_State_0000000.100000000.h5,reggie_sharpSOD_QDS_0000000.100000000.h5
 h5diff_mult_data_set        = DG_Solution,FieldData                                
 h5diff_mult_tolerance_value = 1.0e-12,1.0e-12                                   
 h5diff_mult_tolerance_type  = absolute,absolute 
+```
+
+### Example with `h5diff_one_diff_per_run = T`
+This setup considers 4 runs (the polynomial degree is varied) and in ervery run only one file is comapred with a reference file. In the next run, a different reference file is used.
+
+Template for copying to **analyze.ini**
+```
+! hdf5 diff
+h5diff_one_diff_per_run= T
+h5diff_file            = hdg_slab_DielectricGlobal_000.00000000000000000.h5       ,hdg_slab_DielectricGlobal_000.00000000000000000.h5       ,hdg_slab_DielectricGlobal_000.00000000000000000.h5       ,hdg_slab_DielectricGlobal_000.00000000000000000.h5
+h5diff_reference_file  = hdg_slab_DielectricGlobal_000.00000000000000000_ref_N3.h5,hdg_slab_DielectricGlobal_000.00000000000000000_ref_N5.h5,hdg_slab_DielectricGlobal_000.00000000000000000_ref_N7.h5,hdg_slab_DielectricGlobal_000.00000000000000000_ref_N9.h5
+h5diff_data_set        = DG_Solution,DG_Solution,DG_Solution,DG_Solution
+h5diff_tolerance_value = 1.0e-2,1.0e-2,1.0e-2,1.0e-2
+h5diff_tolerance_type  = relative,relative,relative,relative
 ```
 
 # h5 array bounds check
