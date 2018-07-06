@@ -928,7 +928,7 @@ class Analyze_Convtest_p(Analyze) :
 
 class Analyze_h5diff(Analyze,ExternalCommand) :
     def __init__(self, h5diff_one_diff_per_run, h5diff_reference_file, h5diff_file, h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type) :
-        self.one_diff_per_run = h5diff_one_diff_per_run
+        self.one_diff_per_run = (h5diff_one_diff_per_run in ('True', 'true', 't', 'T'))
         self.prms = { "reference_file" : h5diff_reference_file, "file" : h5diff_file, "data_set" : h5diff_data_set, "tolerance_value" : h5diff_tolerance_value, "tolerance_type" : h5diff_tolerance_type }
         for key, prm in self.prms.iteritems() : 
            if type(prm) != type([]) :
