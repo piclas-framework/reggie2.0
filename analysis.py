@@ -1239,6 +1239,7 @@ class Analyze_compare_data_file(Analyze) :
                 return
             
             # 1.3.1   read data file
+            line = []
             with open(path, 'rb') as csvfile:
                 line_str = csv.reader(csvfile, delimiter=self.delimiter, quotechar='!')
                 i=0
@@ -1256,6 +1257,7 @@ class Analyze_compare_data_file(Analyze) :
                 line_len = len(line)
             
             # 1.3.2   read refernece file
+            line_ref = []
             with open(path_ref, 'rb') as csvfile:
                 line_str = csv.reader(csvfile, delimiter=self.delimiter, quotechar='!')
                 header_ref=0
