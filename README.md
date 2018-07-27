@@ -225,7 +225,7 @@ check_hdf5_limits      = -10.0:10.0
 ```
 
 # Data file line comparison
-* Compare a live in, e.g., a .csv file element-by-elements
+* Compare a single line in, e.g., a .csv file element-by-elements
 * The data is delimited by a comma on default but can be changed by setting "compare\_data\_file\_delimiter = :" (when, e.g., ":" is to be used as the delimiter)
 * relative of absolute comparison
 
