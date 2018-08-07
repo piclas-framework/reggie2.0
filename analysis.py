@@ -1088,6 +1088,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                             run.analyze_results.append("h5diff failed, self.return_code != 0")
 
                             # 1.3.1   add failed info if return a code != 0 to run
+                            print " "
                             if len(self.stdout) > 20 :
                                 for line in self.stdout[:10] : # print first 10 lines
                                     print " "+line,
@@ -1095,9 +1096,11 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                                 for line in self.stdout[-10:] : # print last 10 lines
                                     print " "+line,
                             else :
-                                print " "+str(self.stdout)
+                                for line in self.stdout : # print all lines
+                                    print " "+line,
                                 if len(self.stdout) == 1 :
                                     run.analyze_results.append(str(self.stdout))
+                            print " "
 
                             # 1.3.2   set analyzes to fail if return a code != 0
                             run.analyze_successful=False
