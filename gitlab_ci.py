@@ -31,6 +31,7 @@ parser.add_argument('-d', '--debug', type=int, default=0, help='Debug level for 
 parser.add_argument('-i', '--info', type=int, default=1, help='Debug level for the subsequent program execution (e.g. flexi).')
 parser.add_argument('-o', '--only', action='store_true',help='Only run one case and exit afterwards (from the list that this tools creates).')
 parser.add_argument('-n', '--dryrun', action='store_true',help='Simply list all possible cases without performing any run.')
+parser.add_argument('-t', '--compiletype', help='Override all CMAKE_BUILD_TYPE settings by ignoring the value set in builds.ini (e.g. DEBUG or RELEASE).')
 
 # get reggie command line arguments
 args = parser.parse_args()
@@ -117,6 +118,11 @@ for case in cases :
     # add debug level to gitlab-ci command line
     if args.info :
         cmd.append("-d1")
+
+    # add compiletype if supplied
+    if args.compiletype :
+        cmd.append("-t")
+        cmd.append(args.compiletype)
 
     cmd_string=" ".join(cmd)
     #cmd = ["ls","-l"] # for testing some other commands
