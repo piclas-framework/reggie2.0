@@ -89,10 +89,12 @@ class Standalone(Build) :
         s+= "              target_directory= " + self.target_directory
         return s
 
-def getBuilds(basedir, source_directory) :
+def getBuilds(basedir, source_directory, CMAKE_BUILD_TYPE) :
     builds = []
     i = 1
-    combis, digits = combinations.getCombinations(os.path.join(source_directory, 'builds.ini')) 
+    combis, digits = combinations.getCombinations(os.path.join(source_directory, 'builds.ini'),OverrideOptionKey='CMAKE_BUILD_TYPE',OverrideOptionValue=CMAKE_BUILD_TYPE) 
+    
+    # create Builds
     for b in combis :
         builds.append(Build(basedir, source_directory,b, i))
         i += 1

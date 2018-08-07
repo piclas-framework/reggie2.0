@@ -98,13 +98,28 @@ def readKeyValueFile(filename) :
 
     return options, exclusions, noCrossCombinations
 
-def getCombinations(filename, CheckForMultipleKeys=False) :
+def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None, OverrideOptionValue=None) :
     # 1. get the key-value list from file
     # 1.1   get exclusion from line (if line starts with 'exclude:')
     # 1.2   get noCrossCombination from line (if line starts with 'nocrosscombination:')
     # 1.3   get option and it values from line ( option=value1 [,value2 [,value3 ...]] )
     options, exclusions, noCrossCombinations = readKeyValueFile(filename)
 
+    # 1.4   Check if a options[].values (key in the dict) is to be overridden (removes all other occurrences too!)
+    if OverrideOptionKey and OverrideOptionValue :
+        print tools.red("Setting all options for: %s=[%s]" % (OverrideOptionKey,OverrideOptionValue))
+
+        # find the key/value pair in the options and replace the key/value + re-sort the list
+        option_not_found=True
+        for i in range(len(options)) :
+            if options[i].name == OverrideOptionKey :
+                options[i].values = [OverrideOptionValue]
+                option_not_found=False
+        if option_not_found :
+            raise Exception(tools.red("Trying to set %s = [%s], but %s was not found in the list." % (OverrideOptionKey,OverrideOptionValue,OverrideOptionKey) ))
+
+        options.sort(key=lambda option: len(option.values), reverse=True) # sort list in order to have the most varying option at the beginning
+    
     # 2.  Compute combinations:
     # 2.1   count total number of all combinations
     # 2.2   build only the valid combinations (that do NOT match any exclusion)
@@ -152,8 +167,9 @@ def getCombinations(filename, CheckForMultipleKeys=False) :
 
         for option in options : 
             if CheckForMultipleKeys :
-                # check if a parameter name occurs more than once in the list
+                # check if the same parameter name (e.g. 'BoundaryName') occurs more than once in the list and
                 # move multiple occurances to a separate key/value where the value is a list of all occurances
+                # this must be done, because dicts cannot have the same key name more than once (it is a dictionary)
                 found, number = isKeyOf(combination,option.name)
                 if found :
                     new_key = "MULTIPLE_KEY:"+option.name
@@ -213,6 +229,3 @@ def writeCombinationsToFile(combinations, path) : # write one set of parameters 
         #self.filename = filename
     #def __str__(self):
         #return tools.printr("getCombination failed. file '%s' not found." % (self.filename))
-
-
-

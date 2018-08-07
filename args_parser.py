@@ -17,6 +17,7 @@ def getArgsAndBuilds() :
     parser.add_argument('-y', '--dummy', action='store_true',help='Use dummy_basedir and dummy_checks for fast testing on dummy code')
     parser.add_argument('-r', '--run', action='store_true' ,help='Run all binaries for all examples with all run-combinations for all existing binaries')
     parser.add_argument('-s', '--save', action='store_true',help='Do not remove output directories buildsXXXX in output_dir after successful run')
+    parser.add_argument('-t', '--compiletype', help='Override all CMAKE_BUILD_TYPE settings by ignoring the value set in builds.ini (e.g. DEBUG or RELEASE).')
     parser.add_argument('check', help='Path to check-/example-directory.')
     
     # get reggie command line arguments
@@ -53,7 +54,7 @@ def getArgsAndBuilds() :
     # get builds from checks directory if no executable is supplied
     if args.exe is None : # if not exe is supplied, get builds
         # read build combinations from checks/XX/builds.ini
-        builds = check.getBuilds(args.basedir, args.check)
+        builds = check.getBuilds(args.basedir, args.check,args.compiletype)
     else :
         if not os.path.exists(args.exe) : # check if executable exists
             print tools.red("No executable found under '%s'" % args.exe)
