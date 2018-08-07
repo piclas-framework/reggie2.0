@@ -20,8 +20,8 @@ python gitlab-ci.py --help
 
 ## Overview
 Zollernblick slides [RegressionCheck2.0.pdf](/uploads/7a6718bc26615653cdd32116d968b969/RegressionCheck2.0.pdf)
- * [General code hierarchy in Reggie2.0](#code-hierarchy-and-required-ini-files)
- * [Analyze routines for post-processing in **analyze.ini**](#analyze-routines)
+ * [General file and directory hierarchy in Reggie2.0](#code-hierarchy-and-required-ini-files)
+ * [Analyze routines for post-processing in **analyze.ini**](#analyze-routines-for-analyzeini)
  * [Command line arguments for program execution in **command_line.ini**](#command-line)
  * [Compile flag combinations for c-make in **builds.ini**](#builds)
  * [Exclude runs in **parameter.ini**](#runs)
@@ -63,6 +63,8 @@ gitlab-ci.py
 1. [h5 array bounds check](#h5-array-bounds-check)
 1. [Data file line comparison](#data-file-line-comparison)
 1. [integrate data columns](#integrate-data-columns)
+1. [Clean-up files after each run](#clean-up-files)
+
 
 The parameters used in `analyze.ini` and example arguments are given in the following table. Note that if you intend to use whitespaces in variable names they must be supplied in form of `\s` in the variable name. 
 Example: `"Initial Timestep"` becomes `"Initial\sTimestep"` (or `"Initial\s Timestep"`) because all whitespaces are removed from the variable name automatically. 
@@ -107,7 +109,8 @@ The intention of a whitespace must be stated explcitly.
 |                          | integrate\_line\_tolerance_type      | relative                                              | None                             | type of tolerance, either 'absolute' or 'relative'                                                                         |
 |                          | integrate\_line\_option              | DivideByTimeStep                                      | None                             | special option, e.g., calculating a rate by dividing the integrated values by the timestep which is used in the values 'x' |
 |                          | integrate\_line\_multiplier          | 1                                                     | 1                                | factor for multiplying the result (in order to acquire a physically meaning value for comparison)                          |
-
+|                          | integrate\_line\_multiplier          | 1                                                     | 1                                | factor for multiplying the result (in order to acquire a physically meaning value for comparison)                          |
+|clean-up files after run  | clean\_up\_files                     | *_State_*                                             | None                             | remove all unwated files directly after the run is completed. The wildcard character is "*"                                |
 
 # L2 error file
 * Compare all L2 errors calculated for all nVar against supplied values in a data file
@@ -225,7 +228,7 @@ check_hdf5_limits      = -10.0:10.0
 ```
 
 # Data file line comparison
-* Compare a live in, e.g., a .csv file element-by-elements
+* Compare a single line in, e.g., a .csv file element-by-elements
 * The data is delimited by a comma on default but can be changed by setting "compare\_data\_file\_delimiter = :" (when, e.g., ":" is to be used as the delimiter)
 * relative of absolute comparison
 
@@ -297,7 +300,14 @@ integrate_line_multiplier      = 5.340588433333334e-03 ! = MPF*q/tend = 1e6*1.60
 
 Note that a comma is the default delimiter symbol for reading the data from the supplied file. The varaible "integrate\_line\_delimiter" cannot be set as custom delimiter symbol "," because the comma is used for splitting the keywords in analyze.ini. However, other symbols can be supplied using "integrate\_line\_delimiter" instead of a comma.
 
+## Clean-up files
+* remove all unwated files directly after the run is completed. The wildcard character is "*"
 
+Template for copying to **analyze.ini**
+
+```
+clean_up_files = *_State_*, *.csv, *.dat
+```
 
 
 
