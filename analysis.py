@@ -7,6 +7,7 @@ import tools
 import csv
 import re
 import logging
+import glob
 
 # import h5 I/O routines
 try :
@@ -97,6 +98,10 @@ def getAnalyzes(path, example) :
         else :
             pyplot_module_loaded = False 
 
+    # 1.3 Get the names of the files (incl. wildcards) which are to be deleted in the anaylsis stage
+    clean_up_files = options.get('clean_up_files',None)
+    if clean_up_files :
+        analyze.append(Clean_up_files(clean_up_files))
 
     # 2.0   L2 error from file
     L2_file                =       options.get('analyze_l2_file',None)
@@ -245,6 +250,46 @@ def getAnalyzes(path, example) :
  
 class Analyze() : # main class from which all analyze functions are derived
     total_errors = 0
+
+#==================================================================================================
+
+class Clean_up_files() :
+    """Clean up the output folder by deleting sepcified files"""
+    def __init__(self, clean_up_files) :
+        self.files = clean_up_files
+
+    def perform(self,runs) :
+        return # do nothing
+
+    def execute(self,run) :
+
+        """
+        General workflow:
+        1.  Iterate over all runs
+        1.1   remove all files that are specified (if they exist)
+        """
+
+        # 1.1   remove all files that are specified (if they exist)
+        for remove_file in self.files :
+            path = os.path.join(run.target_directory,remove_file)
+            
+            wildcards = glob.glob(path)
+            for wildcard in wildcards:
+                if not os.path.exists(wildcard) :
+                    s = tools.red("Clean_up_files: Could not find file=[%s] for removing" % wildcard)
+                    print(s)
+                    run.analyze_results.append(s)
+                    run.analyze_successful=False
+                    Analyze.total_errors+=1
+                    continue
+                else :
+                    print tools.yellow("[remove_folder]: deleting file '%s'" % wildcard)
+                    os.remove(wildcard)
+
+    def __str__(self) :
+        return "Clean up the output folder by deleting sepcified files"
+
+
 
 #==================================================================================================
 

@@ -5,7 +5,7 @@ import combinations
 from outputdirectory import OutputDirectory
 from externalcommand import ExternalCommand
 import tools
-from analysis import Analyze, getAnalyzes
+from analysis import Analyze, getAnalyzes, Clean_up_files
 import collections
 
 class Build(OutputDirectory,ExternalCommand) :
@@ -370,11 +370,19 @@ def PerformCheck(start,builds,args,log) :
                         run.execute(build,command_line)
                         if not run.successful :
                             Run.total_errors+=1 # add error if run fails
+                        
+                        # 4.2 Remove unwanted files: run analysis directly after each run (as oposed to the normal analysis which is used for analyzing the created output)
+                        for analyze in example.analyzes :
+                            if isinstance(analyze,Clean_up_files) :
+                                analyze.execute(run)
+
     
                     # 5.   loop over all successfully executed binary results and perform analyze tests
                     runs_successful = [run for run in command_line.runs if run.successful]
                     if runs_successful : # do analyzes only if runs_successful is not emtpy
                         for analyze in example.analyzes :
+                            if isinstance(analyze,Clean_up_files) : # skip because already called in the "run" loop under 4.2
+                                continue
                             print tools.indent(tools.blue(str(analyze)),2)
                             analyze.perform(runs_successful)
                     else : # don't delete build folder after all examples/runs
