@@ -16,8 +16,8 @@ if not os.path.exists(reggie_exe_path) :
     print "Reggie main file not found in reggie repository under: '%s'" % reggie_exe_path
     exit(1)
 
-from generate_tools import finalize
-import generate_tools
+from repas_tools import finalize
+import repas_tools
 
 from combinations import getCombinations
 from combinations import isKeyOf
@@ -101,7 +101,7 @@ else :
 
 # initialize central object and run in current working dir
 cwd      = os.getcwd()
-generate = generate_tools.Case(cwd,cmd,'names.ini','names2.ini','parameter.ini') # and the case to the list of cases
+generate = repas_tools.Case(cwd,cmd,'names.ini','names2.ini','parameter.ini') # and the case to the list of cases
 
 # read the combinations for running the setups
 combis, digits = getCombinations(os.path.join(cwd,generate.names2_file))
