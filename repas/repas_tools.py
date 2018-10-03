@@ -153,36 +153,36 @@ class Case(ExternalCommand) :
 
 
     def save_data(self) :
-        for file in os.listdir("output_dir/standalone/examples/cmd_0001/run_0001"):
-            # creat dir
-            result_dirname="results/"+self.suffix
-            os.system("mkdir -p "+result_dirname)
-            if file.endswith(".pdf"):
-                try :
-                    if file.index('order') != -1 :
-                        order = file[file.index('order')+5:-4]             # get string from 'order' + 5 to the end, but remove last 4 character ".pdf"
-                        new_name = "L2"+self.suffix+"_order%s.pdf" % order # add suffix to name
+        try:
+            for file in os.listdir("output_dir/standalone/examples/cmd_0001/run_0001"):
+                # creat dir
+                result_dirname="results/"+self.suffix
+                os.system("mkdir -p "+result_dirname)
+                if file.endswith(".pdf"):
+                    try :
+                        if file.index('order') != -1 :
+                            order = file[file.index('order')+5:-4]             # get string from 'order' + 5 to the end, but remove last 4 character ".pdf"
+                            new_name = "L2"+self.suffix+"_order%s.pdf" % order # add suffix to name
+                            os.system("mv output_dir/standalone/examples/cmd_0001/"+file+" "+new_name) # move file to upper most path
+                    except :
+                        new_name = "L2"+self.suffix+".pdf" 
                         os.system("mv output_dir/standalone/examples/cmd_0001/"+file+" "+new_name) # move file to upper most path
-                except :
-                    new_name = "L2"+self.suffix+".pdf" 
-                    os.system("mv output_dir/standalone/examples/cmd_0001/"+file+" "+new_name) # move file to upper most path
 
-            if file.endswith(".csv"):
-                try :
-                    if file.index('order') != -1 :
-                        order = file[file.index('order')+5:-4]             # get string from 'order' + 5 to the end, but remove last 4 character ".pdf"
-                        new_name = "L2"+self.suffix+"_order%s.csv" % order # add suffix to name
-                        os.system("mv output_dir/standalone/examples/cmd_0001/"+file+" "+new_name) # move file to upper most path
-                except :
-                    new_name = "L2"+self.suffix+".csv" 
-                os.system("cp output_dir/standalone/examples/cmd_0001/run_0001/"+file+" "+result_dirname+"/.") # move file to upper most path
-            if file.endswith(".txt"):
-                #try :
-                os.system("cp output_dir/standalone/examples/cmd_0001/run_0001/"+file+" "+result_dirname+"/.") # move file to upper most path
-            if file.endswith("parameter.ini"):
-                #try :
-                os.system("cp output_dir/standalone/examples/cmd_0001/run_0001/"+file+" "+result_dirname+"/.") # move file to upper most path
-
+                if file.endswith(".csv"):
+                    try :
+                        if file.index('order') != -1 :
+                            order = file[file.index('order')+5:-4]             # get string from 'order' + 5 to the end, but remove last 4 character ".pdf"
+                            new_name = "L2"+self.suffix+"_order%s.csv" % order # add suffix to name
+                            os.system("mv output_dir/standalone/examples/cmd_0001/"+file+" "+new_name) # move file to upper most path
+                    except :
+                        new_name = "L2"+self.suffix+".csv" 
+                    os.system("cp output_dir/standalone/examples/cmd_0001/run_0001/"+file+" "+result_dirname+"/.") # move file to upper most path
+                if file.endswith(".txt"):
+                    os.system("cp output_dir/standalone/examples/cmd_0001/run_0001/"+file+" "+result_dirname+"/.") # move file to upper most path
+                if file.endswith("parameter.ini"):
+                    os.system("cp output_dir/standalone/examples/cmd_0001/run_0001/"+file+" "+result_dirname+"/.") # move file to upper most path
+        except:
+            print "lol, run failed"
 
 def finalize(start, run_errors) :
     """Display if generate was successful or not and return the number of errors that were encountered"""
