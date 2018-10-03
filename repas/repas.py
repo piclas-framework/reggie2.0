@@ -101,9 +101,9 @@ else :
 
 # initialize central object and run in current working dir
 cwd      = os.getcwd()
-generate = repas_tools.Case(cwd,cmd,'names.ini','names2.ini','parameter.ini') # and the case to the list of cases
+generate = repas_tools.Case(cwd,cmd,'parameter_rename.ini','parameter_change.ini','parameter.ini') # and the case to the list of cases
 
-# read the combinations for running the setups
+# read the combinations for running the setups from parameter_change.ini
 combis, digits = getCombinations(os.path.join(cwd,generate.names2_file))
 
 # Edit parameter.ini for multiple parameters, subsequently, the reggie will change a set of variables 
@@ -120,14 +120,14 @@ for combi in combis :
     # create parameter file for current combi
     generate.create(combi,digits)
     
-    # read 'names.ini' for renaming the results file
+    # read 'parameter_rename.ini' for renaming the results file
     generate.names()
     
     # run the code and generate output
     generate.run(i)
     i += 1
 
-    # save data: check output directory for .pdf and .csv files and rename according to info in 'names.ini'
+    # save data: check output directory for .pdf and .csv files and rename according to info in 'parameter_rename.ini'
     generate.save_data()
 
 print 132*'-'

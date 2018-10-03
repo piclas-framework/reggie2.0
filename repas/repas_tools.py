@@ -50,13 +50,13 @@ class Case(ExternalCommand) :
         self.names_file       = os.path.join(cwd,names_file)
         # check if file exists
         if not os.path.exists(self.names_file) :
-            print red("names.ini file not found under: '%s'" % self.names_file)
+            print red("parameter_rename.ini file not found under: '%s'" % self.names_file)
             exit(1)
 
         self.names2_file       = os.path.join(cwd,names2_file)
         # check if file exists
         if not os.path.exists(self.names2_file) :
-            print red("names2.ini file not found under: '%s'" % self.names2_file)
+            print red("parameter_change.ini file not found under: '%s'" % self.names2_file)
             exit(1)
 
         self.parameter_file   = os.path.join(cwd,parameter_file)
@@ -75,7 +75,7 @@ class Case(ExternalCommand) :
     def create(self, combi, digits) :
 
         # copy original parameter.ini file to backup parameter_backup.ini file
-        os.system("cp parameter_backup.ini %s" % self.parameter_file)
+        os.system("cp %s parameter_backup.ini" % self.parameter_file)
 
         # create temorary parameter_tmp.ini file which will be edited
         tmp_file_name = "parameter_tmp.ini"
@@ -106,7 +106,7 @@ class Case(ExternalCommand) :
         logging.getLogger('logger').debug(yellow('='*132))
         logging.getLogger('logger').debug("Creating output name:")
         if not os.path.exists(self.names_file) :
-            print red("names.ini file not found under: '%s'" % self.names_file)
+            print red("parameter_rename.ini file not found under: '%s'" % self.names_file)
             exit(1)
         options_names, exclusions, noCrossCombinations = readKeyValueFile(self.names_file)
         suffix=''
@@ -153,7 +153,10 @@ class Case(ExternalCommand) :
 
 
     def save_data(self) :
-        for file in os.listdir("output_dir/standalone/examples/cmd_0001/"):
+        for file in os.listdir("output_dir/standalone/examples/cmd_0001/run_0001"):
+            # creat dir
+            result_dirname="results/"+self.suffix
+            os.system("mkdir -p "+result_dirname)
             if file.endswith(".pdf"):
                 try :
                     if file.index('order') != -1 :
@@ -172,7 +175,13 @@ class Case(ExternalCommand) :
                         os.system("mv output_dir/standalone/examples/cmd_0001/"+file+" "+new_name) # move file to upper most path
                 except :
                     new_name = "L2"+self.suffix+".csv" 
-                    os.system("mv output_dir/standalone/examples/cmd_0001/"+file+" "+new_name) # move file to upper most path
+                os.system("cp output_dir/standalone/examples/cmd_0001/run_0001/"+file+" "+result_dirname+"/.") # move file to upper most path
+            if file.endswith(".txt"):
+                #try :
+                os.system("cp output_dir/standalone/examples/cmd_0001/run_0001/"+file+" "+result_dirname+"/.") # move file to upper most path
+            if file.endswith("parameter.ini"):
+                #try :
+                os.system("cp output_dir/standalone/examples/cmd_0001/run_0001/"+file+" "+result_dirname+"/.") # move file to upper most path
 
 
 def finalize(start, run_errors) :
