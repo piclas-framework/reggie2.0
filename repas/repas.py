@@ -100,11 +100,11 @@ else :
 #cmd = ["ls","-l"] # for testing some other commands
 
 # initialize central object and run in current working dir
-cwd      = os.getcwd()
-generate = repas_tools.Case(cwd,cmd,'parameter_rename.ini','parameter_change.ini','parameter.ini') # and the case to the list of cases
+cwd   = os.getcwd()
+repas = repas_tools.Case(cwd,cmd,'parameter_rename.ini','parameter_change.ini','parameter.ini') # and the case to the list of cases
 
 # read the combinations for running the setups from parameter_change.ini
-combis, digits = getCombinations(os.path.join(cwd,generate.names2_file))
+combis, digits = getCombinations(os.path.join(cwd,repas.names2_file))
 
 # Edit parameter.ini for multiple parameters, subsequently, the reggie will change a set of variables 
 #      and produce output which must be collected
@@ -118,21 +118,21 @@ for combi in combis :
         print "[%25s=%25s] digit=%3s" % (key, value, digits[key])
 
     # create parameter file for current combi
-    generate.create(combi,digits)
+    repas.create(combi,digits)
     
     # read 'parameter_rename.ini' for renaming the results file
-    generate.names()
+    repas.names()
     
-    # run the code and generate output
-    generate.run(i)
+    # run the code and repas output
+    repas.run(i)
     i += 1
 
     # save data: check output directory for .pdf and .csv files and rename according to info in 'parameter_rename.ini'
-    generate.save_data()
+    repas.save_data()
 
 print 132*'-'
 print " "
-finalize(start, generate.nErrors)
+finalize(start, repas.nErrors)
 
 
 
