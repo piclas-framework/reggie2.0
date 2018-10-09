@@ -50,13 +50,13 @@ class Case(ExternalCommand) :
         self.names_file       = os.path.join(cwd,names_file)
         # check if file exists
         if not os.path.exists(self.names_file) :
-            print red("names.ini file not found under: '%s'" % self.names_file)
+            print red("parameter_rename.ini file not found under: '%s'" % self.names_file)
             exit(1)
 
         self.names2_file       = os.path.join(cwd,names2_file)
         # check if file exists
         if not os.path.exists(self.names2_file) :
-            print red("names2.ini file not found under: '%s'" % self.names2_file)
+            print red("parameter_change.ini file not found under: '%s'" % self.names2_file)
             exit(1)
 
         self.parameter_file   = os.path.join(cwd,parameter_file)
@@ -67,15 +67,15 @@ class Case(ExternalCommand) :
 
         # display used files
         print "Using the following input files"
-        print "names_file".ljust(15)," = [",self.names_file,"]"
-        print "names2_file".ljust(15)," = [",self.names2_file,"]"
-        print "parameter_file".ljust(15)," = [",self.parameter_file,"]"
+        print "parameter_rename.ini".ljust(25)," = [",self.names_file,"]"
+        print "parameter_change.ini".ljust(25)," = [",self.names2_file,"]"
+        print "parameter.ini       ".ljust(25)," = [",self.parameter_file,"]"
         print('='*132)
 
     def create(self, combi, digits) :
 
         # copy original parameter.ini file to backup parameter_backup.ini file
-        os.system("cp parameter_backup.ini %s" % self.parameter_file)
+        os.system("cp %s parameter_backup.ini" % self.parameter_file)
 
         # create temorary parameter_tmp.ini file which will be edited
         tmp_file_name = "parameter_tmp.ini"
@@ -106,7 +106,7 @@ class Case(ExternalCommand) :
         logging.getLogger('logger').debug(yellow('='*132))
         logging.getLogger('logger').debug("Creating output name:")
         if not os.path.exists(self.names_file) :
-            print red("names.ini file not found under: '%s'" % self.names_file)
+            print red("parameter_rename.ini file not found under: '%s'" % self.names_file)
             exit(1)
         options_names, exclusions, noCrossCombinations = readKeyValueFile(self.names_file)
         suffix=''
@@ -153,37 +153,69 @@ class Case(ExternalCommand) :
 
 
     def save_data(self) :
-        for file in os.listdir("output_dir/standalone/examples/cmd_0001/"):
-            if file.endswith(".pdf"):
-                try :
-                    if file.index('order') != -1 :
-                        order = file[file.index('order')+5:-4]             # get string from 'order' + 5 to the end, but remove last 4 character ".pdf"
-                        new_name = "L2"+self.suffix+"_order%s.pdf" % order # add suffix to name
-                        os.system("mv output_dir/standalone/examples/cmd_0001/"+file+" "+new_name) # move file to upper most path
-                except :
-                    new_name = "L2"+self.suffix+".pdf" 
-                    os.system("mv output_dir/standalone/examples/cmd_0001/"+file+" "+new_name) # move file to upper most path
+        # 0.0 set output folder structure
+        output_path="output_dir/standalone/examples/cmd_0001"
+        if os.path.exists(output_path):
+            self.results_main = "results/"
+            if not os.path.exists(self.results_main) :
+                os.makedirs(self.results_main)
 
-            if file.endswith(".csv"):
-                try :
-                    if file.index('order') != -1 :
-                        order = file[file.index('order')+5:-4]             # get string from 'order' + 5 to the end, but remove last 4 character ".pdf"
-                        new_name = "L2"+self.suffix+"_order%s.csv" % order # add suffix to name
-                        os.system("mv output_dir/standalone/examples/cmd_0001/"+file+" "+new_name) # move file to upper most path
-                except :
-                    new_name = "L2"+self.suffix+".csv" 
-                    os.system("mv output_dir/standalone/examples/cmd_0001/"+file+" "+new_name) # move file to upper most path
+        # 1.0 save data from output_dir/standalone/examples/cmd_0001
+        try:
+            for folder in os.listdir(output_path):
+                folder_path=os.path.join(output_path,folder)
+                if not os.path.isdir(folder_path) :
+                    continue
+                for file in os.listdir(folder_path):
+                    # create results sub-directory if it is non-existent
+                    self.results_sub = "results/%s" % folder + self.suffix
+                    if not os.path.exists(self.results_sub) :
+                        os.makedirs(self.results_sub)
+                    file_path=os.path.join(folder_path,file)
 
+                    # save files with different endings
+                    ext = [".csv", ".pdf", ".txt", "parameter.ini"]
+                        #  ".m2ts", ".mkv", ".mov", ".mp4", ".mpg", ".mpeg", \
+                        #  ".rm", ".swf", ".vob", ".wmv"]
+                    if file.endswith(tuple(ext)):
+                        os.system("cp "+file_path+" "+self.results_sub+"/.")
+        except Exception,ex:
+            print "save_data: cannote store any data because (some) output was not created"
+            print 'Error: '+ str(ex)
+
+        # 1.1 save convergence data from output_dir/standalone/examples/cmd_0001
+        try:
+            for file in os.listdir(output_path):
+                if file.endswith(".pdf"):
+                    try :
+                        if file.index('order') != -1 :
+                            order = file[file.index('order')+5:-4]             # get string from 'order' + 5 to the end, but remove last 4 character ".pdf"
+                            new_name = "L2"+self.suffix+"_order%s.pdf" % order # add suffix to name
+                    except :
+                        new_name = "L2"+self.suffix+".pdf" 
+                    os.system("cp output_dir/standalone/examples/cmd_0001/"+file+" "+self.results_main+new_name) # move file to upper most path
+
+                if file.endswith(".csv"):
+                    try :
+                        if file.index('order') != -1 :
+                            order = file[file.index('order')+5:-4]             # get string from 'order' + 5 to the end, but remove last 4 character ".pdf"
+                            new_name = "L2"+self.suffix+"_order%s.csv" % order # add suffix to name
+                    except :
+                        new_name = "L2"+self.suffix+".csv" 
+                    os.system("cp output_dir/standalone/examples/cmd_0001/"+file+" "+self.results_main+new_name) # move file to upper most path
+        except Exception,ex:
+            print "save_data: cannote store convergence data because (some) output was not created"
+            print 'Error: '+ str(ex)
 
 def finalize(start, run_errors) :
-    """Display if generate was successful or not and return the number of errors that were encountered"""
+    """Display if repas was successful or not and return the number of errors that were encountered"""
     if run_errors > 0 :
         print bcolors.RED + 132*'='
-        print "generate tool  FAILED!",
+        print "repas tool  FAILED!",
         return_code = 1
     else :
         print bcolors.BLUE + 132*'='
-        print "generate tool  successful!",
+        print "repas tool  successful!",
         return_code = 0
 
     if start > 0 : # only calculate run time and display output when start > 0
