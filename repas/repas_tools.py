@@ -174,7 +174,7 @@ class Case(ExternalCommand) :
                     file_path=os.path.join(folder_path,file)
 
                     # save files with different endings
-                    ext = [".csv", ".pdf", ".txt", "parameter.ini"]
+                    ext = [".csv", ".pdf", ".txt", "parameter.ini", "std.out"]
                         #  ".m2ts", ".mkv", ".mov", ".mp4", ".mpg", ".mpeg", \
                         #  ".rm", ".swf", ".vob", ".wmv"]
                     if file.endswith(tuple(ext)):
