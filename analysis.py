@@ -315,14 +315,15 @@ class Analyze_L2_file(Analyze) :
         1.4   calculate difference and determine compare with tolerance
         """
 
+        LastLines = 35 # search the last 35 lines in the std.out file for the L2 error
         # 1.  Iterate over all runs
         for run in runs :
             
             # 1.1   Read L2 errors from std out channel
             try:
-                L2_errors = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name))
+                L2_errors = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name,LastLines))
             except :
-                s = tools.red("L2 analysis failed: L2 error could not be read from output (searching in the last 25 lines)")
+                s = tools.red("L2 analysis failed: L2 error could not be read from %s (searching for %s in the last %s lines)" % ('std.out',self.error_name,LastLines) )
                 print(s)
                 
                 # 1.1.1   append info for summary of errors
@@ -352,9 +353,9 @@ class Analyze_L2_file(Analyze) :
 
             # 1.2   Read reference L2 errors from self.file_data list
             try:
-                L2_errors_ref = np.array(analyze_functions.get_last_L2_error(self.file_data,self.error_name))
+                L2_errors_ref = np.array(analyze_functions.get_last_L2_error(self.file_data,self.error_name,LastLines))
             except :
-                s = tools.red("L2 analysis failed: L2 error could not be read from %s (searching in the last 25 lines)" % self.file_data)
+                s = tools.red("L2 analysis failed: L2 error could not be read from %s (searching for %s in the last %s lines)" % (self.file,self.error_name,LastLines) )
                 print(s)
                 
                 # 1.2.1   append info for summary of errors
@@ -416,14 +417,15 @@ class Analyze_L2(Analyze) :
         1.4   set analyzes to fail
         """
 
+        LastLines = 35 # search the last 35 lines in the std.out file for the L2 error
         # 1.  Iterate over all runs
         for run in runs :
             
             # 1.1   read L2 errors from 'std.out' file
             try:
-                L2_errors = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name))
+                L2_errors = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name,LastLines))
             except :
-                s = tools.red("L2 analysis failed: L2 error could not be read from output (searching in the last 25 lines)")
+                s = tools.red("L2 analysis failed: L2 error could not be read from %s (searching for %s in the last %s lines)" % ('std.out',self.error_name,LastLines) )
                 print(s)
                 
                 # 1.1.1   append info for summary of errors
@@ -483,6 +485,7 @@ class Analyze_Convtest_h(Analyze) :
         1.7.2   set analyzes to fail if success rate is not reached for all runs
         """
 
+        LastLines = 35 # search the last 35 lines in the std.out file for the L2 error
         # 1.  check if number of successful runs is equal the number of supplied cells
         nRuns = len(runs)
         if nRuns < 2 :
@@ -506,9 +509,9 @@ class Analyze_Convtest_h(Analyze) :
             except :
                 for run in runs : # find out exactly which L2 error could not be read
                     try :
-                        L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name))
+                        L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name,LastLines))
                     except :
-                        s = tools.red("h-convergence failed: some L2 errors could not be read from output (searching for '%s' in the last 25 lines)" % self.error_name)
+                        s = tools.red("h-convergence failed: L2 error could not be read from %s (searching for %s in the last %s lines)" % ('std.out',self.error_name,LastLines) )
                         print(s)
                         
                         # 1.2.1   append info for summary of errors
@@ -656,6 +659,7 @@ class Analyze_Convtest_t(Analyze) :
         1.7.2   set analyzes to fail if success rate is not reached for all runs
         """
 
+        LastLines = 35 # search the last 35 lines in the std.out file for the L2 error
         # 1.  check if number of successful runs is at least two
         nRuns = len(runs)
         if nRuns < 2 :
@@ -694,9 +698,9 @@ class Analyze_Convtest_t(Analyze) :
                     except :
                         for run in runs : # find out exactly which L2 error could not be read
                             try :
-                                self.x_values_test = np.array(analyze_functions.get_last_number_of_timesteps(run.stdout,self.get_x_values))
+                                self.x_values_test = np.array(analyze_functions.get_last_number_of_timesteps(run.stdout,self.get_x_values,LastLines))
                             except :
-                                s = tools.red("t-convergence failed: could not read [%s] from output (searching in the last 25 lines)" % self.get_x_values)
+                                s = tools.red("t-convergence failed: could not read [%s] from %s (searching in the last %s lines)" % ('std.out',self.get_x_values,LastLines) )
                                 print(s)
                                 
                                 # 1.2.1   append info for summary of errors
@@ -712,15 +716,15 @@ class Analyze_Convtest_t(Analyze) :
 
             # 1.2   get L2 errors of all runs and create np.array
             try :
-                L2_errors = np.array([analyze_functions.get_last_L2_error(run.stdout,self.error_name) for \
+                L2_errors = np.array([analyze_functions.get_last_L2_error(run.stdout,self.error_name,LastLines) for \
                         run in runs])
                 L2_errors = np.transpose(L2_errors)
             except :
                 for run in runs : # find out exactly which L2 error could not be read
                     try :
-                        L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name))
+                        L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name,LastLines))
                     except :
-                        s = tools.red("t-convergence failed: some L2 errors could not be read from output (searching for '%s' in the last 25 lines)" % self.error_name)
+                        s = tools.red("t-convergence failed: some L2 errors could not be read from %s (searching for '%s' in the last %s lines)" % ('std.out',self.error_name,LastLines) )
                         print(s)
                         
                         # 1.2.1   append info for summary of errors
@@ -846,6 +850,7 @@ class Analyze_Convtest_p(Analyze) :
         2.8.1   set analyzes to fail if success rate is not reached for all runs
         """
 
+        LastLines = 35 # search the last 35 lines in the std.out file for the L2 error
         # 1.  read the polynomial degree  for all runs
         p = [float(run.parameters.get('N',-1)) for run in runs] # get polynomial degree
 
@@ -864,15 +869,15 @@ class Analyze_Convtest_p(Analyze) :
 
             # 2.2   get L2 errors of all runs and create np.array
             try :
-                L2_errors = np.array([analyze_functions.get_last_L2_error(run.stdout,self.error_name) for \
+                L2_errors = np.array([analyze_functions.get_last_L2_error(run.stdout,self.error_name,LastLines) for \
                         run in runs])
                 L2_errors = np.transpose(L2_errors)
             except :
                 for run in runs : # find out exactly which L2 error could not be read
                     try :
-                        L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name))
+                        L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name,LastLines))
                     except :
-                        s = tools.red("p-convergence failed: some L2 errors could not be read from output (searching for '%s' in the last 25 lines)" % self.error_name)
+                        s = tools.red("p-convergence failed: some L2 errors could not be read from %s (searching for '%s' in the last %s lines)" % ('std.out',self.error_name,LastLines) )
                         print(s)
                         
                         # 1.2.1   append info for summary of errors

@@ -1,18 +1,18 @@
 import math
 
-def get_last_L2_error(lines,name) :
+def get_last_L2_error(lines,name,LastLines=35) :
    """Get L_2 eror value from a set of lines for the last timestep.
    The set of lines correspond to the output-lines of a flexi-run"""
-   for l in lines[-25:] : # read the last 25 lines
+   for l in lines[-LastLines:] : # read the last XX lines (default is 35)
        # search for name, e.g., "L2_Part" or "L_2"
        if name in l :
            tmp = l.split(":")[1]
    return [float(x) for x in tmp.split()]
 
-def get_last_number_of_timesteps(lines,name) :
+def get_last_number_of_timesteps(lines,name,LastLines=35) :
    """Get the number of total timesteps used for the simulation.
    The set of lines correspond to the output-lines of a flexi-run"""
-   for l in lines[-35:] : # read the last 25 lines
+   for l in lines[-LastLines:] : # read the last XX lines (default is 35)
        # search for name, e.g., "#Timesteps"
        if name in l :
            tmp = l.split(":")[1]
@@ -27,10 +27,10 @@ def get_initial_timesteps(lines,name) :
            tmp = l.split(":")[1]
    return [float(x) for x in tmp.split()]
 
-def get_last_Linf_error(lines) :
+def get_last_Linf_error(lines,LastLines=35) :
    """Get L_inf eror value from a set of lines for the last timestep
    The set of lines correspond to the output-lines of a flexi-run"""
-   for l in lines[-25:] : # read the last 25 lines
+   for l in lines[-LastLines:] : # read the last XX lines (default is 35)
        if "L_inf" in l :
            tmp = l.split(":")[1]
            return [float(x) for x in tmp.split()]
