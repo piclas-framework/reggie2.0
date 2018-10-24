@@ -433,7 +433,7 @@ def PerformCheck(start,builds,args,log) :
            (2.3):   get the path and the parameterfiles to the i'th external
            (3):   loop over all parameterfiles available for the i'th external
            (3.1):   consider combinations     
-           (4):   loop over all compinations and parameterfiles for the i'th external
+           (4):   loop over all combinations and parameterfiles for the i'th external
            (4.1):   run the external binary
     4.1    execute the binary file for one combination of parameters
     (post) perform a postprocessing step: e.g. run posti, ...
@@ -445,7 +445,7 @@ def PerformCheck(start,builds,args,log) :
            (2.3):   get the path and the parameterfiles to the i'th external
            (3):   loop over all parameterfiles available for the i'th external
            (3.1):   consider combinations     
-           (4):   loop over all compinations and parameterfiles for the i'th external
+           (4):   loop over all combinations and parameterfiles for the i'th external
            (4.1):   run the external binary
     4.2    remove unwanted files: run analysis directly after each run (as oposed to the normal analysis which is used for analyzing the created output)
     5.   loop over all successfully executed binary results and perform analyze tests
@@ -545,7 +545,7 @@ def PerformCheck(start,builds,args,log) :
                                             external.runs = \
                                                     getExternalRuns(os.path.join(external.path,external.parameterfile), external)
                                             
-                                            # (pre) externals (4): loop over all compinations and parameterfiles for the i'th external
+                                            # (pre) externals (4): loop over all combinations and parameterfiles for the i'th external
                                             for externalrun in external.runs :
                                                 log.info(str(externalrun))
     
@@ -607,7 +607,7 @@ def PerformCheck(start,builds,args,log) :
                                             external.runs = \
                                                     getExternalRuns(os.path.join(external.path,external.parameterfile), external)
                                             
-                                            # (post) externals (4): loop over all compinations and parameterfiles for the i'th external
+                                            # (post) externals (4): loop over all combinations and parameterfiles for the i'th external
                                             for externalrun in external.runs :
                                                 log.info(str(externalrun))
     
