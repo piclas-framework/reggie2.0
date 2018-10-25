@@ -5,6 +5,7 @@ graph TD;
     reggie.py-->analyze.ini;
     reggie.py-->command_line.ini;
     reggie.py-->excludeBuild.ini;
+    reggie.py-->externals.ini (opt);
     gitlab_ci.py-->reggie
 ```
 
@@ -37,6 +38,7 @@ gitlab-ci.py
     │   analyze.ini;
     |   command_line.ini;
     |   excludeBuild.ini;
+    |   externals.ini (opt);
     │
     └───flexi
     |   parameter_flexi.ini
@@ -331,7 +333,6 @@ parameters used in `command_line.ini` and example arguments
 |restart from file         | restart\_file                        | My_State_000.0000005123.h5                            | None                             | supply the name of a state file from wich all simulations are to be re-started                                             |
 
 
-
 # Example
 * run multiple different MPI threads
 * use additional parameter file *DSMC.ini*
@@ -344,7 +345,40 @@ MPI=2
 cmd_suffix=DSMC.ini
 ```
 
+# Externals
 
+parameters used in `externals.ini` 
+
+|**function**                               | **options**                          | **values**                                            | **Default values**               | **Description**           
+|:-----------------------------------------:|:-------------------------------------|:------------------------------------------------------|:---------------------------------|:---------------------------------------------------------------------------------------------------------------------------|
+|mpirun                                     | MPI                                  | 1,2,4,8                                               | None                             | number of MPI threads with which the runs are repeated                                                                     |
+|name of external binary in bin folder      | externalbinary                       | hopr                                                  | None                             | supply the external binary name (the binary is assume to lie in each "build/bin/" directory                                |
+|directory of ini-files for external binary | externaldirectory                    | hopr                                                  | None                             | supply the relative path (starting from each example folder) to the directory of the parameterfiles for the external binary|
+|runtime of external (pre or post)          | externalruntime                      | pre,post                                              | None                             | supply the runtime of the external binary and its parameterfiles as pre- or postprocessing                                 |
+
+# Example
+* supply external two external binary hopr and posti
+* supply two directories with paramterfiles for each external 
+* different runtimes for hopr and posti
+* (optional: run different MPI threads with hopr and posti, see above)
+
+Template for copying to `command_line.ini`
+
+```
+! external parameters
+externalbinary    = hopr,posti
+externaldirectory = hopr,posti
+externalruntime   = pre,post
+MPI               = 1
+
+EXCLUDE:  externalbinary = hopr  , externaldirectory = posti , externalruntime = pre
+EXCLUDE:  externalbinary = posti , externaldirectory = hopr  , externalruntime = pre
+EXCLUDE:  externalbinary = posti , externaldirectory = posti , externalruntime = pre
+
+EXCLUDE:  externalbinary = hopr  , externaldirectory = posti , externalruntime = post
+EXCLUDE:  externalbinary = posti , externaldirectory = hopr  , externalruntime = post
+EXCLUDE:  externalbinary = hopr  , externaldirectory = hopr  , externalruntime = post
+```
 
 
 # Builds
