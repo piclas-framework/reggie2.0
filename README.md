@@ -369,10 +369,10 @@ Template for copying to `command_line.ini`
 externalbinary    = hopr,posti
 externaldirectory = hopr,posti
 externalruntime   = pre,post
-MPI               = 1
+MPI               = 1,2
 
 ! do not mix multiple definitions for binary, directory and runtime
-nocrosscombination:externalbinary,externaldirectory,externalruntime
+nocrosscombination:externalbinary,externaldirectory,externalruntime,MPI
 ```
 
 
