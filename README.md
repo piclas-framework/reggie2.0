@@ -371,13 +371,8 @@ externaldirectory = hopr,posti
 externalruntime   = pre,post
 MPI               = 1
 
-EXCLUDE:  externalbinary = hopr  , externaldirectory = posti , externalruntime = pre
-EXCLUDE:  externalbinary = posti , externaldirectory = hopr  , externalruntime = pre
-EXCLUDE:  externalbinary = posti , externaldirectory = posti , externalruntime = pre
-
-EXCLUDE:  externalbinary = hopr  , externaldirectory = posti , externalruntime = post
-EXCLUDE:  externalbinary = posti , externaldirectory = hopr  , externalruntime = post
-EXCLUDE:  externalbinary = hopr  , externaldirectory = hopr  , externalruntime = post
+! do not mix multiple definitions for binary, directory and runtime
+nocrosscombination:externalbinary,externaldirectory,externalruntime
 ```
 
 
