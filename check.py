@@ -188,18 +188,20 @@ def getExternals(path, example, build) :
     combis, digits = combinations.getCombinations(path) 
 
     for combi in combis :
-        if not combi.get('externaldirectory',None) or not os.path.exists(os.path.join(example.source_directory, combi.get('externaldirectory',None))) : # string is or empty and path does not exist
-            print tools.red('getExternals: "externaldirectory" is empty or the path %s does not exist' % os.path.join(example.source_directory,combi.get('externaldirectory',None)))
+        externaldirectory = combi.get('externaldirectory','')
+        if not externaldirectory or not os.path.exists(os.path.join(example.source_directory, externaldirectory)) : # string is or empty and path does not exist
+            print tools.red('getExternals: "externaldirectory" is empty or the path %s does not exist' % os.path.join(example.source_directory,externaldirectory))
             ExternalRun.total_errors+=1 # add error if externalrun fails
             continue
-        if not combi.get('externalbinary',None) or not os.path.exists(os.path.join(os.path.dirname(build.binary_path), combi.get('externalbinary',None))) : # string is or empty and path does not exist
-            print tools.red('getExternals: "externalbinary" is empty or the path %s does not exist' % os.path.join(os.path.dirname(build.binary_path), combi.get('externalbinary',None)))
+        externalbinary=combi.get('externalbinary','')
+        if not externalbinary or not os.path.exists(os.path.join(os.path.dirname(build.binary_path), externalbinary)) : # string is or empty and path does not exist
+            print tools.red('getExternals: "externalbinary" is empty or the path %s does not exist' % os.path.join(os.path.dirname(build.binary_path), externalbinary))
             ExternalRun.total_errors+=1 # add error if externalrun fails
             continue
         else :
-            if combi.get('externalruntime',None) == 'pre' :
+            if combi.get('externalruntime','') == 'pre' :
                 externals_pre.append(Externals(combi, example, -1))
-            elif combi.get('externalruntime',None) == 'post' :
+            elif combi.get('externalruntime','') == 'post' :
                 externals_post.append(Externals(combi, example, -1))
             else :
                 print tools.red('External tools is neither "pre" nor "post".')
