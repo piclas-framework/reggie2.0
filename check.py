@@ -173,7 +173,6 @@ def getCommand_Lines(path, example) :
 class Externals(OutputDirectory) :
     def __init__(self, parameters, example, number) :
         self.parameters = parameters
-        #OutputDirectory.__init__(self, example, 'cmd', number, samedir=True)
         OutputDirectory.__init__(self, example, '', -1)
     def __str__(self) :
         s = "external parameters:\n"
@@ -221,7 +220,7 @@ class ExternalRun(OutputDirectory,ExternalCommand) :
         self.parameters = parameters
         self.digits = digits
         self.source_directory = os.path.dirname(path)
-        OutputDirectory.__init__(self, external, 'run', number, mkdir=False, samedir=True)
+        OutputDirectory.__init__(self, external, '', -1, mkdir=False)
         ExternalCommand.__init__(self)
 
         # external folders already there
