@@ -226,7 +226,7 @@ class Run(OutputDirectory, ExternalCommand) :
 
         if MPIthreads :
             if MPIbuilt == "ON" :
-                cmd = ["mpirun","-np",MPIthreads]
+                cmd = ["mpirun","-np",MPIthreads,"--oversubscribe"]
             else :
                 print tools.indent(tools.yellow("Found %s=%s (binary has been built with MPI=OFF) with command_line setting MPIthreads=%s, running case in single (without 'mpirun -np')" % (MPI_built_flag,MPIbuilt,MPIthreads)),3)
                 cmd = []
