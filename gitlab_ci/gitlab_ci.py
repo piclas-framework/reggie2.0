@@ -11,14 +11,27 @@
 # You should have received a copy of the GNU General Public License along with reggie2.0. If not, see <http://www.gnu.org/licenses/>.
 #==================================================================================================================================
 from timeit import default_timer as timer
-import logging
-import tools
-import argparse
-import args_parser
 import os
 import re
-import gitlab_ci_tools
+import logging
+import argparse
 import shutil
+
+# import reggie source code
+# use reggie2.0 functions by adding the path
+import settings
+settings.init() # Call only once
+import sys
+sys.path.append(settings.absolute_reggie_path)
+reggie_exe_path = os.path.join(settings.absolute_reggie_path,'reggie.py')
+if not os.path.exists(reggie_exe_path) :
+    print "Reggie main file not found in reggie repository under: '%s'" % reggie_exe_path
+    exit(1)
+
+
+import tools
+import args_parser
+import gitlab_ci_tools
 
 """
 General workflow:
@@ -70,7 +83,7 @@ print('='*132)
 
 # set the basedir (where the code is) and the reggiedir (where the reggie.py is)
 basedir = os.path.abspath(os.path.dirname(args.gitlab_ci))
-reggiedir = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
+reggiedir = os.path.abspath(os.path.dirname(reggie_exe_path))
 
 print tools.blue("Using code under      [basedir]: "+str(basedir))
 print tools.blue("Using reggie under  [reggiedir]: "+str(reggiedir))
