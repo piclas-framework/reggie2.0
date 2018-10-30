@@ -3,7 +3,7 @@ import os
 class OutputDirectory() :
     output_dir = "output_dir"
     def __init__(self, parent, name, number = -1, mkdir=True) :
-
+        
         self.number = number
         self.parent = parent
 

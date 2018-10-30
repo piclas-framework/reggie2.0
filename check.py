@@ -34,6 +34,7 @@ class Build(OutputDirectory,ExternalCommand) :
                 print tools.red("No 'binary'-option with the name of the binary specified in 'builds.ini'")
                 exit(1)
             self.configuration.pop('binary', None) # remove binary from config dict
+            self.binary_dir  = os.path.abspath(os.path.join(self.target_directory))
             self.binary_path = os.path.abspath(os.path.join(self.target_directory, binary_name))
 
         # set cmake command
@@ -166,6 +167,137 @@ def getCommand_Lines(path, example) :
         command_lines.append(Command_Lines(r, example, i))
         i += 1
     return command_lines
+
+
+#==================================================================================================
+class Externals(OutputDirectory) :
+    def __init__(self, parameters, example, number) :
+        self.parameters = parameters
+        OutputDirectory.__init__(self, example, '', -1)
+    def __str__(self) :
+        s = "external parameters:\n"
+        s += ",".join(["%s: %s" % (k,v) for k,v in self.parameters.items()])    
+        return tools.indent(s,2)
+
+def getExternals(path, example, build) :
+    externals_pre = []
+    externals_post = []
+    if not os.path.exists(path) : 
+        return externals_pre, externals_post
+    combis, digits = combinations.getCombinations(path) 
+
+    for combi in combis :
+        externaldirectory = combi.get('externaldirectory','')
+        if not externaldirectory or not os.path.exists(os.path.join(example.source_directory, externaldirectory)) : # string is or empty and path does not exist
+            print tools.red('getExternals: "externaldirectory" is empty or the path %s does not exist' % os.path.join(example.source_directory,externaldirectory))
+            ExternalRun.total_errors+=1 # add error if externalrun fails
+            continue
+        externalbinary=combi.get('externalbinary','')
+        if not externalbinary or not os.path.exists(os.path.join(os.path.dirname(build.binary_path), externalbinary)) : # string is or empty and path does not exist
+            print tools.red('getExternals: "externalbinary" is empty or the path %s does not exist' % os.path.join(os.path.dirname(build.binary_path), externalbinary))
+            ExternalRun.total_errors+=1 # add error if externalrun fails
+            continue
+        else :
+            if combi.get('externalruntime','') == 'pre' :
+                externals_pre.append(Externals(combi, example, -1))
+            elif combi.get('externalruntime','') == 'post' :
+                externals_post.append(Externals(combi, example, -1))
+            else :
+                print tools.red('External tools is neither "pre" nor "post".')
+    return externals_pre, externals_post
+
+
+#==================================================================================================
+class ExternalRun(OutputDirectory,ExternalCommand) :
+    total_errors = 0
+    total_number_of_runs = 0
+
+    def __init__(self, parameters, path, external, number, digits, externalruns = True) :
+        self.successful = True
+        self.globalnumber = -1
+        self.analyze_results = []
+        self.analyze_successful = True
+        self.parameters = parameters
+        self.digits = digits
+        self.source_directory = os.path.dirname(path)
+        OutputDirectory.__init__(self, external, '', -1, mkdir=False)
+        ExternalCommand.__init__(self)
+
+        # external folders already there
+        self.skip = False
+
+    def execute(self, build, external) :
+
+        # set path to parameter file (single combination of values for execution "parameter.ini" for example)
+        self.parameter_path = os.path.join(external.directory, external.parameterfile)
+        
+        # create parameter file with one set of combinations
+        combinations.writeCombinationsToFile(self.parameters, self.parameter_path)
+
+        # check MPI threads for mpirun
+        MPIthreads = external.parameters.get('MPI')
+
+        # check MPI built binary (only possible for reggie-compiled binaries)
+        MPI_built_flag=os.path.basename(build.binary_path).upper()+"_MPI"
+        MPIbuilt = build.configuration.get(MPI_built_flag,'ON')
+
+        if MPIthreads :
+            if MPIbuilt == "ON" :
+                cmd = ["mpirun","-np",MPIthreads]
+            else :
+                print tools.indent(tools.yellow("Found %s=%s (binary has been built with MPI=OFF) with external setting MPIthreads=%s, running case in single (without 'mpirun -np')" % (MPI_built_flag,MPIbuilt,MPIthreads)),3)
+                cmd = []
+        else :
+            cmd = []
+       
+        binary_path = os.path.abspath(os.path.join(build.binary_dir,'./bin/'+ external.parameters.values()[0]))
+
+        cmd.append(binary_path)
+        cmd.append(external.parameterfile)
+
+        # check if the command 'cmd' can be executed
+        if self.return_code != 0 :
+            print tools.indent("Cannot run the code: "+s,2)
+        else :
+            print tools.indent("Running [%s] ..." % (" ".join(cmd)), 2),
+            self.execute_cmd(cmd, external.directory) # run the code
+
+        if self.return_code != 0 :
+            self.successful = False
+            self.rename_failed()
+
+
+    def __str__(self) :
+        s = "RUN parameters:\n"
+        s += ",".join(["%s: %s" % (k,v) for k,v in self.parameters.items()])    
+        return tools.indent(s,3)
+
+def getExternalRuns(path, external) :
+    """Get all combinations in 'parameter.ini'"""
+    externalruns = []
+    i = 1
+    # get combis : for each externalrun a combination of parameters is stored in a dict containing a [key]-[value] pairs
+    #              combis contains multiple dicts 'OrderedDict'
+    #              example for a key = 'N' and its value = '5' for polynomial degree of 5
+    #     digits : contains the number of variations for each [key] 
+    #              example in parameter.ini: N = 1,2,3 then digits would contain OrderedDict([('N', 2),...) for 0,1,2 = 3 different 
+    #              values for N)
+    combis, digits = combinations.getCombinations(path,CheckForMultipleKeys=True)  # path to parameter.ini (source)
+    for parameters in combis :
+        # check each [key] for empty [value] (e.g. wrong definition in parameter.ini file)
+        for key, value in parameters.iteritems():
+            if not value :
+                raise Exception(tools.red('parameter.ini contains an empty parameter definition for [%s]. Remove unnecessary commas!' % key))
+        # construct run information with one set of parameters (parameter.ini will be created in target directory when the setup
+        # is executed), one set of command line options (e.g. mpirun information) and the info of how many times a parameter is 
+        # varied under the variable 'digits'
+        run = ExternalRun(parameters, path, external, i, digits)
+        # check if the run cannot be performed due to problems encountered when setting up the folder (e.g. not all files could
+        # be create or copied to the target directory)
+        if not run.skip :
+            externalruns.append(run) # add/append the run to the list of externalruns
+        i += 1
+    return externalruns
 
 
 #==================================================================================================
@@ -309,7 +441,23 @@ def PerformCheck(start,builds,args,log) :
     3.   loop over all command_line options
     3.1    read the executable parameter file 'parameter.ini' (e.g. flexi.ini with which flexi will be started)
     4.   loop over all parameter combinations supplied in the parameter file 'parameter.ini'
-    4.1    execute the binary file for one combination of parameters
+    4.1    read the external options in 'externals.ini' within each example directory (e.g. eos, hopr, posti)
+    (pre)  perform a preprocessing step: e.g. run hopr, eos, ...
+           (1):   loop over all externals available in external.ini    
+           (1.1):   get the path and the parameterfiles to the i'th external
+           (2):   loop over all parameterfiles available for the i'th external
+           (2.1):   consider combinations     
+           (3):   loop over all combinations and parameterfiles for the i'th external
+           (3.1):   run the external binary
+    4.2    execute the binary file for one combination of parameters
+    (post) perform a postprocessing step: e.g. run posti, ...
+           (1):   loop over all externals available in external.ini    
+           (1.1):   get the path and the parameterfiles to the i'th external
+           (2):   loop over all parameterfiles available for the i'th external
+           (2.1):   consider combinations     
+           (3):   loop over all combinations and parameterfiles for the i'th external
+           (3.1):   run the external binary
+    4.3    remove unwanted files: run analysis directly after each run (as oposed to the normal analysis which is used for analyzing the created output)
     5.   loop over all successfully executed binary results and perform analyze tests
     6.   rename all run directories for which the analyze step has failed for at least one test
     """
@@ -367,17 +515,82 @@ def PerformCheck(start,builds,args,log) :
                     # 4.   loop over all parameter combinations supplied in the parameter file 'parameter.ini'
                     for run in command_line.runs :
                         log.info(str(run))
+                           
+                        # 4.1 read the external options in 'externals.ini' within each example directory (e.g. eos, hopr, posti)
+                        #     distinguish between pre- and postprocessing
+                        run.externals_pre, run.externals_post = \
+                                getExternals(os.path.join(run.source_directory,'externals.ini'), run, build)
+
+                        # (pre) externals (1): loop over all externals available in external.ini 
+                        for external in run.externals_pre :
+                            log.info(str(external))
+                            
+                            print('-' * 132)
+                            print tools.green('Preprocessing: Running external \"' + external.parameters.get("externalbinary") + '\" ... ')
+
+                            # (pre) externals (1.1): get the path and the parameterfiles to the i'th external
+                            external.directory  = run.target_directory + '/'+ external.parameters.get("externaldirectory")
+                            external.parameterfiles = [i for i in os.listdir(external.directory) if i.endswith('.ini')] 
+
+                            # (pre) externals (2): loop over all parameterfiles available for the i'th external
+                            for external.parameterfile in external.parameterfiles :
+
+                                # (pre) externals (2.1): consider combinations     
+                                external.runs = \
+                                        getExternalRuns(os.path.join(external.directory,external.parameterfile), external)
+                                
+                                # (pre) externals (3): loop over all combinations and parameterfiles for the i'th external
+                                for externalrun in external.runs :
+                                    log.info(str(externalrun))
     
-                        # 4.1    execute the binary file for one combination of parameters
+                                    # (pre) externals (3.1): run the external binary
+                                    externalrun.execute(build,external)
+                                    if not externalrun.successful :
+                                        ExternalRun.total_errors+=1 # add error if externalrun fails
+       
+                            print tools.green('Preprocessing: External \"' + external.parameters.get("externalbinary") + '\" finished!')
+                            print('-' * 132)
+
+                        # 4.2    execute the binary file for one combination of parameters
                         run.execute(build,command_line)
                         if not run.successful :
                             Run.total_errors+=1 # add error if run fails
+                       
+                        # (post) externals (1): loop over all externals available in external.ini 
+                        for external in run.externals_post :
+                            
+                            log.info(str(external))
+                            
+                            print('-' * 132)
+                            print tools.green('Postprocessing: Running external \"' + external.parameters.get("externalbinary") + '\" ... ')
+
+                            # (post) externals (1.1): get the path and the parameterfiles to the i'th external
+                            external.directory  = run.target_directory + '/'+ external.parameters.get("externaldirectory")
+                            external.parameterfiles = [i for i in os.listdir(external.directory) if i.endswith('.ini')] 
+
+                            # (post) externals (2): loop over all parameterfiles available for the i'th external
+                            for external.parameterfile in external.parameterfiles :
+
+                                # (post) externals (2.1): consider combinations     
+                                external.runs = \
+                                        getExternalRuns(os.path.join(external.directory,external.parameterfile), external)
+                                
+                                # (post) externals (3): loop over all combinations and parameterfiles for the i'th external
+                                for externalrun in external.runs :
+                                    log.info(str(externalrun))
+    
+                                    # (post) externals (3.1): run the external binary
+                                    externalrun.execute(build,external)
+                                    if not externalrun.successful :
+                                        ExternalRun.total_errors+=1 # add error if externalrun fails
+       
+                            print tools.green('Postprocessing: External \"' + external.parameters.get("externalbinary") + '\" finished!')
+                            print('-' * 132)
                         
-                        # 4.2 Remove unwanted files: run analysis directly after each run (as oposed to the normal analysis which is used for analyzing the created output)
+                        # 4.3 Remove unwanted files: run analysis directly after each run (as oposed to the normal analysis which is used for analyzing the created output)
                         for analyze in example.analyzes :
                             if isinstance(analyze,Clean_up_files) :
                                 analyze.execute(run)
-
     
                     # 5.   loop over all successfully executed binary results and perform analyze tests
                     runs_successful = [run for run in command_line.runs if run.successful]
@@ -506,6 +719,3 @@ def SummaryOfErrors(builds) :
                     # 3.2.4  print the analyze results line by line
                     for result in run.analyze_results :
                         print tools.red(result).rjust(150)
-    
-
-
