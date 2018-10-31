@@ -276,8 +276,6 @@ class ExternalRun(OutputDirectory,ExternalCommand) :
 
         if self.return_code != 0 :
             self.successful = False
-            self.rename_failed()
-
 
     def __str__(self) :
         s = "RUN parameters:\n"
