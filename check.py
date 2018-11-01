@@ -368,15 +368,10 @@ class Run(OutputDirectory, ExternalCommand) :
 
         if MPIthreads :
             if MPIbuilt == "ON" :
-                MPIthreads_int = int(MPIthreads)
-	        
-	        if MPIthreads_int < 24 :
-	        
-	            cmd = ["aprun","-n",MPIthreads,"-N",MPIthreads]
-	        
-	        else :
-	        
-	            cmd = ["aprun","-n",MPIthreads,"-N","24"]
+	            if int(MPIthreads) < 24 :
+	                cmd = ["aprun","-n",MPIthreads,"-N",MPIthreads]
+	            else :
+	                cmd = ["aprun","-n",MPIthreads,"-N","24"]
             else :
                 print tools.indent(tools.yellow("Found %s=%s (binary has been built with MPI=OFF) with command_line setting MPIthreads=%s, running case in single (without 'mpirun -np')" % (MPI_built_flag,MPIbuilt,MPIthreads)),3)
                 cmd = []
