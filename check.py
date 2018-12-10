@@ -609,7 +609,7 @@ def PerformCheck(start,builds,args,log) :
                             if isinstance(analyze,Clean_up_files) : # skip because already called in the "run" loop under 4.2
                                 continue
                             print tools.indent(tools.blue(str(analyze)),2)
-                            analyze.perform(runs_successful)
+                            analyze.perform(runs_successful,args)
                     else : # don't delete build folder after all examples/runs
                         remove_build_when_successful = False
     

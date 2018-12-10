@@ -20,6 +20,7 @@ import csv
 import re
 import logging
 import glob
+import shutil
 
 # import h5 I/O routines
 try :
@@ -270,7 +271,7 @@ class Clean_up_files() :
     def __init__(self, clean_up_files) :
         self.files = clean_up_files
 
-    def perform(self,runs) :
+    def perform(self,runs,args) :
         return # do nothing
 
     def execute(self,run) :
@@ -313,7 +314,7 @@ class Analyze_L2_file(Analyze) :
         self.L2_tolerance_type = L2_file_tolerance_type
         self.error_name        = name                   # string name of the L2 error in the std.out file (default is "L_2")                             
 
-    def perform(self,runs) :
+    def perform(self,runs,args) :
 
         """
         General workflow:
@@ -416,7 +417,7 @@ class Analyze_L2(Analyze) :
         self.L2_tolerance = L2_tolerance # tolerance value for comparison with the L_2 error from std.out
         self.error_name   = name         # string name of the L2 error in the std.out file (default is "L_2")                             
 
-    def perform(self,runs) :
+    def perform(self,runs,args) :
 
         """
         General workflow:
@@ -477,7 +478,7 @@ class Analyze_Convtest_h(Analyze) :
                                      # the number of total EOC tests determines the success rate which is compared with this rate)
         self.error_name = name       # string name of the L2 error in the std.out file (default is "L_2")                             
 
-    def perform(self,runs) :
+    def perform(self,runs,args) :
         global pyplot_module_loaded
         """
         General workflow:
@@ -651,7 +652,7 @@ class Analyze_Convtest_t(Analyze) :
                 self.get_x_values   = self.total_iter
 
 
-    def perform(self,runs) :
+    def perform(self,runs,args) :
         global pyplot_module_loaded
         """
         General workflow:
@@ -842,7 +843,7 @@ class Analyze_Convtest_p(Analyze) :
                                      # percentage yields the minimum ratio of increasing EOC vs. the total number of EOC for each nVar
         self.error_name = name       # string name of the L2 error in the std.out file (default is "L_2")                             
 
-    def perform(self,runs) :
+    def perform(self,runs,args) :
         global pyplot_module_loaded
 
         """
@@ -1017,7 +1018,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
             else :
                 raise Exception(tools.red("initialization of h5diff failed. h5diff_tolerance_type '%s' not accepted." % tolerance_type_loc))
 
-    def perform(self,runs) :
+    def perform(self,runs,args) :
         global h5py_module_loaded
         # check if this analysis can be performed: h5py must be imported
         if not h5py_module_loaded : # this boolean is set when importing h5py
@@ -1052,6 +1053,17 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                 # 1.1.0   Read the hdf5 file
                 path1 = os.path.join(run.target_directory,file_loc)
                 path2 = os.path.join(run.target_directory,reference_file_loc)
+                path3 = os.path.join(run.source_directory,reference_file_loc)
+
+                # Copy new reference file if respective flag is set
+                # This is completely independent of the outcome of the current h5diff
+                if args.referencescopy :
+                    shutil.copy(path1,path3)
+                    a = tools.red("New reference files are copied from file=[%s] to file=[%s]" % (path1, path3))
+                    print(a)
+                    run.analyze_results.append(a)
+                    run.analyze_successful=False
+
                 if not os.path.exists(path1) :
                     s = tools.red("Analyze_h5diff: file does not exist, file=[%s]" % path1)
                     print(s)
@@ -1148,7 +1160,7 @@ class Analyze_check_hdf5(Analyze) :
         (self.dim1, self.dim2)   = [int(x)   for x in check_hdf5_dimension.split(":")]
         (self.lower, self.upper) = [float(x) for x in check_hdf5_limits.split(":")]
 
-    def perform(self,runs) :
+    def perform(self,runs,args) :
         global h5py_module_loaded
         # check if this analysis can be performed: h5py must be imported
         if not h5py_module_loaded : # this boolean is set when importing h5py
@@ -1244,7 +1256,7 @@ class Analyze_compare_data_file(Analyze) :
         # set the delimter symbol (',' is default)
         self.delimiter = compare_data_file_delimiter
 
-    def perform(self,runs) :
+    def perform(self,runs,args) :
 
         '''
         General workflow:
@@ -1370,7 +1382,7 @@ class Analyze_integrate_line(Analyze) :
         self.option              = integrate_line_option
         self.multiplier          = float(integrate_line_multiplier)
 
-    def perform(self,runs) :
+    def perform(self,runs,args) :
 
         '''
         General workflow:
