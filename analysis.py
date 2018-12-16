@@ -64,9 +64,18 @@ def displayVector(vector,nVar) :
     print 8*" "+"   ".join(7*" "+"nVar=["+str(i).rjust(4)+"]" for i in range(nVar))
     print 6*" "+" ".join("%20.12e" % vector[i] for i in range(nVar))
 
+# Copy new reference file: This is completely independent of the outcome of the current compare data file
+def copyReferenceFile(run,path,path_ref_source) :
+    shutil.copy(path,path_ref_source)
+    s = tools.red("New reference files are copied from file=[%s] to file=[%s]" % (path, path_ref_source))
+    print(s)
+    run.analyze_results.append(s)
+    run.analyze_successful=False
+    return run
+
 #==================================================================================================
 
-def getAnalyzes(path, example) :
+def getAnalyzes(path, example, args) :
     global pyplot_module_loaded
     """For every example a list of analyzes is built from the specified anaylzes in 'analyze.ini'. 
     The anaylze list is performed after a set of runs is completed.
@@ -212,7 +221,7 @@ def getAnalyzes(path, example) :
     h5diff_tolerance_type   = options.get('h5diff_tolerance_type','absolute')
     # only do h5diff test if all variables are defined
     if h5diff_reference_file and h5diff_file and h5diff_data_set :
-        analyze.append(Analyze_h5diff(h5diff_one_diff_per_run,h5diff_reference_file, h5diff_file,h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type))
+        analyze.append(Analyze_h5diff(h5diff_one_diff_per_run,h5diff_reference_file, h5diff_file,h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type, args.referencescopy))
 
     # 2.6   check array bounds in hdf5 file
     check_hdf5_file      = options.get('check_hdf5_file',None) 
@@ -236,7 +245,7 @@ def getAnalyzes(path, example) :
             compare_data_file_tolerance_type = "relative"
         else :
             raise Exception(tools.red("initialization of compare data file failed. h5diff_tolerance_type '%s' not accepted." % h5diff_tolerance_type))
-        analyze.append(Analyze_compare_data_file(compare_data_file_name, compare_data_file_reference, compare_data_file_tolerance, compare_data_file_line, compare_data_file_delimiter, compare_data_file_tolerance_type ))
+        analyze.append(Analyze_compare_data_file(compare_data_file_name, compare_data_file_reference, compare_data_file_tolerance, compare_data_file_line, compare_data_file_delimiter, compare_data_file_tolerance_type, args.referencescopy))
 
     # 2.8   integrate data file column
     integrate_line_file            = options.get('integrate_line_file',None)                 # file name (path) which is analyzed
@@ -271,7 +280,7 @@ class Clean_up_files() :
     def __init__(self, clean_up_files) :
         self.files = clean_up_files
 
-    def perform(self,runs,args) :
+    def perform(self,runs) :
         return # do nothing
 
     def execute(self,run) :
@@ -314,7 +323,7 @@ class Analyze_L2_file(Analyze) :
         self.L2_tolerance_type = L2_file_tolerance_type
         self.error_name        = name                   # string name of the L2 error in the std.out file (default is "L_2")                             
 
-    def perform(self,runs,args) :
+    def perform(self,runs) :
 
         """
         General workflow:
@@ -417,7 +426,7 @@ class Analyze_L2(Analyze) :
         self.L2_tolerance = L2_tolerance # tolerance value for comparison with the L_2 error from std.out
         self.error_name   = name         # string name of the L2 error in the std.out file (default is "L_2")                             
 
-    def perform(self,runs,args) :
+    def perform(self,runs) :
 
         """
         General workflow:
@@ -478,7 +487,7 @@ class Analyze_Convtest_h(Analyze) :
                                      # the number of total EOC tests determines the success rate which is compared with this rate)
         self.error_name = name       # string name of the L2 error in the std.out file (default is "L_2")                             
 
-    def perform(self,runs,args) :
+    def perform(self,runs) :
         global pyplot_module_loaded
         """
         General workflow:
@@ -652,7 +661,7 @@ class Analyze_Convtest_t(Analyze) :
                 self.get_x_values   = self.total_iter
 
 
-    def perform(self,runs,args) :
+    def perform(self,runs) :
         global pyplot_module_loaded
         """
         General workflow:
@@ -843,7 +852,7 @@ class Analyze_Convtest_p(Analyze) :
                                      # percentage yields the minimum ratio of increasing EOC vs. the total number of EOC for each nVar
         self.error_name = name       # string name of the L2 error in the std.out file (default is "L_2")                             
 
-    def perform(self,runs,args) :
+    def perform(self,runs) :
         global pyplot_module_loaded
 
         """
@@ -990,7 +999,7 @@ class Analyze_Convtest_p(Analyze) :
 #==================================================================================================
 
 class Analyze_h5diff(Analyze,ExternalCommand) :
-    def __init__(self, h5diff_one_diff_per_run, h5diff_reference_file, h5diff_file, h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type) :
+    def __init__(self, h5diff_one_diff_per_run, h5diff_reference_file, h5diff_file, h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type, referencescopy) :
         self.one_diff_per_run = (h5diff_one_diff_per_run in ('True', 'true', 't', 'T'))
         self.prms = { "reference_file" : h5diff_reference_file, "file" : h5diff_file, "data_set" : h5diff_data_set, "tolerance_value" : h5diff_tolerance_value, "tolerance_type" : h5diff_tolerance_type }
         for key, prm in self.prms.iteritems() : 
@@ -1018,7 +1027,10 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
             else :
                 raise Exception(tools.red("initialization of h5diff failed. h5diff_tolerance_type '%s' not accepted." % tolerance_type_loc))
 
-    def perform(self,runs,args) :
+        # set logical for creating new reference files and copying them to the example source directory
+        self.referencescopy = referencescopy
+
+    def perform(self,runs) :
         global h5py_module_loaded
         # check if this analysis can be performed: h5py must be imported
         if not h5py_module_loaded : # this boolean is set when importing h5py
@@ -1051,36 +1063,30 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                 tolerance_type_loc   = self.prms["tolerance_type"][compare]  
 
                 # 1.1.0   Read the hdf5 file
-                path1 = os.path.join(run.target_directory,file_loc)
-                path2 = os.path.join(run.target_directory,reference_file_loc)
-                path3 = os.path.join(run.source_directory,reference_file_loc)
+                path            = os.path.join(run.target_directory,file_loc)
+                path_ref_target = os.path.join(run.target_directory,reference_file_loc)
+                path_ref_source = os.path.join(run.source_directory,reference_file_loc)
 
-                # Copy new reference file if respective flag is set
-                # This is completely independent of the outcome of the current h5diff
-                if args.referencescopy :
-                    shutil.copy(path1,path3)
-                    a = tools.red("New reference files are copied from file=[%s] to file=[%s]" % (path1, path3))
-                    print(a)
-                    run.analyze_results.append(a)
-                    run.analyze_successful=False
+                # Copy new reference file: This is completely independent of the outcome of the current h5diff
+                if self.referencescopy : run = copyReferenceFile(run,path,path_ref_source)
 
-                if not os.path.exists(path1) :
-                    s = tools.red("Analyze_h5diff: file does not exist, file=[%s]" % path1)
+                if not os.path.exists(path) :
+                    s = tools.red("Analyze_h5diff: file does not exist, file=[%s]" % path)
                     print(s)
                     run.analyze_results.append(s)
                     run.analyze_successful=False
                     Analyze.total_errors+=1
                     continue
-                if not os.path.exists(path2) :
-                    s = tools.red("Analyze_h5diff: file does not exist, file=[%s]" % path2)
+                if not os.path.exists(path_ref_target) :
+                    s = tools.red("Analyze_h5diff: file does not exist, file=[%s]" % path_ref_target)
                     print(s)
                     run.analyze_results.append(s)
                     run.analyze_successful=False
                     Analyze.total_errors+=1
                     continue
 
-                f1 = h5py.File(path1,'r')
-                f2 = h5py.File(path2,'r')
+                f1 = h5py.File(path,'r')
+                f2 = h5py.File(path_ref_target,'r')
                 # available keys   : print("Keys: %s" % f.keys())
                 # first key in list: a_group_key = list(f.keys())[0]
 
@@ -1160,7 +1166,7 @@ class Analyze_check_hdf5(Analyze) :
         (self.dim1, self.dim2)   = [int(x)   for x in check_hdf5_dimension.split(":")]
         (self.lower, self.upper) = [float(x) for x in check_hdf5_limits.split(":")]
 
-    def perform(self,runs,args) :
+    def perform(self,runs) :
         global h5py_module_loaded
         # check if this analysis can be performed: h5py must be imported
         if not h5py_module_loaded : # this boolean is set when importing h5py
@@ -1226,7 +1232,7 @@ class Analyze_check_hdf5(Analyze) :
 #==================================================================================================
 
 class Analyze_compare_data_file(Analyze) :
-    def __init__(self, compare_data_file_name, compare_data_file_reference, compare_data_file_tolerance, compare_data_file_line, compare_data_file_delimiter, compare_data_file_tolerance_type ) :
+    def __init__(self, compare_data_file_name, compare_data_file_reference, compare_data_file_tolerance, compare_data_file_line, compare_data_file_delimiter, compare_data_file_tolerance_type, referencescopy) :
         # set file for comparison
         self.file           = compare_data_file_name
         if type(self.file) == type([]) :
@@ -1256,7 +1262,10 @@ class Analyze_compare_data_file(Analyze) :
         # set the delimter symbol (',' is default)
         self.delimiter = compare_data_file_delimiter
 
-    def perform(self,runs,args) :
+        # set logical for creating new reference files and copying them to the example source directory
+        self.referencescopy = referencescopy
+
+    def perform(self,runs) :
 
         '''
         General workflow:
@@ -1304,10 +1313,14 @@ class Analyze_compare_data_file(Analyze) :
                 print tools.blue("comparing file=[%s] and reference file=[%s]" % (file_name, ref_name))
 
             # 1.2   Check existence the file and reference values
-            path     = os.path.join(run.target_directory,file_name)
-            path_ref = os.path.join(run.target_directory,ref_name)
+            path            = os.path.join(run.target_directory,file_name)
+            path_ref_target = os.path.join(run.target_directory,ref_name)
+            path_ref_source = os.path.join(run.source_directory,ref_name)
 
-            if not os.path.exists(path) or not os.path.exists(path_ref) :
+            # Copy new reference file: This is completely independent of the outcome of the current compare data file
+            if self.referencescopy : run = copyReferenceFile(run,path,path_ref_source)
+
+            if not os.path.exists(path) or not os.path.exists(path_ref_target) :
                 s=tools.red("Analyze_compare_data_file: cannot find both file=[%s] and reference file=[%s]" % (file_name, ref_name))
                 print(s)
                 run.analyze_results.append(s)
@@ -1335,7 +1348,7 @@ class Analyze_compare_data_file(Analyze) :
             
             # 1.3.2   read refernece file
             line_ref = []
-            with open(path_ref, 'rb') as csvfile:
+            with open(path_ref_target, 'rb') as csvfile:
                 line_str = csv.reader(csvfile, delimiter=self.delimiter, quotechar='!')
                 header_ref=0
                 for row in line_str:
@@ -1382,7 +1395,7 @@ class Analyze_integrate_line(Analyze) :
         self.option              = integrate_line_option
         self.multiplier          = float(integrate_line_multiplier)
 
-    def perform(self,runs,args) :
+    def perform(self,runs) :
 
         '''
         General workflow:

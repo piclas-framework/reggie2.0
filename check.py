@@ -511,7 +511,7 @@ def PerformCheck(start,builds,args,log) :
                 
                 # 2.2    read the analyze options in 'analyze.ini' within each example directory (e.g. L2 error analyze)
                 example.analyzes = \
-                        getAnalyzes(os.path.join(example.source_directory,'analyze.ini'), example)
+                        getAnalyzes(os.path.join(example.source_directory,'analyze.ini'), example, args)
     
                 # 3.   loop over all command_line options
                 for command_line in example.command_lines :
@@ -609,7 +609,7 @@ def PerformCheck(start,builds,args,log) :
                             if isinstance(analyze,Clean_up_files) : # skip because already called in the "run" loop under 4.2
                                 continue
                             print tools.indent(tools.blue(str(analyze)),2)
-                            analyze.perform(runs_successful,args)
+                            analyze.perform(runs_successful)
                     else : # don't delete build folder after all examples/runs
                         remove_build_when_successful = False
     
