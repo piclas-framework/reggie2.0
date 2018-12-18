@@ -511,7 +511,7 @@ def PerformCheck(start,builds,args,log) :
                 
                 # 2.2    read the analyze options in 'analyze.ini' within each example directory (e.g. L2 error analyze)
                 example.analyzes = \
-                        getAnalyzes(os.path.join(example.source_directory,'analyze.ini'), example)
+                        getAnalyzes(os.path.join(example.source_directory,'analyze.ini'), example, args)
     
                 # 3.   loop over all command_line options
                 for command_line in example.command_lines :
