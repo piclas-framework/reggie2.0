@@ -1078,7 +1078,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                     Analyze.total_errors+=1
                     continue
                 if not os.path.exists(path_ref_target) :
-                    s = tools.red("Analyze_h5diff: file does not exist, file=[%s]" % path_ref_target)
+                    s = tools.red("Analyze_h5diff: reference file does not exist, file=[%s]" % path_ref_target)
                     print(s)
                     run.analyze_results.append(s)
                     run.analyze_successful=False
@@ -1326,7 +1326,10 @@ class Analyze_compare_data_file(Analyze) :
                 run.analyze_results.append(s)
                 run.analyze_successful=False
                 Analyze.total_errors+=1
-                return
+                if self.referencescopy : # do not skip the following analysis tests, because reference file will be created
+                    continue
+                else : # skip the following analysis tests
+                    return
             
             # 1.3.1   read data file
             line = []
