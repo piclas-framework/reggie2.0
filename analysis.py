@@ -1438,6 +1438,14 @@ class Analyze_integrate_line(Analyze) :
                         data = np.append(data, line)
                     max_lines+=1
 
+            if failed :
+                s="Analyze_integrate_line: reading of the data file [%s] has failed.\nNo float type data could be read. Check the file content." %path
+                print tools.red(s)
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                return
+
             # 1.3.2 check column numbers
             line_len = len(line) - 1
             if line_len < self.dim1 or line_len < self.dim2 :
