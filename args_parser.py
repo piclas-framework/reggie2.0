@@ -30,6 +30,7 @@ def getArgsAndBuilds() :
     parser.add_argument('-r', '--run', action='store_true' ,help='Run all binaries for all examples with all run-combinations for all existing binaries.')
     parser.add_argument('-s', '--save', action='store_true',help='Do not remove output directories buildsXXXX in output_dir after successful run.')
     parser.add_argument('-t', '--compiletype', help='Override all CMAKE_BUILD_TYPE settings by ignoring the value set in builds.ini (e.g. DEBUG or RELEASE).')
+    parser.add_argument('-a', '--cray', help='Run on cray with aprun.')
     parser.add_argument('-z', '--rc', dest='referencescopy', help='Create/Replace reference files that are required for analysis. After running the program, the output files are stored in the check-/example-directory.', action='store_true')
     parser.set_defaults(referencescopy=False)
     parser.add_argument('check', help='Path to check-/example-directory.')
