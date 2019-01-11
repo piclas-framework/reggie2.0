@@ -1,12 +1,12 @@
 # Reggie2.0 toolbox
 ```mermaid
 graph TD;
-    reggie.py-->builds.ini;
-    reggie.py-->analyze.ini;
-    reggie.py-->command_line.ini;
-    reggie.py-->excludeBuild.ini;
-    reggie.py-->externals.ini (opt);
-    gitlab_ci.py-->reggie
+  reggie.py-->builds.ini;
+  reggie.py-->analyze.ini;
+  reggie.py-->command_line.ini;
+  reggie.py-->excludeBuild.ini;
+  reggie.py-->B[externals.ini opttional];
+  gitlab_ci.py-->reggie;
 ```
 
 
