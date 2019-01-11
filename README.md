@@ -5,7 +5,7 @@ graph TD;
   reggie.py-->analyze.ini;
   reggie.py-->command_line.ini;
   reggie.py-->excludeBuild.ini;
-  reggie.py-->B[externals.ini opttional];
+  reggie.py-->B["externals.ini (optional)"];
   gitlab_ci.py-->reggie;
 ```
 
