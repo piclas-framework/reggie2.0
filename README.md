@@ -169,7 +169,9 @@ analyze_Convtest_p_percentage=0.75
 
 # h5diff
 * Compares two arrays from two .h5 files element-by-element either with an absolute or relative difference (when comparing with zero, h5diff automatically uses an absolute comparison).  
-* Requires h5diff, which is compiled within the HDF5 package.  
+* Requires h5diff, which is compiled within the HDF5 package (set the corresponding environment variable).
+
+      export PATH=/opt/hdf5/X.X.XX/bin/:$PATH
 * Requires h5py for checken if the datasets which are to be compared by h5diff are of the same dimensions.
 
 Template for copying to **analyze.ini**
