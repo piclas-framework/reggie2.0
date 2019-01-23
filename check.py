@@ -238,7 +238,7 @@ class ExternalRun(OutputDirectory,ExternalCommand) :
         # external folders already there
         self.skip = False
 
-    def execute(self, build, external) :
+    def execute(self, build, external,args) :
 
         # set path to parameter file (single combination of values for execution "parameter.ini" for example)
         self.parameter_path = os.path.join(external.directory, external.parameterfile)
@@ -255,7 +255,13 @@ class ExternalRun(OutputDirectory,ExternalCommand) :
 
         if MPIthreads :
             if MPIbuilt == "ON" :
-                cmd = ["mpirun","-np",MPIthreads]
+                if args.cray :
+                    if int(MPIthreads) < 24 :
+                        cmd = ["aprun","-n",MPIthreads,"-N",MPIthreads]
+                    else :
+                        cmd = ["aprun","-n",MPIthreads,"-N","24"]
+                else :
+                    cmd = ["mpirun","-np",MPIthreads,"--oversubscribe"]
             else :
                 print tools.indent(tools.yellow("Found %s=%s (binary has been built with MPI=OFF) with external setting MPIthreads=%s, running case in single (without 'mpirun -np')" % (MPI_built_flag,MPIbuilt,MPIthreads)),3)
                 cmd = []
@@ -349,7 +355,7 @@ class Run(OutputDirectory, ExternalCommand) :
         shutil.move(self.target_directory,self.target_directory+"_failed") # rename folder (non-existent folder fails)
         self.target_directory = self.target_directory+"_failed" # set new name for summary of errors
 
-    def execute(self, build, command_line) :
+    def execute(self, build, command_line,args) :
         Run.total_number_of_runs += 1
         self.globalnumber = Run.total_number_of_runs
 
@@ -368,7 +374,13 @@ class Run(OutputDirectory, ExternalCommand) :
 
         if MPIthreads :
             if MPIbuilt == "ON" :
-                cmd = ["mpirun","-np",MPIthreads,"--oversubscribe"]
+                if args.cray :
+                    if int(MPIthreads) < 24 :
+                        cmd = ["aprun","-n",MPIthreads,"-N",MPIthreads]
+                    else :
+                        cmd = ["aprun","-n",MPIthreads,"-N","24"]
+                else :
+                    cmd = ["mpirun","-np",MPIthreads,"--oversubscribe"]
             else :
                 print tools.indent(tools.yellow("Found %s=%s (binary has been built with MPI=OFF) with command_line setting MPIthreads=%s, running case in single (without 'mpirun -np')" % (MPI_built_flag,MPIbuilt,MPIthreads)),3)
                 cmd = []
@@ -554,7 +566,7 @@ def PerformCheck(start,builds,args,log) :
                                     log.info(str(externalrun))
     
                                     # (pre) externals (3.1): run the external binary
-                                    externalrun.execute(build,external)
+                                    externalrun.execute(build,external,args)
                                     if not externalrun.successful :
                                         ExternalRun.total_errors+=1 # add error if externalrun fails
        
@@ -562,7 +574,7 @@ def PerformCheck(start,builds,args,log) :
                             print('-' * 132)
 
                         # 4.2    execute the binary file for one combination of parameters
-                        run.execute(build,command_line)
+                        run.execute(build,command_line,args)
                         if not run.successful :
                             Run.total_errors+=1 # add error if run fails
                        
@@ -590,7 +602,7 @@ def PerformCheck(start,builds,args,log) :
                                     log.info(str(externalrun))
     
                                     # (post) externals (3.1): run the external binary
-                                    externalrun.execute(build,external)
+                                    externalrun.execute(build,external,args)
                                     if not externalrun.successful :
                                         ExternalRun.total_errors+=1 # add error if externalrun fails
        

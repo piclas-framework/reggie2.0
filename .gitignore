@@ -6,3 +6,4 @@
 *.pyc
 ctags.txt
 output_dir/
+output_dir_gitlab_tool/
