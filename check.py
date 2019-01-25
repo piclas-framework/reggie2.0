@@ -255,7 +255,7 @@ class ExternalRun(OutputDirectory,ExternalCommand) :
 
         if MPIthreads :
             if MPIbuilt == "ON" :
-                if args.cray :
+                if args.hlrs :
                     if int(MPIthreads) < 24 :
                         cmd = ["aprun","-n",MPIthreads,"-N",MPIthreads]
                     else :
@@ -374,7 +374,7 @@ class Run(OutputDirectory, ExternalCommand) :
 
         if MPIthreads :
             if MPIbuilt == "ON" :
-                if args.cray :
+                if args.hlrs :
                     if int(MPIthreads) < 24 :
                         cmd = ["aprun","-n",MPIthreads,"-N",MPIthreads]
                     else :
