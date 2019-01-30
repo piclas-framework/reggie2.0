@@ -16,6 +16,9 @@ import fileinput
 import logging
 import argparse
 import shutil
+import re
+from sys import platform
+import socket
 
 # import reggie source code
 # use reggie2.0 functions by adding the path
@@ -35,6 +38,7 @@ from combinations import getCombinations
 from combinations import isKeyOf
 from combinations import readKeyValueFile
 from tools import red
+from tools import yellow
 from timeit import default_timer as timer
 
 import tools
@@ -74,7 +78,6 @@ print tools.red('       |::|   |                \:::\    \                      
 print tools.red('       \::|   |                 \:::\____\                                         /:::/    /              \::::/    /        ')
 print tools.red('        \:|   |                  \::/    /                                         \::/    /                \::/    /         ')
 print tools.red('         \|___|                   \/____/                                           \/____/                  \/____/          ')
-print tools.red('                                                                                                                              ')
 print tools.red('==============================================================================================================================')
 print
 
@@ -89,10 +92,21 @@ parser.add_argument('-d', '--debug', type=int, default=0, help='Debug level for 
 #parser.add_argument('-i', '--info', type=int, default=1, help='Debug level for the subsequent program execution (e.g. flexi).')
 #parser.add_argument('-o', '--only', action='store_true',help='Only run one case and exit afterwards (from the list that this tools creates).')
 #parser.add_argument('-n', '--dryrun', action='store_true',help='Simply list all possible cases without performing any run.')
-parser.add_argument('-e', '--exe', help='Path to executable of code that should be tested.')
+parser.add_argument('-a', '--hlrs', action='store_true', help='Run on with aprun (hlrs system).')
+parser.add_argument('exe', help='Path to executable of code that should be tested.')
 
 # get reggie command line arguments
 args = parser.parse_args()
+
+if re.search('^linux',platform) :
+  hostname=socket.gethostname()
+  print "platform: %s, hostname: %s" % (platform,hostname)
+  if re.search('^mom[0-9]+$',hostname) :
+    print tools.yellow('Automatic detection of hlrs system: Assuming aprun is used and setting args.hlrs = True')
+    args.hlrs = True
+  elif re.search('^eslogin[0-9]+$',hostname) :
+    if args.hlrs :
+      raise Exception('Running with -a or --hlrs. Cannot run this program on a login node. Get interactive job and run on mom node!')
 
 # set the logger 'log' with the debug level from 'args' to determine the level of logging which displays output to the user
 tools.setup_logger(args.debug)
@@ -105,8 +119,11 @@ for arg in args.__dict__ :
 print('='*132)
 
 # define command that is usually run in a shell
-if args.exe is None :
-  cmd = ['python',reggie_exe_path,'-e','./boltzplatz','.','-s','-d1']
+# -s for save
+# -a for hlrs
+# -d1 for debug mode 1
+if args.hlrs :
+  cmd = ['python',reggie_exe_path,'-e',str(args.exe),'.','-s','-a','-d1']
 else :
   cmd = ['python',reggie_exe_path,'-e',str(args.exe),'.','-s','-d1']
 #cmd = ["ls","-l"] # for testing some other commands
