@@ -1068,7 +1068,15 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                 path_ref_source = os.path.join(run.source_directory,reference_file_loc)
 
                 # Copy new reference file: This is completely independent of the outcome of the current h5diff
-                if self.referencescopy : run = copyReferenceFile(run,path,path_ref_source)
+                if self.referencescopy :
+                    run = copyReferenceFile(run,path,path_ref_source)
+                    s=tools.red("Analyze_compare_data_file: performed reference copy")
+                    print(s)
+                    run.analyze_results.append(s)
+                    run.analyze_successful=False
+                    Analyze.total_errors+=1
+                    # do not skip the following analysis tests, because reference file will be created -> continue
+                    continue 
 
                 if not os.path.exists(path) :
                     s = tools.red("Analyze_h5diff: file does not exist, file=[%s]" % path)
@@ -1318,7 +1326,15 @@ class Analyze_compare_data_file(Analyze) :
             path_ref_source = os.path.join(run.source_directory,ref_name)
 
             # Copy new reference file: This is completely independent of the outcome of the current compare data file
-            if self.referencescopy : run = copyReferenceFile(run,path,path_ref_source)
+            if self.referencescopy :
+                run = copyReferenceFile(run,path,path_ref_source)
+                s=tools.red("Analyze_compare_data_file: performed reference copy")
+                print(s)
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                # do not skip the following analysis tests, because reference file will be created -> continue
+                continue 
 
             if not os.path.exists(path) or not os.path.exists(path_ref_target) :
                 s=tools.red("Analyze_compare_data_file: cannot find both file=[%s] and reference file=[%s]" % (file_name, ref_name))
@@ -1326,10 +1342,7 @@ class Analyze_compare_data_file(Analyze) :
                 run.analyze_results.append(s)
                 run.analyze_successful=False
                 Analyze.total_errors+=1
-                if self.referencescopy : # do not skip the following analysis tests, because reference file will be created
-                    continue
-                else : # skip the following analysis tests
-                    return
+                return # skip the following analysis tests
             
             # 1.3.1   read data file
             line = []
@@ -1368,7 +1381,7 @@ class Analyze_compare_data_file(Analyze) :
                 run.analyze_results.append(s)
                 run.analyze_successful=False
                 Analyze.total_errors+=1
-                return
+                return # skip the following analysis tests
 
             # 1.3.4   calculate difference and determine compare with tolerance
             success = tools.diff_lists(line, line_ref, self.tolerance, self.tolerance_type)
