@@ -179,6 +179,8 @@ analyze_Convtest_p_percentage=0.75
       export PATH=/opt/hdf5/X.X.XX/bin/:$PATH
 * Requires h5py for checken if the datasets which are to be compared by h5diff are of the same dimensions.
 
+  [http://docs.h5py.org/en/2.5.0/build.html](http://docs.h5py.org/en/2.5.0/build.html)
+
 Template for copying to **analyze.ini**
 
 ```
