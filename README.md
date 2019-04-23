@@ -189,7 +189,7 @@ h5diff_file            =          single-particle_State_000.00000005000000000.h5
 h5diff_reference_file  = single-particle_reference_State_000.0000000500000000.h5
 h5diff_data_set        = DG_Source
 h5diff_tolerance_value = 1.0e-2
-h5diff_tolerance_typhttps://gitlabext.iag.uni-stuttgart.de/reggie/reggie/edit/master/README.md#previewe  = relative
+h5diff_tolerance_type  = relative
 ```
 
 ## h5diff (multiple files)
