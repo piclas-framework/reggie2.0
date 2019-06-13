@@ -35,24 +35,6 @@ class OutputDirectory() :
 
         # create directory if it is non-existent
         if mkdir :
-            if not os.path.exists(os.path.dirname(self.target_directory)) :
-                print "targt dir= ",os.path.dirname(self.target_directory)
-                i=0
-                # try multiple times to create the directory (on some systems a 
-                # race condition might occur between creation and checking)
-                while True:
-                    mydir = os.path.dirname(self.target_directory)
-                    try:
-                        i+=1
-                        os.makedirs(mydir)
-                        if i>60:
-                            print tools.red("OutputDirectory() : Tried creating a directory more than 60 times. Stop.")
-                            exit(1)
-                        break
-                    except OSError, e:
-                        if e.errno != os.errno.EEXIST:
-                            raise   
-                        time.sleep(1) # wait 1 second before next try
-                        pass
+            tools.create_folder(self.target_directory)
 
 

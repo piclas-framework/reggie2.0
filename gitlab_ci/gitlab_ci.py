@@ -115,7 +115,7 @@ if not args.dryrun : # do not execute anythin in dryrun mode
     #switch to basedir+/output_dir_gitlab_tool
     target_directory=os.path.join(basedir, 'output_dir_gitlab_tool')
     shutil.rmtree(target_directory,ignore_errors=True)
-    os.makedirs(target_directory)
+    tools.create_folder(target_directory)
     os.chdir(target_directory)
     print "Creating output under %s" % target_directory
 else :

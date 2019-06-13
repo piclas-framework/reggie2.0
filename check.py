@@ -66,7 +66,7 @@ class Build(OutputDirectory,ExternalCommand) :
         else : # for build carryon: when a binary is missing remove all examples (re-run all examples)
             print "removing folder, ",
             shutil.rmtree(self.target_directory,ignore_errors=True)
-            os.makedirs(self.target_directory)
+            tools.create_folder(self.target_directory)
         print "building"
 
         # CMAKE: execute cmd in build directory
@@ -336,7 +336,7 @@ class Run(OutputDirectory, ExternalCommand) :
         if self.skip :
             return
 
-        os.makedirs(self.target_directory)
+        tools.create_folder(self.target_directory)
 
         # copy all files in the source directory (example) to the target directory: always overwrite
         for f in os.listdir(self.source_directory) :
