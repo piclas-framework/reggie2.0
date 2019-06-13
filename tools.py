@@ -106,9 +106,7 @@ def remove_folder(path) :
     #shutil.rmtree(path)
 
 def create_folder(path):
-    #path=os.path.dirname(path)
     if not os.path.exists(path) :
-        print "targt dir= ",path
         i=0
         # try multiple times to create the directory (on some systems a 
         # race condition might occur between creation and checking)
