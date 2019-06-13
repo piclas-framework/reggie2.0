@@ -16,6 +16,7 @@ import os
 from timeit import default_timer as timer
 import re
 import tools
+import time
 
 class bcolors :
     """color and font style definitions for changing output appearance"""

@@ -11,7 +11,6 @@
 # You should have received a copy of the GNU General Public License along with reggie2.0. If not, see <http://www.gnu.org/licenses/>.
 #==================================================================================================================================
 import os
-import time
 import tools
 
 class OutputDirectory() :
