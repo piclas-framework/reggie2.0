@@ -33,7 +33,7 @@ class ExternalCommand() :
         Returns the return_code of the external program.
         """
         if type(cmd) != type([]) : # check that only cmd arguments of type 'list' are supplied to this function
-            print tools.red("cmd must be of type 'list'\ncmd=")+str(cmd)+tools.red(" and type(cmd)="),type(cmd)
+            print(tools.red("cmd must be of type 'list'\ncmd=")+str(cmd)+tools.red(" and type(cmd)="),type(cmd))
             exit(1)
         sys.stdout.flush() # flush output here, because the subprocess will force buffering until it is finished
         log = logging.getLogger('logger')
@@ -60,7 +60,10 @@ class ExternalCommand() :
             # 1.   std.out
             while len(select.select([pipeOut_r], [], [], 0)[0]) == 1:
                 # Read up to a 1 KB chunk of data
-                bufOut = bufOut + os.read(pipeOut_r, 1024)
+                out_s = os.read(pipeOut_r, 1024)
+                if not isinstance(out_s, str):
+                    out_s = out_s.decode("utf-8")
+                bufOut = bufOut + out_s
                 tmp = bufOut.split('\n') 
                 for line in tmp[:-1] :
                     self.stdout.append(line+'\n')
@@ -70,7 +73,10 @@ class ExternalCommand() :
             # 1.   err.out
             while len(select.select([pipeErr_r], [], [], 0)[0]) == 1:
                 # Read up to a 1 KB chunk of data
-                bufErr = bufErr + os.read(pipeErr_r, 1024)
+                out_s = os.read(pipeErr_r, 1024)
+                if not isinstance(out_s, str):
+                    out_s = out_s.decode("utf-8")
+                bufErr = bufErr + out_s
                 tmp = bufErr.split('\n') 
                 for line in tmp[:-1] :
                     self.stderr.append(line+'\n')
@@ -101,7 +107,7 @@ class ExternalCommand() :
                     f.write(line)
         else :
             self.result=tools.blue("Successful")
-        print self.result+" [%.2f sec]" % self.walltime
+        print(self.result+" [%.2f sec]" % self.walltime)
 
         return self.return_code
     

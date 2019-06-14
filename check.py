@@ -10,6 +10,7 @@
 #
 # You should have received a copy of the GNU General Public License along with reggie2.0. If not, see <http://www.gnu.org/licenses/>.
 #==================================================================================================================================
+from __future__ import print_function # required for print() function with line break via "end=' '"
 import os
 import shutil
 import collections
@@ -43,7 +44,7 @@ class Build(OutputDirectory,ExternalCommand) :
             try :
                 binary_name = self.configuration["binary"]
             except :
-                print tools.red("No 'binary'-option with the name of the binary specified in 'builds.ini'")
+                print(tools.red("No 'binary'-option with the name of the binary specified in 'builds.ini'"))
                 exit(1)
             self.configuration.pop('binary', None) # remove binary from config dict
             self.binary_dir  = os.path.abspath(os.path.join(self.target_directory))
@@ -61,16 +62,16 @@ class Build(OutputDirectory,ExternalCommand) :
     def compile(self, buildprocs) :
         # don't compile if build directory already exists
         if self.binary_exists() :  # if the binary exists, return
-            print "skipping"
+            print("skipping")
             return
         else : # for build carryon: when a binary is missing remove all examples (re-run all examples)
-            print "removing folder, ",
+            print("removing folder, ", end=' ') # skip linebreak
             shutil.rmtree(self.target_directory,ignore_errors=True)
             os.makedirs(self.target_directory)
-        print "building"
+        print("building")
 
         # CMAKE: execute cmd in build directory
-        print "C-making with [%s] ..." % (" ".join(self.cmake_cmd_color)),
+        print("C-making with [%s] ..." % (" ".join(self.cmake_cmd_color)), end=' ') # skip linebreak
         if self.execute_cmd(self.cmake_cmd, self.target_directory) != 0 : # use unclolored string for cmake
             raise BuildFailedException(self) # "CMAKE failed"
 
@@ -78,7 +79,7 @@ class Build(OutputDirectory,ExternalCommand) :
         self.make_cmd = ["make", "-j"]
         if buildprocs > 0 : self.make_cmd.append(str(buildprocs))
         # execute cmd in build directory
-        print "Building with [%s] ..." % (" ".join(self.make_cmd)),
+        print("Building with [%s] ..." % (" ".join(self.make_cmd)), end=' ') # skip linebreak
         if self.execute_cmd(self.make_cmd, self.target_directory) != 0 :
             raise BuildFailedException(self) # "MAKE failed"
         print('-'*132)
@@ -201,12 +202,12 @@ def getExternals(path, example, build) :
     for combi in combis :
         externaldirectory = combi.get('externaldirectory','')
         if not externaldirectory or not os.path.exists(os.path.join(example.source_directory, externaldirectory)) : # string is or empty and path does not exist
-            print tools.red('getExternals: "externaldirectory" is empty or the path %s does not exist' % os.path.join(example.source_directory,externaldirectory))
+            print(tools.red('getExternals: "externaldirectory" is empty or the path %s does not exist' % os.path.join(example.source_directory,externaldirectory)))
             ExternalRun.total_errors+=1 # add error if externalrun fails
             continue
         externalbinary=combi.get('externalbinary','')
         if not externalbinary or not os.path.exists(os.path.join(os.path.dirname(build.binary_path), externalbinary)) : # string is or empty and path does not exist
-            print tools.red('getExternals: "externalbinary" is empty or the path %s does not exist' % os.path.join(os.path.dirname(build.binary_path), externalbinary))
+            print(tools.red('getExternals: "externalbinary" is empty or the path %s does not exist' % os.path.join(os.path.dirname(build.binary_path), externalbinary)))
             ExternalRun.total_errors+=1 # add error if externalrun fails
             continue
         else :
@@ -215,7 +216,7 @@ def getExternals(path, example, build) :
             elif combi.get('externalruntime','') == 'post' :
                 externals_post.append(Externals(combi, example, -1))
             else :
-                print tools.red('External tools is neither "pre" nor "post".')
+                print(tools.red('External tools is neither "pre" nor "post".'))
     return externals_pre, externals_post
 
 
@@ -263,7 +264,7 @@ class ExternalRun(OutputDirectory,ExternalCommand) :
                 else :
                     cmd = ["mpirun","-np",MPIthreads,"--oversubscribe"]
             else :
-                print tools.indent(tools.yellow("Found %s=%s (binary has been built with MPI=OFF) with external setting MPIthreads=%s, running case in single (without 'mpirun -np')" % (MPI_built_flag,MPIbuilt,MPIthreads)),3)
+                print(tools.indent(tools.yellow("Found %s=%s (binary has been built with MPI=OFF) with external setting MPIthreads=%s, running case in single (without 'mpirun -np')" % (MPI_built_flag,MPIbuilt,MPIthreads)),3))
                 cmd = []
         else :
             cmd = []
@@ -275,9 +276,9 @@ class ExternalRun(OutputDirectory,ExternalCommand) :
 
         # check if the command 'cmd' can be executed
         if self.return_code != 0 :
-            print tools.indent("Cannot run the code: "+s,2)
+            print(tools.indent("Cannot run the code: "+s,2))
         else :
-            print tools.indent("Running [%s] ..." % (" ".join(cmd)), 2),
+            print(tools.indent("Running [%s] ..." % (" ".join(cmd)), 2), end=' ') # skip linebreak
             self.execute_cmd(cmd, external.directory) # run the code
 
         if self.return_code != 0 :
@@ -382,7 +383,7 @@ class Run(OutputDirectory, ExternalCommand) :
                 else :
                     cmd = ["mpirun","-np",MPIthreads,"--oversubscribe"]
             else :
-                print tools.indent(tools.yellow("Found %s=%s (binary has been built with MPI=OFF) with command_line setting MPIthreads=%s, running case in single (without 'mpirun -np')" % (MPI_built_flag,MPIbuilt,MPIthreads)),3)
+                print(tools.indent(tools.yellow("Found %s=%s (binary has been built with MPI=OFF) with command_line setting MPIthreads=%s, running case in single (without 'mpirun -np')" % (MPI_built_flag,MPIbuilt,MPIthreads)),3))
                 cmd = []
         else :
             cmd = []
@@ -409,9 +410,9 @@ class Run(OutputDirectory, ExternalCommand) :
 
         # check if the command 'cmd' can be executed
         if self.return_code != 0 :
-            print tools.indent("Cannot run the code: "+s,2)
+            print(tools.indent("Cannot run the code: "+s,2))
         else :
-            print tools.indent("Running [%s] ..." % (" ".join(cmd)), 2),
+            print(tools.indent("Running [%s] ..." % (" ".join(cmd)), 2), end=' ') # skip linebreak
             self.execute_cmd(cmd, self.target_directory) # run the code
 
         if self.return_code != 0 :
@@ -436,7 +437,7 @@ def getRuns(path, command_line) :
     combis, digits = combinations.getCombinations(path,CheckForMultipleKeys=True)  # path to parameter.ini (source)
     for parameters in combis :
         # check each [key] for empty [value] (e.g. wrong definition in parameter.ini file)
-        for key, value in parameters.iteritems():
+        for key, value in list(parameters.items()):
             if not value :
                 raise Exception(tools.red('parameter.ini contains an empty parameter definition for [%s]. Remove unnecessary commas!' % key))
         # construct run information with one set of parameters (parameter.ini will be created in target directory when the setup
@@ -493,7 +494,7 @@ def PerformCheck(start,builds,args,log) :
         for build in builds :
             remove_build_when_successful = True
             build_number+=1 # count number of builds
-            print "Build Cmake Configuration ",build_number," of ",len(builds)," ...",
+            print("Build Cmake Configuration ",build_number," of ",len(builds)," ...", end=' ') # skip linebreak
             log.info(str(build))
     
             # 1.1    compile the build if args.run is false and the binary is non-existent
@@ -503,18 +504,18 @@ def PerformCheck(start,builds,args,log) :
             
             # 1.1    read the example directories
             # get example folders: run_basic/example1, run_basic/example2 from check folder
-            print build
+            print(build)
             build.examples = getExamples(args.check, build,log)
             log.info("build.examples"+str(build.examples))
     
             if len(build.examples) == 0 :
                 s = tools.yellow("No matching examples found for this build!")
                 build.result += ", " + s
-                print s
+                print(s)
             # 2.   loop over all example directories
             for example in build.examples :
                 log.info(str(example))
-                print str(example)
+                print(str(example))
                 
                 # 2.1    read the command line options in 'command_line.ini' for binary execution 
                 #        (e.g. number of threads for mpirun)
@@ -548,7 +549,7 @@ def PerformCheck(start,builds,args,log) :
                             log.info(str(external))
                             
                             print('-' * 132)
-                            print tools.green('Preprocessing: Running external \"' + external.parameters.get("externalbinary") + '\" ... ')
+                            print(tools.green('Preprocessing: Running external \"' + external.parameters.get("externalbinary") + '\" ... '))
 
                             # (pre) externals (1.1): get the path and the parameterfiles to the i'th external
                             external.directory  = run.target_directory + '/'+ external.parameters.get("externaldirectory")
@@ -570,7 +571,7 @@ def PerformCheck(start,builds,args,log) :
                                     if not externalrun.successful :
                                         ExternalRun.total_errors+=1 # add error if externalrun fails
        
-                            print tools.green('Preprocessing: External \"' + external.parameters.get("externalbinary") + '\" finished!')
+                            print(tools.green('Preprocessing: External \"' + external.parameters.get("externalbinary") + '\" finished!'))
                             print('-' * 132)
 
                         # 4.2    execute the binary file for one combination of parameters
@@ -584,7 +585,7 @@ def PerformCheck(start,builds,args,log) :
                             log.info(str(external))
                             
                             print('-' * 132)
-                            print tools.green('Postprocessing: Running external \"' + external.parameters.get("externalbinary") + '\" ... ')
+                            print(tools.green('Postprocessing: Running external \"' + external.parameters.get("externalbinary") + '\" ... '))
 
                             # (post) externals (1.1): get the path and the parameterfiles to the i'th external
                             external.directory  = run.target_directory + '/'+ external.parameters.get("externaldirectory")
@@ -606,7 +607,7 @@ def PerformCheck(start,builds,args,log) :
                                     if not externalrun.successful :
                                         ExternalRun.total_errors+=1 # add error if externalrun fails
        
-                            print tools.green('Postprocessing: External \"' + external.parameters.get("externalbinary") + '\" finished!')
+                            print(tools.green('Postprocessing: External \"' + external.parameters.get("externalbinary") + '\" finished!'))
                             print('-' * 132)
                         
                         # 4.3 Remove unwanted files: run analysis directly after each run (as oposed to the normal analysis which is used for analyzing the created output)
@@ -620,7 +621,7 @@ def PerformCheck(start,builds,args,log) :
                         for analyze in example.analyzes :
                             if isinstance(analyze,Clean_up_files) : # skip because already called in the "run" loop under 4.2
                                 continue
-                            print tools.indent(tools.blue(str(analyze)),2)
+                            print(tools.indent(tools.blue(str(analyze)),2))
                             analyze.perform(runs_successful)
                     else : # don't delete build folder after all examples/runs
                         remove_build_when_successful = False
@@ -636,22 +637,22 @@ def PerformCheck(start,builds,args,log) :
             print('='*132)
 
     # catch exception if bulding fails
-    except BuildFailedException,ex:
+    except BuildFailedException as ex:
         # print table with summary of errors
         SummaryOfErrors(builds)
     
         # display error message
-        print ex # display error msg
-        print tools.indent(" ".join(ex.build.cmake_cmd),1)
-        print tools.indent(" ".join(ex.build.make_cmd),1)
-        print tools.indent("Build failed, see: "+ex.build.stdout_filename,1)
-        print tools.indent("                   "+ex.build.stderr_filename,1)
-        print tools.bcolors.RED
+        print(ex) # display error msg
+        print(tools.indent(" ".join(ex.build.cmake_cmd),1))
+        print(tools.indent(" ".join(ex.build.make_cmd),1))
+        print(tools.indent("Build failed, see: "+ex.build.stdout_filename,1))
+        print(tools.indent("                   "+ex.build.stderr_filename,1))
+        print(tools.bcolors.RED)
         for line in ex.build.stderr[-20:] :
-            print tools.indent(line,4),
-        print tools.bcolors.ENDC
+            print(tools.indent(line,4), end=' ') # skip linebreak
+        print(tools.bcolors.ENDC)
 
-        print "run 'reggie' with the command line option '-c/--carryon' to skip successful builds."
+        print("run 'reggie' with the command line option '-c/--carryon' to skip successful builds.")
         tools.finalize(start, 1, Run.total_errors, Analyze.total_errors)
         exit(1)
 
@@ -684,7 +685,7 @@ def SummaryOfErrors(builds) :
                     run.output_strings = {}
                     run.output_strings['#run']    = str(run.globalnumber)
                     run.output_strings['options'] = ""
-                    if run.digits.items()[0][1] > 0 :
+                    if list(run.digits.items())[0][1] > 0 :
                         run.output_strings['options'] += "%s=%s"%(run.parameters.items()[0])
                     run.output_strings['path']    = os.path.relpath(run.target_directory,OutputDirectory.output_dir)
                     run.output_strings['MPI']     = command_line.parameters.get('MPI', '-') 
@@ -694,12 +695,12 @@ def SummaryOfErrors(builds) :
                         max_lens[key] = max(max_lens[key], len(run.output_strings[key])) # set max column widths for summary table
     
     # 2. print header
-    print 132*"="
-    print " Summary of Errors"+"\n"
+    print(132*"=")
+    print(" Summary of Errors"+"\n")
     spacing = 1
-    for key, value in max_lens.items() :
-        print key.ljust(value),spacing*' ',
-    print ""
+    for key, value in list(max_lens.items()) :
+        print(key.ljust(value),spacing*' ', end=' ') # skip linebreak
+    print("")
     
     # 3. loop over alls builds
     for build in builds :
@@ -707,10 +708,10 @@ def SummaryOfErrors(builds) :
         # 3.1 print cmake flags if no external binary was used for execution
         print('-'*132)
         if isinstance(build, Standalone) :
-            print "Binary supplied externally under ",build.binary_path
+            print("Binary supplied externally under ",build.binary_path)
         elif isinstance(build, Build) : 
-            print "Build %d of %d (%s) compiled with in [%.2f sec]:" % (build.number, len(builds), build.result, build.walltime)
-            print " ".join(build.cmake_cmd_color)
+            print("Build %d of %d (%s) compiled with in [%.2f sec]:" % (build.number, len(builds), build.result, build.walltime))
+            print(" ".join(build.cmake_cmd_color))
             if build.return_code != 0 : break # stop output as soon as a failed build in encountered
     
         # 3.2 loop over all examples, command_lines and runs
@@ -719,25 +720,25 @@ def SummaryOfErrors(builds) :
                 for run in command_line.runs :
                     # 3.2.1 print separation line if MPI threads change
                     if run.output_strings["MPI"] != str_MPI_old :
-                        print ""
+                        print("")
                         str_MPI_old = run.output_strings["MPI"]
     
                     # 3.2.2 print the run parameters, execpt the inner most (this one is displayed in # 3.2.3)
-                    paramsWithMultipleValues = [item for item in run.parameters.items()[1:] if run.digits[item[0]]>0 ]
+                    paramsWithMultipleValues = [item for item in list(run.parameters.items())[1:] if run.digits[item[0]]>0 ]
                     param_str =", ".join(["%s=%s"%item for item in paramsWithMultipleValues]) # skip first index
                     if param_str  != param_str_old : # only print when the parameter set changes
-                        print "".ljust(max_lens["#run"]), spacing*' ', tools.yellow(param_str)
+                        print("".ljust(max_lens["#run"]), spacing*' ', tools.yellow(param_str))
                     param_str_old=param_str
 
                     # 3.2.3 print all output_strings
-                    for key,value in max_lens.items() :
+                    for key,value in list(max_lens.items()) :
                         if key == "options" :
-                            print tools.yellow(run.output_strings[key].ljust(value)),
+                            print(tools.yellow(run.output_strings[key].ljust(value)), end=' ') # skip linebreak
                         else :
-                            print run.output_strings[key].ljust(value),
-                        print spacing*' ',
-                    print ""
+                            print(run.output_strings[key].ljust(value), end=' ') # skip linebreak
+                        print(spacing*' ', end=' ') # skip linebreak
+                    print("")
 
                     # 3.2.4  print the analyze results line by line
                     for result in run.analyze_results :
-                        print tools.red(result).rjust(150)
+                        print(tools.red(result).rjust(150))

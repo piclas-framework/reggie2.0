@@ -47,21 +47,21 @@ class Case(ExternalCommand) :
 def finalize(start, run_errors) :
     """Display if gitlab_ci script check was successful or not and return the number of errors that were encountered"""
     if run_errors > 0 :
-        print bcolors.RED + 132*'='
-        print "gitlab-ci processing tool  FAILED!",
+        print(bcolors.RED + 132*'=')
+        print("gitlab-ci processing tool  FAILED!",)
         return_code = 1
     else :
-        print bcolors.BLUE + 132*'='
-        print "gitlab-ci processing tool  successful!",
+        print(bcolors.BLUE + 132*'=')
+        print("gitlab-ci processing tool  successful!",)
         return_code = 0
 
     if start > 0 : # only calculate run time and display output when start > 0
         end = timer()
-        print "in [%2.2f sec]" % (end - start)
+        print("in [%2.2f sec]" % (end - start))
     else :
-        print ""
+        print("")
 
-    print "Number of run     errors: %d" % run_errors
+    print("Number of run     errors: %d" % run_errors)
 
-    print '='*132 + bcolors.ENDC
+    print('='*132 + bcolors.ENDC)
     exit(return_code)
