@@ -44,7 +44,8 @@ is a valid command, where `bufOut` is of type `str` and `os.read(pipeOut_r, 1024
     bufOut = bufOut + out_s
 ```
 ### Lists of (key, value) pairs
-In Python 2 `.items()` returned a list of (key, value) pairs. In Python 3, `.items()` is now an itemview object, which behaves different. Therefore it has to be iterated over (or materialised), which requires `list(dict.items())`. In Python 2
+In Python 2, `.items()` returned a list of (key, value) pairs. In Python 3, `.items()` is now an itemview object, which behaves different. 
+Therefore it has to be iterated over (or materialised), which requires `list(dict.items())`. In Python 2
 ```
 for key, value in parameters.items():
 ```
