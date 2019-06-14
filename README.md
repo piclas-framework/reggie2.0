@@ -24,8 +24,40 @@ python reggie.py --help
 python gitlab-ci.py --help
 ```
 
+## Python version compatibility
+Reggie2.0 is desinged to be executed with Python 2, however, compatibility with Python 3 is desired. For this purpose, the following remarks should be considered when changing the source code.
+### print() function
+In Python 3, print() is a function and if the line break is to be omitted, simply add `, end='')` to the `print()` call. In order for this command to work with Python 2, the following line must be added as the very first line of code in the file
+```
+from __future__ import print_function
+```
+### Python 3 can't concat bytes to str
+In Python 2
+```
+bufOut = bufOut + os.read(pipeOut_r, 1024)
+```
+is a valid command, where `bufOut` is of type `str` and `os.read(pipeOut_r, 1024)` is of type `byte`, however, in Python 3 the following line of code must be used
+```
+    out_s = os.read(pipeOut_r, 1024)
+    if not isinstance(out_s, str):
+        out_s = out_s.decode("utf-8")
+    bufOut = bufOut + out_s
+```
+### Lists of (key, value) pairs
+In Python 2.x - .items() returned a list of (key, value) pairs. In Python 3.x, .items() is now an itemview object, which behaves different - so it has to be iterated over, or materialised... So, list(dict.items())
+
+### Integer division
+In Python 2
+```
+j = (i / option.base) % len(option.values)
+```
+returns an integer, however, in Python 3 a float is retured. Use
+```
+j = int((i / option.base) % len(option.values))
+```
+if an integer is required.
+
 ## Overview
-Zollernblick slides [RegressionCheck2.0.pdf](/uploads/7a6718bc26615653cdd32116d968b969/RegressionCheck2.0.pdf)
  * [General file and directory hierarchy in Reggie2.0](#code-hierarchy-and-required-ini-files)
  * [Analyze routines for post-processing in **analyze.ini**](#analyze-routines-for-analyzeini)
  * [Command line arguments for program execution in **command_line.ini**](#command-line)
