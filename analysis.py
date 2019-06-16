@@ -1347,7 +1347,7 @@ class Analyze_compare_data_file(Analyze) :
             
             # 1.3.1   read data file
             line = []
-            with open(path, 'rb') as csvfile:
+            with open(path, 'r') as csvfile:
                 line_str = csv.reader(csvfile, delimiter=self.delimiter, quotechar='!')
                 i=0
                 header=0
@@ -1365,7 +1365,7 @@ class Analyze_compare_data_file(Analyze) :
             
             # 1.3.2   read refernece file
             line_ref = []
-            with open(path_ref_target, 'rb') as csvfile:
+            with open(path_ref_target, 'r') as csvfile:
                 line_str = csv.reader(csvfile, delimiter=self.delimiter, quotechar='!')
                 header_ref=0
                 for row in line_str:
@@ -1439,7 +1439,7 @@ class Analyze_integrate_line(Analyze) :
             
             data = np.array([])
             # 1.3.1   read data file
-            with open(path, 'rb') as csvfile:
+            with open(path, 'r') as csvfile:
                 line_str = csv.reader(csvfile, delimiter=self.delimiter, quotechar='!')
                 max_lines=0
                 header=0
