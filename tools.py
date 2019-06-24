@@ -16,6 +16,7 @@ import os
 from timeit import default_timer as timer
 import re
 import tools
+import time
 
 class bcolors :
     """color and font style definitions for changing output appearance"""
@@ -103,6 +104,26 @@ def remove_folder(path) :
     print tools.yellow("[remove_folder]: deleting folder '%s'" % path)
     shutil.rmtree(path,ignore_errors=True)
     #shutil.rmtree(path)
+
+def create_folder(path):
+    if not os.path.exists(path) :
+        i=0
+        # try multiple times to create the directory (on some systems a 
+        # race condition might occur between creation and checking)
+        while True:
+            try:
+                i+=1
+                os.makedirs(path)
+                if i>60:
+                    print tools.red("OutputDirectory() : Tried creating a directory more than 60 times. Stop.")
+                    exit(1)
+                break
+            except OSError, e:
+                if e.errno != os.errno.EEXIST:
+                    raise   
+                time.sleep(1) # wait 1 second before next try
+                pass
+
 
 def finalize(start, build_errors, run_errors, analyze_errors) :
     """Display if regression check was successful or not and return the corresponding error code"""
