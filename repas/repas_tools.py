@@ -25,9 +25,7 @@ sys.path.append(settings.absolute_reggie_path)
 
 from combinations import getCombinations
 from externalcommand import ExternalCommand
-from tools import red
-from tools import blue
-from tools import yellow
+from tools
 from combinations import readKeyValueFile
 from combinations import isKeyOf
 
@@ -62,19 +60,19 @@ class Case(ExternalCommand) :
         self.names_file       = os.path.join(cwd,names_file)
         # check if file exists
         if not os.path.exists(self.names_file) :
-            print red("parameter_rename.ini file not found under: '%s'" % self.names_file)
+            print tools.red("parameter_rename.ini file not found under: '%s'" % self.names_file)
             exit(1)
 
         self.names2_file       = os.path.join(cwd,names2_file)
         # check if file exists
         if not os.path.exists(self.names2_file) :
-            print red("parameter_change.ini file not found under: '%s'" % self.names2_file)
+            print tools.red("parameter_change.ini file not found under: '%s'" % self.names2_file)
             exit(1)
 
         self.parameter_file   = os.path.join(cwd,parameter_file)
         # check if file exists
         if not os.path.exists(self.parameter_file) :
-            print red("parameter.ini file not found under: '%s'" % self.parameter_file)
+            print tools.red("parameter.ini file not found under: '%s'" % self.parameter_file)
             exit(1)
 
         # display used files
@@ -115,10 +113,10 @@ class Case(ExternalCommand) :
         # set "suffix"
         logging.getLogger('logger').debug("")
         logging.getLogger('logger').debug("")
-        logging.getLogger('logger').debug(yellow('='*132))
+        logging.getLogger('logger').debug(tools.yellow('='*132))
         logging.getLogger('logger').debug("Creating output name:")
         if not os.path.exists(self.names_file) :
-            print red("parameter_rename.ini file not found under: '%s'" % self.names_file)
+            print tools.red("parameter_rename.ini file not found under: '%s'" % self.names_file)
             exit(1)
         options_names, exclusions, noCrossCombinations = readKeyValueFile(self.names_file)
         suffix=''
@@ -126,13 +124,13 @@ class Case(ExternalCommand) :
             logging.getLogger('logger').debug("option.name=%s" %  str(option.name))
             found, number = isKeyOf(combis[0],option.name)
             if found:
-                logging.getLogger('logger').debug(str(option.name)+" = "+blue(str(found))+" (%s)" % combis[0][option.name])
+                logging.getLogger('logger').debug(str(option.name)+" = "+tools.blue(str(found))+" (%s)" % combis[0][option.name])
                 suffix += "_"+str(option.values[0])+"%s" % (combis[0][option.name])
             else:
-                print str(option.name)+" = "+red(str(found))+" (NOT FOUND!)"
+                print str(option.name)+" = "+tools.red(str(found))+" (NOT FOUND!)"
 
-        print "Name=[%s]" % red(suffix)
-        logging.getLogger('logger').debug(yellow('='*132))
+        print "Name=[%s]" % tools.red(suffix)
+        logging.getLogger('logger').debug(tools.yellow('='*132))
         logging.getLogger('logger').debug("")
         logging.getLogger('logger').debug("")
 
@@ -170,7 +168,7 @@ class Case(ExternalCommand) :
         if os.path.exists(output_path):
             self.results_main = "results/"
             if not os.path.exists(self.results_main) :
-                os.makedirs(self.results_main)
+                tools.create_folder(self.results_main)
 
         # 1.0 save data from output_dir/standalone/examples/cmd_0001
         try:
@@ -182,7 +180,7 @@ class Case(ExternalCommand) :
                     # create results sub-directory if it is non-existent
                     self.results_sub = "results/%s" % folder + self.suffix
                     if not os.path.exists(self.results_sub) :
-                        os.makedirs(self.results_sub)
+                        tools.create_folder(self.results_sub)
                     file_path=os.path.join(folder_path,file)
 
                     # save files with different endings

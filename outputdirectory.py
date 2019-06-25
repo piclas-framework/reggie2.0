@@ -11,6 +11,7 @@
 # You should have received a copy of the GNU General Public License along with reggie2.0. If not, see <http://www.gnu.org/licenses/>.
 #==================================================================================================================================
 import os
+import tools
 
 class OutputDirectory() :
     output_dir = "output_dir"
@@ -33,7 +34,6 @@ class OutputDirectory() :
 
         # create directory if it is non-existent
         if mkdir :
-            if not os.path.exists(self.target_directory) :
-                os.makedirs(self.target_directory)
+            tools.create_folder(self.target_directory)
 
 

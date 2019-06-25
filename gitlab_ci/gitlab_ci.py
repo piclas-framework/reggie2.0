@@ -50,7 +50,7 @@ start = timer()
 # argument parser
 parser = argparse.ArgumentParser(description='DESCRIPTION:\nScript for executing the regression checker for NRG codes multiple times with gitlab-ci.yml.\nSupply the path to the gitlab-ci.yml of the repository that also contains a /regressioncheck/checks structure supporting reggie2.0 and multiple tests can automatically be performed.\nThe output will be stored in the top repository directory under /output_dir_gitlab_tool/.', formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument('gitlab_ci', help='Path to gitlab-ci.yml which also contains a /regressioncheck/checks/... structure')
-parser.add_argument('-s', '--stage', default='DO_NIGHTLY', help='Supply DO_NIGHTLY, DO_WEEKLY, etc. flag for extracting the command from gitlab-ci.yml.')
+parser.add_argument('-s', '--stage', default='full', help='Gitlab-ci execution stage: Supply DO_NIGHTLY, DO_WEEKLY, DO_CHECKIN, etc. flag for extracting the relevant cases from gitlab-ci.yml. Default executes all stages.')
 parser.add_argument('-b', '--begin', type=int, default=1,  help='Number of the case: where to start with the run (from the list that this tools creates)')
 parser.add_argument('-d', '--debug', type=int, default=0, help='Debug level for this program. Dumps all info to the screen.')
 parser.add_argument('-i', '--info', type=int, default=1, help='Debug level for the subsequent program execution (e.g. flexi).')
@@ -98,16 +98,47 @@ cases = []
 commands = []
 with open(args.gitlab_ci, 'rb') as f :        # read file as "f"
     for line in f :                           # read every line
-        s=str(line.strip())                   # remove whitespaces
-        if s.find("if") > 0 :                 # find lines which contain "if"
+        s=str(line.strip())                   # remove leadgin and ending whitespaces
+        if s.find("#") == 0 :                 # Skip comments
+            continue
+        if s.find("if") >= 0 :                # find lines which contain "if"
             if re.search(r'\[(.*?)\]',s) :    # find lines with "[....]" in it, meaning opening "[" and closing "]" parenthesis
-                if s.find("python") > 0 :     # find lines which contain "python"
+                if args.stage != 'full' :     # Check stage only if user supplies one
+                    if s.lower().find(args.stage.lower()) == -1 : # Skip stages that do not correspond to the user supplied stage
+                        continue
+                if s.find("python") >= 0 :    # find lines which contain "python"
                     c=s[s.find("python"):]    # create string "c" starting at "python"
-                    if c.find(";") > 0 :      # find lines which contain ";"
-                        c=c[:c.find(";")]     # remove everything aver ";"
+                    if c.find(";") >= 0 :     # find lines which contain ";"
+                        c=c[:c.find(";")]     # remove everything after ";"
                     if c not in commands:     # add the new command line only if it is unique
                         commands.append(c)    # add command line to list
                         cases.append(gitlab_ci_tools.Case(c)) # and the case to the list of cases
+        else :
+            if args.stage == 'full' or args.stage.lower() == 'do_checkin' :     # Check stage only if user supplies one
+                if s.find("python") >= 0 :    # find lines which contain "python"
+                    c=s[s.find("python"):]    # create string "c" starting at "python"
+                    if c.find("-e") >= 0 :     # find lines which contain "-e"
+                        c=c[:c.find("-e")]     # remove everything after "-e"
+                    b = c[c.find("/regressioncheck/checks")+24:].strip() # cut away name before /regressioncheck/checks/
+                    if b.find("/") >= 0 : # find lines which contain "/"
+                        print(c),
+                        remove_string=b[b.find("/"):]
+                        print(" (Removed "+tools.red(remove_string)+")")
+                        b = b[:b.find("/")]     # remove everything after "/"
+                        case_dir = os.path.join(basedir,'regressioncheck')
+                        case_dir = os.path.join(case_dir,'checks')
+                        case_dir = os.path.join(case_dir,b)
+                        if not os.path.exists(case_dir) : # Sanity check if folder exists: use only the part of the string up to the first (whitespace (" ")
+                            print tools.red("case directory not found under: '%s'" % case_dir)
+                            exit(1)
+                        c=c[:c.find(remove_string)].strip() # remove everything after remove_string
+                    else:
+                        print(c)
+                    c = c.strip()
+                    if c not in commands:     # add the new command line only if it is unique
+                        commands.append(c)    # add command line to list
+                        cases.append(gitlab_ci_tools.Case(c)) # and the case to the list of cases
+
 
 print(132*'=')
 
@@ -115,7 +146,7 @@ if not args.dryrun : # do not execute anythin in dryrun mode
     #switch to basedir+/output_dir_gitlab_tool
     target_directory=os.path.join(basedir, 'output_dir_gitlab_tool')
     shutil.rmtree(target_directory,ignore_errors=True)
-    os.makedirs(target_directory)
+    tools.create_folder(target_directory)
     os.chdir(target_directory)
     print "Creating output under %s" % target_directory
 else :
@@ -129,9 +160,9 @@ for case in cases :
     # extract the reggie case from the command in the gitlay-ci.yml line by looking for "reggie.py" and "/regressioncheck/checks"
     c = case.command[case.command.find("reggie.py")+9:].strip()
     c = c[c.find("/regressioncheck/checks"):].strip()
-    c = str(basedir+c).strip()
+    c = str(basedir+c).strip() # add basedir to reggie-checks folder
     case_dir=c.split(" ")[0]
-    if not os.path.exists(case_dir) : # check if folder exists: use only the part of the string up to the first (whitespace (" ")
+    if not os.path.exists(case_dir) : # Sanity check if folder exists: use only the part of the string up to the first (whitespace (" ")
         print tools.red("case directory not found under: '%s'" % case_dir)
         exit(1)
 
