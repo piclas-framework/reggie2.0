@@ -28,7 +28,7 @@ import sys
 sys.path.append(settings.absolute_reggie_path)
 reggie_exe_path = os.path.join(settings.absolute_reggie_path,'reggie.py')
 if not os.path.exists(reggie_exe_path) :
-    print "Reggie main file not found in reggie repository under: '%s'" % reggie_exe_path
+    print("Reggie main file not found in reggie repository under: '%s'" % reggie_exe_path)
     exit(1)
 
 from repas_tools import finalize
@@ -55,31 +55,31 @@ General workflow:
 5.  FIX THIS: ------------------ display if regression check was successful or not and return the corresponding error code
 """
 
-print 
-print tools.red('==============================================================================================================================')
-print tools.red('         _____                    _____                    _____                    _____                    _____            ')
-print tools.red('         /\    \                  /\    \                  /\    \                  /\    \                  /\    \          ')
-print tools.red('        /::\    \                /::\    \                /::\    \                /::\    \                /::\    \         ')
-print tools.red('       /::::\    \              /::::\    \              /::::\    \              /::::\    \              /::::\    \        ')
-print tools.red('      /::::::\    \            /::::::\    \            /::::::\    \            /::::::\    \            /::::::\    \       ')
-print tools.red('     /:::/\:::\    \          /:::/\:::\    \          /:::/\:::\    \          /:::/\:::\    \          /:::/\:::\    \      ')
-print tools.red('    /:::/__\:::\    \        /:::/__\:::\    \        /:::/__\:::\    \        /:::/__\:::\    \        /:::/__\:::\    \     ')
-print tools.red('   /::::\   \:::\    \      /::::\   \:::\    \      /::::\   \:::\    \      /::::\   \:::\    \       \:::\   \:::\    \    ')
-print tools.red('  /::::::\   \:::\    \    /::::::\   \:::\    \    /::::::\   \:::\    \    /::::::\   \:::\    \    ___\:::\   \:::\    \   ')
-print tools.red(' /:::/\:::\   \:::\____\  /:::/\:::\   \:::\    \  /:::/\:::\   \:::\____\  /:::/\:::\   \:::\    \  /\   \:::\   \:::\    \  ')
-print tools.red('/:::/  \:::\   \:::|    |/:::/__\:::\   \:::\____\/:::/  \:::\   \:::|    |/:::/  \:::\   \:::\____\/::\   \:::\   \:::\____\ ')
-print tools.red('\::/   |::::\  /:::|____|\:::\   \:::\   \::/    /\::/    \:::\  /:::|____|\::/    \:::\  /:::/    /\:::\   \:::\   \::/    / ')
-print tools.red(' \/____|:::::\/:::/    /  \:::\   \:::\   \/____/  \/_____/\:::\/:::/    /  \/____/ \:::\/:::/    /  \:::\   \:::\   \/____/  ')
-print tools.red('       |:::::::::/    /    \:::\   \:::\    \               \::::::/    /            \::::::/    /    \:::\   \:::\    \      ')
-print tools.red('       |::|\::::/    /      \:::\   \:::\____\               \::::/    /              \::::/    /      \:::\   \:::\____\     ')
-print tools.red('       |::| \::/____/        \:::\   \::/    /                \::/____/               /:::/    /        \:::\  /:::/    /     ')
-print tools.red('       |::|  ~|               \:::\   \/____/                  ~~                    /:::/    /          \:::\/:::/    /      ')
-print tools.red('       |::|   |                \:::\    \                                           /:::/    /            \::::::/    /       ')
-print tools.red('       \::|   |                 \:::\____\                                         /:::/    /              \::::/    /        ')
-print tools.red('        \:|   |                  \::/    /                                         \::/    /                \::/    /         ')
-print tools.red('         \|___|                   \/____/                                           \/____/                  \/____/          ')
-print tools.red('==============================================================================================================================')
-print
+print('')
+print(tools.red('=============================================================================================================================='))
+print(tools.red('         _____                    _____                    _____                    _____                    _____            '))
+print(tools.red('         /\    \                  /\    \                  /\    \                  /\    \                  /\    \          '))
+print(tools.red('        /::\    \                /::\    \                /::\    \                /::\    \                /::\    \         '))
+print(tools.red('       /::::\    \              /::::\    \              /::::\    \              /::::\    \              /::::\    \        '))
+print(tools.red('      /::::::\    \            /::::::\    \            /::::::\    \            /::::::\    \            /::::::\    \       '))
+print(tools.red('     /:::/\:::\    \          /:::/\:::\    \          /:::/\:::\    \          /:::/\:::\    \          /:::/\:::\    \      '))
+print(tools.red('    /:::/__\:::\    \        /:::/__\:::\    \        /:::/__\:::\    \        /:::/__\:::\    \        /:::/__\:::\    \     '))
+print(tools.red('   /::::\   \:::\    \      /::::\   \:::\    \      /::::\   \:::\    \      /::::\   \:::\    \       \:::\   \:::\    \    '))
+print(tools.red('  /::::::\   \:::\    \    /::::::\   \:::\    \    /::::::\   \:::\    \    /::::::\   \:::\    \    ___\:::\   \:::\    \   '))
+print(tools.red(' /:::/\:::\   \:::\____\  /:::/\:::\   \:::\    \  /:::/\:::\   \:::\____\  /:::/\:::\   \:::\    \  /\   \:::\   \:::\    \  '))
+print(tools.red('/:::/  \:::\   \:::|    |/:::/__\:::\   \:::\____\/:::/  \:::\   \:::|    |/:::/  \:::\   \:::\____\/::\   \:::\   \:::\____\ '))
+print(tools.red('\::/   |::::\  /:::|____|\:::\   \:::\   \::/    /\::/    \:::\  /:::|____|\::/    \:::\  /:::/    /\:::\   \:::\   \::/    / '))
+print(tools.red(' \/____|:::::\/:::/    /  \:::\   \:::\   \/____/  \/_____/\:::\/:::/    /  \/____/ \:::\/:::/    /  \:::\   \:::\   \/____/  '))
+print(tools.red('       |:::::::::/    /    \:::\   \:::\    \               \::::::/    /            \::::::/    /    \:::\   \:::\    \      '))
+print(tools.red('       |::|\::::/    /      \:::\   \:::\____\               \::::/    /              \::::/    /      \:::\   \:::\____\     '))
+print(tools.red('       |::| \::/____/        \:::\   \::/    /                \::/____/               /:::/    /        \:::\  /:::/    /     '))
+print(tools.red('       |::|  ~|               \:::\   \/____/                  ~~                    /:::/    /          \:::\/:::/    /      '))
+print(tools.red('       |::|   |                \:::\    \                                           /:::/    /            \::::::/    /       '))
+print(tools.red('       \::|   |                 \:::\____\                                         /:::/    /              \::::/    /        '))
+print(tools.red('        \:|   |                  \::/    /                                         \::/    /                \::/    /         '))
+print(tools.red('         \|___|                   \/____/                                           \/____/                  \/____/          '))
+print(tools.red('=============================================================================================================================='))
+print('')
 
 start = timer()
 
@@ -100,9 +100,9 @@ args = parser.parse_args()
 
 if re.search('^linux',platform) :
   hostname=socket.gethostname()
-  print "platform: %s, hostname: %s" % (platform,hostname)
+  print("platform: %s, hostname: %s" % (platform,hostname))
   if re.search('^mom[0-9]+$',hostname) :
-    print tools.yellow('Automatic detection of hlrs system: Assuming aprun is used and setting args.hlrs = True')
+    print(tools.yellow('Automatic detection of hlrs system: Assuming aprun is used and setting args.hlrs = True'))
     args.hlrs = True
   elif re.search('^eslogin[0-9]+$',hostname) :
     if args.hlrs :
@@ -113,9 +113,9 @@ tools.setup_logger(args.debug)
 log = logging.getLogger('logger')
 
 # display all command line arguments
-print "Running with the following command line options"
+print("Running with the following command line options")
 for arg in args.__dict__ :
-    print arg.ljust(15)," = [",getattr(args,arg),"]"
+    print(arg.ljust(15)," = [",getattr(args,arg),"]")
 print('='*132)
 
 # define command that is usually run in a shell
@@ -142,9 +142,9 @@ i=0
 for combi in combis :
 
     # print setup info
-    print 132*'-'
+    print(132*'-')
     for key, value in combi.items() :
-        print "[%25s=%25s] digit=%3s" % (key, value, digits[key])
+        print("[%25s=%25s] digit=%3s" % (key, value, digits[key]))
 
     # create parameter file for current combi
     repas.create(combi,digits)
@@ -159,8 +159,8 @@ for combi in combis :
     # save data: check output directory for .pdf and .csv files and rename according to info in 'parameter_rename.ini'
     repas.save_data()
 
-print 132*'-'
-print " "
+print(132*'-')
+print(" ")
 finalize(start, repas.nErrors)
 
 

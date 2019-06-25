@@ -10,6 +10,7 @@
 #
 # You should have received a copy of the GNU General Public License along with reggie2.0. If not, see <http://www.gnu.org/licenses/>.
 #==================================================================================================================================
+from __future__ import print_function # required for print() function with line break via "end=' '"
 import os
 import fileinput
 from timeit import default_timer as timer
@@ -25,7 +26,7 @@ sys.path.append(settings.absolute_reggie_path)
 
 from combinations import getCombinations
 from externalcommand import ExternalCommand
-from tools
+import tools
 from combinations import readKeyValueFile
 from combinations import isKeyOf
 
@@ -60,26 +61,26 @@ class Case(ExternalCommand) :
         self.names_file       = os.path.join(cwd,names_file)
         # check if file exists
         if not os.path.exists(self.names_file) :
-            print tools.red("parameter_rename.ini file not found under: '%s'" % self.names_file)
+            print(tools.red("parameter_rename.ini file not found under: '%s'" % self.names_file))
             exit(1)
 
         self.names2_file       = os.path.join(cwd,names2_file)
         # check if file exists
         if not os.path.exists(self.names2_file) :
-            print tools.red("parameter_change.ini file not found under: '%s'" % self.names2_file)
+            print(tools.red("parameter_change.ini file not found under: '%s'" % self.names2_file))
             exit(1)
 
         self.parameter_file   = os.path.join(cwd,parameter_file)
         # check if file exists
         if not os.path.exists(self.parameter_file) :
-            print tools.red("parameter.ini file not found under: '%s'" % self.parameter_file)
+            print(tools.red("parameter.ini file not found under: '%s'" % self.parameter_file))
             exit(1)
 
         # display used files
-        print "Using the following input files"
-        print "parameter_rename.ini".ljust(25)," = [",self.names_file,"]"
-        print "parameter_change.ini".ljust(25)," = [",self.names2_file,"]"
-        print "parameter.ini       ".ljust(25)," = [",self.parameter_file,"]"
+        print("Using the following input files")
+        print("parameter_rename.ini".ljust(25)," = [",self.names_file,"]")
+        print("parameter_change.ini".ljust(25)," = [",self.names2_file,"]")
+        print("parameter.ini       ".ljust(25)," = [",self.parameter_file,"]")
         print('='*132)
 
     def create(self, combi, digits) :
@@ -97,10 +98,10 @@ class Case(ExternalCommand) :
             for key, value in combi.items() :
                 if digits[key] >= 0 :
                     if line.startswith(key) :
-                        print "%s = %s" % (key,value)
+                        print("%s = %s" % (key,value))
                         line_written = True
             if not line_written :
-                print line.strip()
+                print(line.strip())
 
         # copy temorary parameter_tmp.ini to original file
         os.system("mv %s %s" % (tmp_file_name, self.parameter_file)) # mv tmp file to parameter file
@@ -116,7 +117,7 @@ class Case(ExternalCommand) :
         logging.getLogger('logger').debug(tools.yellow('='*132))
         logging.getLogger('logger').debug("Creating output name:")
         if not os.path.exists(self.names_file) :
-            print tools.red("parameter_rename.ini file not found under: '%s'" % self.names_file)
+            print(tools.red("parameter_rename.ini file not found under: '%s'" % self.names_file))
             exit(1)
         options_names, exclusions, noCrossCombinations = readKeyValueFile(self.names_file)
         suffix=''
@@ -127,9 +128,9 @@ class Case(ExternalCommand) :
                 logging.getLogger('logger').debug(str(option.name)+" = "+tools.blue(str(found))+" (%s)" % combis[0][option.name])
                 suffix += "_"+str(option.values[0])+"%s" % (combis[0][option.name])
             else:
-                print str(option.name)+" = "+tools.red(str(found))+" (NOT FOUND!)"
+                print(str(option.name)+" = "+tools.red(str(found))+" (NOT FOUND!)")
 
-        print "Name=[%s]" % tools.red(suffix)
+        print("Name=[%s]" % tools.red(suffix))
         logging.getLogger('logger').debug(tools.yellow('='*132))
         logging.getLogger('logger').debug("")
         logging.getLogger('logger').debug("")
@@ -137,12 +138,12 @@ class Case(ExternalCommand) :
         self.suffix = suffix
 
     def run(self,i) :
-        print "cmd=%s" % self.command
+        print("cmd=%s" % self.command)
         try :
             if self.execute_cmd(self.command, self.target_directory) != 0 : # use uncolored string for cmake
                 self.failed=True
         except : # this fails, if the supplied command line is corrupted
-            print tools.red("Failed")
+            print(tools.red("Failed"))
             self.failed=True
 
         # if self fails, add error to number of errors
@@ -189,9 +190,9 @@ class Case(ExternalCommand) :
                         #  ".rm", ".swf", ".vob", ".wmv"]
                     if file.endswith(tuple(ext)):
                         os.system("cp "+file_path+" "+self.results_sub+"/.")
-        except Exception,ex:
-            print "save_data: cannote store any data because (some) output was not created"
-            print 'Error: '+ str(ex)
+        except Exception as ex:
+            print("save_data: cannote store any data because (some) output was not created")
+            print('Error: '+ str(ex))
 
         # 1.1 save convergence data from output_dir/standalone/examples/cmd_0001
         try:
@@ -213,28 +214,28 @@ class Case(ExternalCommand) :
                     except :
                         new_name = "L2"+self.suffix+".csv" 
                     os.system("cp output_dir/standalone/examples/cmd_0001/"+file+" "+self.results_main+new_name) # move file to upper most path
-        except Exception,ex:
-            print "save_data: cannote store convergence data because (some) output was not created"
-            print 'Error: '+ str(ex)
+        except Exception as ex:
+            print("save_data: cannote store convergence data because (some) output was not created")
+            print('Error: '+ str(ex))
 
 def finalize(start, run_errors) :
     """Display if repas was successful or not and return the number of errors that were encountered"""
     if run_errors > 0 :
-        print bcolors.RED + 132*'='
-        print "repas tool  FAILED!",
+        print(bcolors.RED + 132*'=')
+        print("repas tool  FAILED!", end=' ') # skip linebreak
         return_code = 1
     else :
-        print bcolors.BLUE + 132*'='
-        print "repas tool  successful!",
+        print(bcolors.BLUE + 132*'=')
+        print("repas tool  successful!", end=' ') # skip linebreak
         return_code = 0
 
     if start > 0 : # only calculate run time and display output when start > 0
         end = timer()
-        print "in [%2.2f sec]" % (end - start)
+        print("in [%2.2f sec]" % (end - start))
     else :
-        print ""
+        print("")
 
-    print "Number of run     errors: %d" % run_errors
+    print("Number of run     errors: %d" % run_errors)
 
-    print '='*132 + bcolors.ENDC
+    print('='*132 + bcolors.ENDC)
     exit(return_code)
