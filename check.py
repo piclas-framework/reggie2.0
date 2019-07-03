@@ -643,11 +643,13 @@ def PerformCheck(start,builds,args,log) :
         SummaryOfErrors(builds)
     
         # display error message
-        print(ex) # display error msg
-        print(tools.indent(" ".join(ex.build.cmake_cmd),1))
-        print(tools.indent(" ".join(ex.build.make_cmd),1))
-        print(tools.indent("Build failed, see: "+ex.build.stdout_filename,1))
-        print(tools.indent("                   "+ex.build.stderr_filename,1))
+        print(tools.red(str(ex))) # display error msg
+        if hasattr(ex.build, 'cmake_cmd'):
+            print(tools.indent(tools.yellow(str(" ".join(ex.build.cmake_cmd))),1))
+        if hasattr(ex.build, 'make_cmd'):
+            print(tools.indent(tools.yellow(str(" ".join(ex.build.make_cmd))),1))
+        print(tools.indent("Build failed, see: "+str(ex.build.stdout_filename),1))
+        print(tools.indent("                   "+str(ex.build.stderr_filename),1))
         print(tools.bcolors.RED)
         for line in ex.build.stderr[-20:] :
             print(tools.indent(line,4), end=' ') # skip linebreak
