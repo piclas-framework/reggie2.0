@@ -64,6 +64,20 @@ j = int((i / option.base) % len(option.values))
 ```
 if an integer is required.
 
+
+### Items
+
+In python3, use dict.items() instead of dict.iteritems() because  iteritems() was removed in python3, so this method cannot be used anymore.
+
+Take a look at Python 3.0 Wiki Built-in Changes section, where it is stated:
+
+    Removed dict.iteritems(), dict.iterkeys(), and dict.itervalues().
+
+    Instead: use dict.items(), dict.keys(), and dict.values() respectively.
+
+
+
+
 ## Overview
  * [General file and directory hierarchy in Reggie2.0](#code-hierarchy-and-required-ini-files)
  * [Analyze routines for post-processing in **analyze.ini**](#analyze-routines-for-analyzeini)
