@@ -119,7 +119,7 @@ def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None
 
     # 1.4   Check if a options[].values (key in the dict) is to be overridden (removes all other occurrences too!)
     if OverrideOptionKey and OverrideOptionValue :
-        print tools.red("Setting all options for: %s=[%s]" % (OverrideOptionKey,OverrideOptionValue))
+        print(tools.red("Setting all options for: %s=[%s]" % (OverrideOptionKey,OverrideOptionValue)))
 
         # find the key/value pair in the options and replace the key/value + re-sort the list
         option_not_found=True
@@ -175,7 +175,7 @@ def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None
             #   We now can compute the index in the list of values of an option (which is the value of the respective digit in our crazy number system)
             #   by dividing the index i (which is a number in our crazy number system) by the base and modulo the number of values of the option.
             j = (i / option.base) % len(option.values)
-            digits[option.name] = j
+            digits[option.name] = int(j)
 
         for option in options : 
             if CheckForMultipleKeys :

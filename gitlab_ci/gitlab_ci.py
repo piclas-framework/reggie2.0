@@ -10,6 +10,7 @@
 #
 # You should have received a copy of the GNU General Public License along with reggie2.0. If not, see <http://www.gnu.org/licenses/>.
 #==================================================================================================================================
+from __future__ import print_function # required for print() function with line break via "end=' '"
 from timeit import default_timer as timer
 import os
 import re
@@ -25,7 +26,7 @@ import sys
 sys.path.append(settings.absolute_reggie_path)
 reggie_exe_path = os.path.join(settings.absolute_reggie_path,'reggie.py')
 if not os.path.exists(reggie_exe_path) :
-    print "Reggie main file not found in reggie repository under: '%s'" % reggie_exe_path
+    print("Reggie main file not found in reggie repository under: '%s'" % reggie_exe_path)
     exit(1)
 
 
@@ -67,17 +68,16 @@ log = logging.getLogger('logger')
 
 # check if file exists
 if os.path.isdir(args.gitlab_ci) :
-    print tools.yellow("Supplied path is [%s]. Searching for '.gitlab-ci.yml' there." % args.gitlab_ci)
+    print(tools.yellow("Supplied path is [%s]. Searching for '.gitlab-ci.yml' there." % args.gitlab_ci))
     args.gitlab_ci=os.path.join(args.gitlab_ci, '.gitlab-ci.yml')
 if not os.path.exists(args.gitlab_ci) :
-    print tools.red("gitlab-ci.yml file not found under: '%s'" % args.gitlab_ci)
+    print(tools.red("gitlab-ci.yml file not found under: '%s'" % args.gitlab_ci))
     exit(1)
 
 # display all command line arguments
-print "Running with the following command line options"
+print("Running with the following command line options")
 for arg in args.__dict__ :
-    #print arg.ljust(15)," = [",getattr(args,arg),"]"
-    print "%s = [ %s ]" % (arg.ljust(15), getattr(args,arg))
+    print("%s = [ %s ]" % (arg.ljust(15), getattr(args,arg)))
 print('='*132)
 
 
@@ -85,18 +85,19 @@ print('='*132)
 basedir = os.path.abspath(os.path.dirname(args.gitlab_ci))
 reggiedir = os.path.abspath(os.path.dirname(reggie_exe_path))
 
-print tools.blue("Using code under      [basedir]: "+str(basedir))
-print tools.blue("Using reggie under  [reggiedir]: "+str(reggiedir))
-print tools.blue("Running checks for [args.stage]: "+str(args.stage))
+print(tools.blue("Using code under      [basedir]: "+str(basedir)))
+print(tools.blue("Using reggie under  [reggiedir]: "+str(reggiedir)))
+print(tools.blue("Running checks for [args.stage]: "+str(args.stage)))
 
 reggie_path = os.path.join(reggiedir, 'reggie.py')
 if not os.path.exists(reggie_path) : # check if file exists
-    print tools.red("reggie not found in reggie directory: '%s'" % reggie_path)
+    print(tools.red("reggie not found in reggie directory: '%s'" % reggie_path))
     exit(1)
 
 cases = []
 commands = []
-with open(args.gitlab_ci, 'rb') as f :        # read file as "f"
+firstCheckInExample=True
+with open(args.gitlab_ci, 'r') as f :        # read file as "f"
     for line in f :                           # read every line
         s=str(line.strip())                   # remove leadgin and ending whitespaces
         if s.find("#") == 0 :                 # Skip comments
@@ -117,23 +118,28 @@ with open(args.gitlab_ci, 'rb') as f :        # read file as "f"
             if args.stage == 'full' or args.stage.lower() == 'do_checkin' :     # Check stage only if user supplies one
                 if s.find("python") >= 0 :    # find lines which contain "python"
                     c=s[s.find("python"):]    # create string "c" starting at "python"
+                    if firstCheckInExample :
+                        print('='*132)
+                        print("CHECKIN examples")
+                        firstCheckInExample=False
                     if c.find("-e") >= 0 :     # find lines which contain "-e"
                         c=c[:c.find("-e")]     # remove everything after "-e"
-                    b = c[c.find("/regressioncheck/checks")+24:].strip() # cut away name before /regressioncheck/checks/
-                    if b.find("/") >= 0 : # find lines which contain "/"
-                        print(c),
-                        remove_string=b[b.find("/"):]
-                        print(" (Removed "+tools.red(remove_string)+")")
-                        b = b[:b.find("/")]     # remove everything after "/"
-                        case_dir = os.path.join(basedir,'regressioncheck')
-                        case_dir = os.path.join(case_dir,'checks')
-                        case_dir = os.path.join(case_dir,b)
-                        if not os.path.exists(case_dir) : # Sanity check if folder exists: use only the part of the string up to the first (whitespace (" ")
-                            print tools.red("case directory not found under: '%s'" % case_dir)
-                            exit(1)
-                        c=c[:c.find(remove_string)].strip() # remove everything after remove_string
-                    else:
-                        print(c)
+
+                        b = c[c.find("/regressioncheck/checks")+24:].strip() # cut away name before /regressioncheck/checks/
+                        if b.find("/") >= 0 : # find lines which contain "/"
+                            print(c, end=' ') # skip linebreak
+                            remove_string=b[b.find("/"):]
+                            print(" (Removed "+tools.red(remove_string)+")")
+                            b = b[:b.find("/")]     # remove everything after "/"
+                            case_dir = os.path.join(basedir,'regressioncheck')
+                            case_dir = os.path.join(case_dir,'checks')
+                            case_dir = os.path.join(case_dir,b)
+                            if not os.path.exists(case_dir) : # Sanity check if folder exists: use only the part of the string up to the first (whitespace (" ")
+                                print(tools.red("case directory not found under: '%s'" % case_dir))
+                                exit(1)
+                            c=c[:c.find(remove_string)].strip() # remove everything after remove_string
+                        else:
+                            print(c)
                     c = c.strip()
                     if c not in commands:     # add the new command line only if it is unique
                         commands.append(c)    # add command line to list
@@ -148,12 +154,12 @@ if not args.dryrun : # do not execute anythin in dryrun mode
     shutil.rmtree(target_directory,ignore_errors=True)
     tools.create_folder(target_directory)
     os.chdir(target_directory)
-    print "Creating output under %s" % target_directory
+    print("Creating output under %s" % target_directory)
 else :
-    print "List of possible cases from gitlab-ci.yml are"
+    print("List of possible cases from gitlab-ci.yml are")
 
 
-print " "
+print(" ")
 i=1
 nErrors=0
 for case in cases :
@@ -163,7 +169,7 @@ for case in cases :
     c = str(basedir+c).strip() # add basedir to reggie-checks folder
     case_dir=c.split(" ")[0]
     if not os.path.exists(case_dir) : # Sanity check if folder exists: use only the part of the string up to the first (whitespace (" ")
-        print tools.red("case directory not found under: '%s'" % case_dir)
+        print(tools.red("case directory not found under: '%s'" % case_dir))
         exit(1)
 
     # set the command line "cmd"
@@ -184,20 +190,20 @@ for case in cases :
     #cmd = ["ls","-l"] # for testing some other commands
 
     if args.dryrun : # do not execute anythin in dryrun mode
-        print str("[%5d] " % i)+cmd_string
+        print(str("[%5d] " % i)+cmd_string)
     else :
         # run case depending on supplied (or default) number "begin"
         if i >= args.begin : # run this case
-            print str("[%5d]" % i)+tools.blue(" Running  ")+cmd_string,
+            print(str("[%5d]" % i)+tools.blue(" Running  ")+cmd_string, end=' ') # skip linebreak
             if args.debug > 0 :
-                print " "
+                print(" ")
 
             # run the code and generate output
             try :
                 if case.execute_cmd(cmd, target_directory) != 0 : # use uncolored string for cmake
                     case.failed=True
             except : # this fails, if the supplied command line is corrupted
-                print tools.red("Failed")
+                print(tools.red("Failed"))
                 case.failed=True
 
             # if case fails, add error to number of errors
@@ -218,13 +224,13 @@ for case in cases :
 
             # exit, if user wants to
             if args.only : # if only one case is to be run -> exit(0)
-                print " "
+                print(" ")
                 gitlab_ci_tools.finalize(start, nErrors)
                 exit(0)
         else : # skip this case
-            print str("[%5d]" % i)+tools.yellow(" Skipping ")+cmd_string
+            print(str("[%5d]" % i)+tools.yellow(" Skipping ")+cmd_string)
 
     i += 1
 
-print " "
+print(" ")
 gitlab_ci_tools.finalize(start, nErrors)

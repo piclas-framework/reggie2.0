@@ -10,6 +10,7 @@
 #
 # You should have received a copy of the GNU General Public License along with reggie2.0. If not, see <http://www.gnu.org/licenses/>.
 #==================================================================================================================================
+from __future__ import print_function # required for print() function with line break via "end=' '"
 import os
 import numpy as np
 from externalcommand import ExternalCommand
@@ -27,28 +28,28 @@ try :
     import h5py
     h5py_module_loaded = True
 except ImportError :
-    #raise ImportError('Could not import h5py module. This is needed for anaylze functions.')
-    print tools.red('Could not import h5py module. This is needed for anaylze functions.')
+    #raise ImportError('Could not import h5py module. This is required for anaylze functions.')
+    print(tools.red('Could not import h5py module. This is required for anaylze functions.'))
     h5py_module_loaded = False
 
 # import pyplot for creating plots
 try :
     import matplotlib.pyplot as plt
-    from matplotlib.ticker import MaxNLocator # needed for setting axis format to integer only (p-convergence)
+    from matplotlib.ticker import MaxNLocator # required for setting axis format to integer only (p-convergence)
     pyplot_module_loaded = True # will be set false if user does not supply read-in flag in getAnalyzes(path, example) function
 except ImportError :
-    #raise ImportError('Could not import matplotlib.pyplot module. This is needed for anaylze functions.')
-    print tools.red('Could not import matplotlib.pyplot module. This is needed for anaylze functions.')
+    #raise ImportError('Could not import matplotlib.pyplot module. This is required for anaylze functions.')
+    print(tools.red('Could not import matplotlib.pyplot module. This is required for anaylze functions.'))
     pyplot_module_loaded = False
 
 def displayTable(mylist,nVar,nRuns) :
     # mylist = [ [1 2 3] [1 2 3] [1 2 3] [1 2 3] ] example with 4 nVar and 3 nRuns
-    print " nRun   "+"   ".join(7*" "+"nVar=["+str(i).rjust(4)+"]" for i in range(nVar))
+    print(" nRun   "+"   ".join(7*" "+"nVar=["+str(i).rjust(4)+"]" for i in range(nVar)))
     for j in range(nRuns) :
-        print str(j).rjust(5),
+        print(str(j).rjust(5), end=' ') # skip linebreak
         for i in range(nVar) :
-            print "%20.12e" % mylist[i][j],
-        print ""
+            print("%20.12e" % mylist[i][j], end=' ') # skip linebreak
+        print("")
 
 def writeTableToFile(mylist,nVar,nRuns,firstColumn,path,name) :
     # if a path is supplied, create a .csv file with the data
@@ -61,8 +62,8 @@ def writeTableToFile(mylist,nVar,nRuns,firstColumn,path,name) :
                 f.write(line+"\n")
 
 def displayVector(vector,nVar) :
-    print 8*" "+"   ".join(7*" "+"nVar=["+str(i).rjust(4)+"]" for i in range(nVar))
-    print 6*" "+" ".join("%20.12e" % vector[i] for i in range(nVar))
+    print(8*" "+"   ".join(7*" "+"nVar=["+str(i).rjust(4)+"]" for i in range(nVar)))
+    print(6*" "+" ".join("%20.12e" % vector[i] for i in range(nVar)))
 
 # Copy new reference file: This is completely independent of the outcome of the current compare data file
 def copyReferenceFile(run,path,path_ref_source) :
@@ -305,7 +306,7 @@ class Clean_up_files() :
                     Analyze.total_errors+=1
                     continue
                 else :
-                    print tools.yellow("[remove_folder]: deleting file '%s'" % wildcard)
+                    print(tools.yellow("[remove_folder]: deleting file '%s'" % wildcard))
                     os.remove(wildcard)
 
     def __str__(self) :
@@ -513,7 +514,7 @@ class Analyze_Convtest_h(Analyze) :
         if nRuns < 2 :
             for run in runs :
                 s="analysis failed: h-convergence not possible with only 1 run"
-                print tools.red(s)
+                print(tools.red(s))
                 run.analyze_results.append(s)
                 run.analyze_successful=False
                 Analyze.total_errors+=1
@@ -546,17 +547,17 @@ class Analyze_Convtest_h(Analyze) :
 
             # 1.3   get number of variables from L2 error array
             nVar = len(L2_errors)
-            print tools.blue("L2 errors for nVar="+str(nVar))
+            print(tools.blue("L2 errors for nVar="+str(nVar)))
             displayTable(L2_errors,nVar,nRuns)
 
             # 1.4   determine order of convergence between two runs
             L2_order = np.array([analyze_functions.calcOrder_h(self.cells,L2_errors[i]) for i in range(nVar)])
-            print tools.blue("L2 orders for nVar="+str(nVar))
+            print(tools.blue("L2 orders for nVar="+str(nVar)))
             displayTable(L2_order,nVar,nRuns-1)
 
             # 1.4.1   determine average convergence rate
             mean = [np.mean(L2_order[i]) for i in range(nVar)]
-            print tools.blue("L2 average order for nVar=%s (exprected order = %s)" % (nVar,p+1))
+            print(tools.blue("L2 average order for nVar=%s (exprected order = %s)" % (nVar,p+1)))
             displayVector(mean,nVar)
 
             if pyplot_module_loaded : # this boolean is set when importing matplotlib.pyplot
@@ -578,27 +579,27 @@ class Analyze_Convtest_h(Analyze) :
                     f_save_path = os.path.join(os.path.dirname(runs[0].target_directory),"L2_error_nVar"+str(i)+"_order%.2f.pdf" % mean[i]) # set file path for saving the figure to the disk
                     f.savefig(f_save_path, bbox_inches='tight')                                                         # save figure to .pdf file
             else :
-                print tools.yellow('Could not import matplotlib.pyplot module. This is needed for creating plots under "Analyze_Convtest_h(Analyze)". \nSet "use_matplot_lib=True" in analyze.ini in order to activate plotting.')
+                print(tools.yellow('Could not import matplotlib.pyplot module. This is required for creating plots under "Analyze_Convtest_h(Analyze)". \nSet "use_matplot_lib=True" in analyze.ini in order to activate plotting.'))
 
             # 1.4.2   write L2 error data to file
             writeTableToFile(L2_errors,nVar,nRuns,self.cells,os.path.dirname(runs[0].target_directory),"L2_error_order%.2f.csv" % mean[0])
             
             # 1.5   determine success rate by comparing the relative convergence error with a tolerance
-            print tools.blue( "relative order error (tolerance = %.4e)" % self.tolerance)
+            print(tools.blue( "relative order error (tolerance = %.4e)" % self.tolerance))
             relErr = [abs(mean[i]/(p+1)-1) for i in range(nVar)]
             displayVector(relErr,nVar)
             success = [relErr[i] < self.tolerance for i in range(nVar)]
-            print tools.blue("success convergence")
-            print 5*" "+"".join(str(success[i]).rjust(21) for i in range(nVar))
+            print(tools.blue("success convergence"))
+            print(5*" "+"".join(str(success[i]).rjust(21) for i in range(nVar)))
 
 
             # 1.6   compare success rate with pre-defined rate, fails if not reached
             if float(sum(success))/nVar >= self.rate :
-                print tools.blue("h-convergence successful")
+                print(tools.blue("h-convergence successful"))
             else :
-                print tools.red("h-convergence failed"+"\n"+\
+                print(tools.red("h-convergence failed"+"\n"+\
                         "success rate="+str(float(sum(success))/nVar)+\
-                        " tolerance rate="+str(self.rate))
+                        " tolerance rate="+str(self.rate)))
 
                 # 1.7     interate over all runs
                 for run in runs :
@@ -613,13 +614,13 @@ class Analyze_Convtest_h(Analyze) :
 
         else :
             s="cannot perform h-convergence test, because number of successful runs must equal the number of cells"
-            print tools.red(s)
+            print(tools.red(s))
             for run in runs :
                 run.analyze_results.append(s) # append info for summary of errors
                 run.analyze_successful=False  # set analyzes to fail
                 Analyze.total_errors+=1       # increment errror counter
-            print tools.yellow("nRun  "+str(nRuns))
-            print tools.yellow("cells "+str(len(self.cells)))
+            print(tools.yellow("nRun  "+str(nRuns)))
+            print(tools.yellow("cells "+str(len(self.cells))))
     def __str__(self) :
         return "perform L2 h-convergence test and compare the order of convergence with the polynomial degree"
 
@@ -687,7 +688,7 @@ class Analyze_Convtest_t(Analyze) :
         if nRuns < 2 :
             for run in runs :
                 s="analysis failed: t-convergence not possible with only 1 run"
-                print tools.red(s)
+                print(tools.red(s))
                 run.analyze_results.append(s)
                 run.analyze_successful=False
                 Analyze.total_errors+=1
@@ -695,7 +696,7 @@ class Analyze_Convtest_t(Analyze) :
         if self.number_of_x_values in (-1,nRuns) :
             # 1.1   for method 1.) or 3.) det the values for x_values from std.out
             if self.method in (1,3) :
-                print self.get_x_values
+                print(self.get_x_values)
                 if self.method == 1 :   # 1.) initial timestep (automatically from std.out)
                     try :
                         self.x_values = np.array([analyze_functions.get_initial_timesteps(run.stdout,self.get_x_values) for run in runs])
@@ -759,7 +760,7 @@ class Analyze_Convtest_t(Analyze) :
 
             # 1.3   get number of variables from L2 error array
             nVar = len(L2_errors)
-            print tools.blue("L2 errors for nVar="+str(nVar))
+            print(tools.blue("L2 errors for nVar="+str(nVar)))
             displayTable(L2_errors,nVar,nRuns)
 
             # 1.4   determine order of convergence between two runs
@@ -767,12 +768,12 @@ class Analyze_Convtest_t(Analyze) :
                 L2_order = np.array([analyze_functions.calcOrder_h(self.x_values,L2_errors[i],True) for i in range(nVar)]) # invert (e.g. the timestep) for positive order calculation (eg. O(-4) -> O(4))
             else :
                 L2_order = np.array([analyze_functions.calcOrder_h(self.x_values,L2_errors[i]) for i in range(nVar)])
-            print tools.blue("L2 orders for nVar="+str(nVar))
+            print(tools.blue("L2 orders for nVar="+str(nVar)))
             displayTable(L2_order,nVar,nRuns-1)
 
             # 1.4.1   determine average convergence rate
             mean = [np.mean(L2_order[i]) for i in range(nVar)]
-            print tools.blue("L2 average order for nVar=%s (exprected order = %s)" % (nVar,self.order))
+            print(tools.blue("L2 average order for nVar=%s (exprected order = %s)" % (nVar,self.order)))
             displayVector(mean,nVar)
 
             if pyplot_module_loaded : # this boolean is set when importing matplotlib.pyplot
@@ -794,27 +795,27 @@ class Analyze_Convtest_t(Analyze) :
                     f_save_path = os.path.join(os.path.dirname(runs[0].target_directory),"L2_error_nVar"+str(i)+"_order%.2f.pdf" % mean[i]) # set file path for saving the figure to the disk
                     f.savefig(f_save_path, bbox_inches='tight')                                                         # save figure to .pdf file
             else :
-                print tools.yellow('Could not import matplotlib.pyplot module. This is needed for creating plots under "Analyze_Convtest_t(Analyze)". \nSet "use_matplot_lib=True" in analyze.ini in order to activate plotting.')
+                print(tools.yellow('Could not import matplotlib.pyplot module. This is required for creating plots under "Analyze_Convtest_t(Analyze)". \nSet "use_matplot_lib=True" in analyze.ini in order to activate plotting.'))
 
             # 1.4.2   write L2 error data to file
             writeTableToFile(L2_errors,nVar,nRuns,self.x_values,os.path.dirname(runs[0].target_directory),"L2_error_order%.2f.csv" % mean[0])
             
             # 1.5   determine success rate by comparing the relative convergence error with a tolerance
-            print tools.blue( "relative order error (tolerance = %.4e)" % self.tolerance)
+            print(tools.blue( "relative order error (tolerance = %.4e)" % self.tolerance))
             relErr = [abs(mean[i]/(self.order)-1) for i in range(nVar)]
             displayVector(relErr,nVar)
             success = [relErr[i] < self.tolerance for i in range(nVar)]
-            print tools.blue("success convergence")
-            print 5*" "+"".join(str(success[i]).rjust(21) for i in range(nVar))
+            print(tools.blue("success convergence"))
+            print(5*" "+"".join(str(success[i]).rjust(21) for i in range(nVar)))
 
 
             # 1.6   compare success rate with pre-defined rate, fails if not reached
             if float(sum(success))/nVar >= self.rate :
-                print tools.blue("t-convergence successful")
+                print(tools.blue("t-convergence successful"))
             else :
-                print tools.red("t-convergence failed"+"\n"+\
+                print(tools.red("t-convergence failed"+"\n"+\
                         "success rate="+str(float(sum(success))/nVar)+\
-                        " tolerance rate="+str(self.rate))
+                        " tolerance rate="+str(self.rate)))
 
                 # 1.7     interate over all runs
                 for run in runs :
@@ -829,13 +830,13 @@ class Analyze_Convtest_t(Analyze) :
 
         else :
             s="cannot perform t-convergence test, because number of successful runs must equal the number of supplied %s in the user-supplied list" % self.name
-            print tools.red(s)
+            print(tools.red(s))
             for run in runs :
                 run.analyze_results.append(s) # append info for summary of errors
                 run.analyze_successful=False  # set analyzes to fail
                 Analyze.total_errors+=1       # increment errror counter
-            print tools.yellow("[nRun] = [%s]" % nRuns)
-            print tools.yellow("[%s] = [%s] values for x_values (must equal the number of nRun)" % (self.name,len(self.x_values)))
+            print(tools.yellow("[nRun] = [%s]" % nRuns))
+            print(tools.yellow("[%s] = [%s] values for x_values (must equal the number of nRun)" % (self.name,len(self.x_values))))
     def __str__(self) :
         return "perform L2 t-convergence test and compare the order of convergence with %s against the supplied order of convergence" % self.name
 
@@ -881,7 +882,7 @@ class Analyze_Convtest_p(Analyze) :
         if nRuns < 2 :
             for run in runs :
                 s="analysis failed: p-convergence not possible with only 1 run"
-                print tools.red(s)
+                print(tools.red(s))
                 run.analyze_results.append(s)
                 run.analyze_successful=False
                 Analyze.total_errors+=1
@@ -913,7 +914,7 @@ class Analyze_Convtest_p(Analyze) :
             # 2.3   get number of variables from L2 error array
             nVar = len(L2_errors)
             
-            print tools.blue("L2 errors nVar="+str(nVar))
+            print(tools.blue("L2 errors nVar="+str(nVar)))
             displayTable(L2_errors,nVar,nRuns)
             writeTableToFile(L2_errors,nVar,nRuns,p,os.path.dirname(runs[0].target_directory),"L2_error.csv")
 
@@ -933,13 +934,13 @@ class Analyze_Convtest_p(Analyze) :
                     f_save_path = os.path.join(os.path.dirname(runs[0].target_directory),"L2_error_nVar"+str(i)+".pdf") # set file path for saving the figure to the disk
                     f.savefig(f_save_path, bbox_inches='tight')                                                         # save figure to .pdf file
             else :
-                print tools.yellow('Could not import matplotlib.pyplot module. This is needed for creating plots under "Analyze_Convtest_p(Analyze)". \nSet "use_matplot_lib=True" in analyze.ini in order to activate plotting.')
+                print(tools.yellow('Could not import matplotlib.pyplot module. This is required for creating plots under "Analyze_Convtest_p(Analyze)". \nSet "use_matplot_lib=True" in analyze.ini in order to activate plotting.'))
 
             # 2.4   determine order of convergence between two runs
             L2_order = \
                     np.array([analyze_functions.calcOrder_p(p,L2_errors[i]) for \
                     i in range(nVar)])
-            print tools.blue("L2 orders for nVar="+str(nVar))
+            print(tools.blue("L2 orders for nVar="+str(nVar)))
             displayTable(L2_order,nVar,nRuns-1)
 
             # 2.5   check if the order of convergence is always increasing with increasing polynomial degree
@@ -949,7 +950,7 @@ class Analyze_Convtest_p(Analyze) :
                 for i in range(1,len(p)-1) :
                     increasing_run.append(L2_order[j][i]>L2_order[j][i-1]) # check for increasing order of convergence
                     #print increasing_run,L2_order[j][i],L2_order[j][i-1]
-                print increasing_run
+                print(increasing_run)
                 if 1==1 :
                     if abs(float(len(increasing_run))) > 0 :
                         increasing.append(float(sum(increasing_run))/float(len(increasing_run)))
@@ -957,21 +958,21 @@ class Analyze_Convtest_p(Analyze) :
                         increasing.append(0.)
                 else :
                     increasing.append(all(increasing_run))
-            print tools.blue("Increasing order of convergence, percentage")
-            print 5*" "+"".join(str(increasing[i]).rjust(21) for i in range(nVar))
+            print(tools.blue("Increasing order of convergence, percentage"))
+            print(5*" "+"".join(str(increasing[i]).rjust(21) for i in range(nVar)))
             
             # 2.6   determine success rate from increasing convergence
             success = [increasing[i] >= self.percentage for i in range(nVar)]
-            print tools.blue("success convergence (if percentage >= %.2f)" % self.percentage)
-            print 5*" "+"".join(str(success[i]).rjust(21) for i in range(nVar))
+            print(tools.blue("success convergence (if percentage >= %.2f)" % self.percentage))
+            print(5*" "+"".join(str(success[i]).rjust(21) for i in range(nVar)))
 
             # 2.7   compare success rate with pre-defined rate, fails if not reached
             if float(sum(success))/nVar >= self.rate :
-                print tools.blue("p-convergence successful")
+                print(tools.blue("p-convergence successful"))
             else :
-                print tools.red("p-convergence failed"+"\n"+\
+                print(tools.red("p-convergence failed"+"\n"+\
                         "success rate="+str(float(sum(success))/nVar)+\
-                        " tolerance rate="+str(self.rate))
+                        " tolerance rate="+str(self.rate)))
 
                 # 2.8     interate over all runs
                 for run in runs :
@@ -986,13 +987,13 @@ class Analyze_Convtest_p(Analyze) :
                     #global_errors+=1
         else :
             s="cannot perform p-convergence test, because number of successful runs must equal the number of polynomial degrees p"
-            print tools.red(s)
+            print(tools.red(s))
             for run in runs :
                 run.analyze_results.append(s) # append info for summary of errors
                 run.analyze_successful=False  # set analyzes to fail
                 Analyze.total_errors+=1       # increment errror counter
-            print tools.yellow("nRun   "+str(nRuns))
-            print tools.yellow("len(p) "+str(len(p)))
+            print(tools.yellow("nRun   "+str(nRuns)))
+            print(tools.yellow("len(p) "+str(len(p))))
     def __str__(self) :
         return "perform L2 p-convergence test and check if the order of convergence increases with increasing polynomial degree"
 
@@ -1002,20 +1003,20 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
     def __init__(self, h5diff_one_diff_per_run, h5diff_reference_file, h5diff_file, h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type, referencescopy) :
         self.one_diff_per_run = (h5diff_one_diff_per_run in ('True', 'true', 't', 'T'))
         self.prms = { "reference_file" : h5diff_reference_file, "file" : h5diff_file, "data_set" : h5diff_data_set, "tolerance_value" : h5diff_tolerance_value, "tolerance_type" : h5diff_tolerance_type }
-        for key, prm in self.prms.iteritems() : 
+        for key, prm in self.prms.items() : 
            if type(prm) != type([]) :
               self.prms[key] = [prm]
-        numbers = {key: len(prm) for key, prm in self.prms.iteritems()}
+        numbers = {key: len(prm) for key, prm in self.prms.items()}
 
         ExternalCommand.__init__(self)
         
         self.nCompares = numbers[ max( numbers, key = numbers.get ) ]
-        for key, number in numbers.iteritems() : 
+        for key, number in numbers.items() : 
             if number == 1 : 
                 self.prms[key] = [ self.prms[key][0] for i in range(self.nCompares) ]
                 numbers[key] = self.nCompares
 
-        if any( [ (number != self.nCompares) for number in numbers.itervalues() ] ) : 
+        if any( [ (number != self.nCompares) for number in numbers.values() ] ) : 
             raise Exception(tools.red("Number of multiple data sets for multiple h5diffs is inconsitent. Please ensure all options have the same length or length 1.")) 
 
         for compare in range(self.nCompares) :
@@ -1034,7 +1035,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
         global h5py_module_loaded
         # check if this analysis can be performed: h5py must be imported
         if not h5py_module_loaded : # this boolean is set when importing h5py
-            print tools.red('Could not import h5py module. This is needed for "Analyze_check_hdf5". Aborting.')
+            print(tools.red('Could not import h5py module. This is required for "Analyze_check_hdf5". Aborting.'))
             Analyze.total_errors+=1
             return
 
@@ -1105,7 +1106,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                 # 1.1.2 compare shape of the dataset of both files, throw error if they do not conincide
                 if b1.shape != b2.shape :
                     self.result=tools.red(tools.red("h5diff failed,datasets are not comparable: [%s] with [%s]" % (f1,f2))) 
-                    print " "+self.result
+                    print(" "+self.result)
 
                     # 1.1.3   add failed info if return a code != 0 to run
                     run.analyze_results.append(self.result)
@@ -1117,42 +1118,42 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
 
                     # 1.2   execute the command 'cmd' = 'h5diff -r [--type] [value] [ref_file] [file] [DataSetName]'
                     cmd = ["h5diff","-r",tolerance_type_loc,str(tolerance_value_loc),str(reference_file_loc),str(file_loc),str(data_set_loc)]
-                    print tools.indent("Running [%s]" % (" ".join(cmd)), 2),
+                    print(tools.indent("Running [%s]" % (" ".join(cmd)), 2), end=' ') # skip linebreak
                     try :
                         self.execute_cmd(cmd, run.target_directory,"h5diff") # run the code
 
                         # 1.3   if the comman 'cmd' return a code != 0, set failed
                         if self.return_code != 0 :
-                            print "   tolerance_type     : "+tolerance_type_loc
-                            print "   tolernace_value    : "+str(tolerance_value_loc)
-                            print "   reference          : "+str(reference_file_loc)
-                            print "   file               : "+str(file_loc)
-                            print "   data_set           : "+str(data_set_loc)
+                            print("   tolerance_type     : "+tolerance_type_loc)
+                            print("   tolernace_value    : "+str(tolerance_value_loc))
+                            print("   reference          : "+str(reference_file_loc))
+                            print("   file               : "+str(file_loc))
+                            print("   data_set           : "+str(data_set_loc))
                             run.analyze_results.append("h5diff failed, self.return_code != 0")
 
                             # 1.3.1   add failed info if return a code != 0 to run
-                            print " "
+                            print(" ")
                             if len(self.stdout) > 20 :
                                 for line in self.stdout[:10] : # print first 10 lines
-                                    print " "+line,
-                                print " ... leaving out intermediate lines"
+                                    print(" "+line, end=' ') # skip linebreak
+                                print(" ... leaving out intermediate lines")
                                 for line in self.stdout[-10:] : # print last 10 lines
-                                    print " "+line,
+                                    print(" "+line, end=' ') # skip linebreak
                             else :
                                 for line in self.stdout : # print all lines
-                                    print " "+line,
+                                    print(" "+line, end=' ') # skip linebreak
                                 if len(self.stdout) == 1 :
                                     run.analyze_results.append(str(self.stdout))
-                            print " "
+                            print(" ")
 
                             # 1.3.2   set analyzes to fail if return a code != 0
                             run.analyze_successful=False
                             Analyze.total_errors+=1
 
                             #global_errors+=1
-                    except Exception,ex :
+                    except Exception as ex :
                         self.result=tools.red("h5diff failed."+str(ex)) # print result here, because it was not added in "execute_cmd"
-                        print " "+self.result
+                        print(" "+self.result)
 
                         # 1.3.1   add failed info if return a code != 0 to run
                         run.analyze_results.append(tools.red("h5diff failed."+str(ex)))
@@ -1178,7 +1179,7 @@ class Analyze_check_hdf5(Analyze) :
         global h5py_module_loaded
         # check if this analysis can be performed: h5py must be imported
         if not h5py_module_loaded : # this boolean is set when importing h5py
-            print tools.red('Could not import h5py module. This is needed for "Analyze_check_hdf5". Aborting.')
+            print(tools.red('Could not import h5py module. This is required for "Analyze_check_hdf5". Aborting.'))
             Analyze.total_errors+=1
             return
 
@@ -1220,7 +1221,7 @@ class Analyze_check_hdf5(Analyze) :
                 lower_test = any([x < self.lower for x in b[:][i]])
                 upper_test = any([x > self.upper for x in b[:][i]])
                 if lower_test or upper_test :
-                    print tools.red("values = "+str(b[:][i])+" MIN=["+str(min(b[:][i]))+"]"+" MAX=["+str(max(b[:][i]))+"]")
+                    print(tools.red("values = "+str(b[:][i])+" MIN=["+str(min(b[:][i]))+"]"+" MAX=["+str(max(b[:][i]))+"]"))
                     s = tools.red("HDF5 array out of bounds for dimension = %2d (array dimension index starts at 0). " % i)
                     if lower_test :
                         s += tools.red(" [values found  < "+str(self.lower)+"]")
@@ -1318,7 +1319,7 @@ class Analyze_compare_data_file(Analyze) :
                 ref_name  = self.reference
             j += 1
             if self.file_number > 1 or self.reference_number > 1 :
-                print tools.blue("comparing file=[%s] and reference file=[%s]" % (file_name, ref_name))
+                print(tools.blue("comparing file=[%s] and reference file=[%s]" % (file_name, ref_name)))
 
             # 1.2   Check existence the file and reference values
             path            = os.path.join(run.target_directory,file_name)
@@ -1346,7 +1347,7 @@ class Analyze_compare_data_file(Analyze) :
             
             # 1.3.1   read data file
             line = []
-            with open(path, 'rb') as csvfile:
+            with open(path, 'r') as csvfile:
                 line_str = csv.reader(csvfile, delimiter=self.delimiter, quotechar='!')
                 i=0
                 header=0
@@ -1358,13 +1359,13 @@ class Analyze_compare_data_file(Analyze) :
                         header_line = row
                     i+=1
                     if i == self.line :
-                        print tools.yellow(str(i)),
+                        print(tools.yellow(str(i)), end=' ') # skip linebreak
                         break
                 line_len = len(line)
             
             # 1.3.2   read refernece file
             line_ref = []
-            with open(path_ref_target, 'rb') as csvfile:
+            with open(path_ref_target, 'r') as csvfile:
                 line_str = csv.reader(csvfile, delimiter=self.delimiter, quotechar='!')
                 header_ref=0
                 for row in line_str:
@@ -1438,7 +1439,7 @@ class Analyze_integrate_line(Analyze) :
             
             data = np.array([])
             # 1.3.1   read data file
-            with open(path, 'rb') as csvfile:
+            with open(path, 'r') as csvfile:
                 line_str = csv.reader(csvfile, delimiter=self.delimiter, quotechar='!')
                 max_lines=0
                 header=0
@@ -1456,7 +1457,7 @@ class Analyze_integrate_line(Analyze) :
 
             if failed :
                 s="Analyze_integrate_line: reading of the data file [%s] has failed.\nNo float type data could be read. Check the file content." %path
-                print tools.red(s)
+                print(tools.red(s))
                 run.analyze_results.append(s)
                 run.analyze_successful=False
                 Analyze.total_errors+=1
@@ -1466,7 +1467,7 @@ class Analyze_integrate_line(Analyze) :
             line_len = len(line) - 1
             if line_len < self.dim1 or line_len < self.dim2 :
                 s="cannot perform analyze Analyze_integrate_line, because the supplied columns (%s:%s) exceed the columns (%s) in the data file (the first column starts at 0)" % (self.dim1, self.dim2, line_len)
-                print tools.red(s)
+                print(tools.red(s))
                 run.analyze_results.append(s)
                 run.analyze_successful=False
                 Analyze.total_errors+=1
@@ -1479,7 +1480,7 @@ class Analyze_integrate_line(Analyze) :
                     #print header_line[i]
                 s1 = header_line[self.dim1]
                 s2 = header_line[self.dim2]
-                print tools.indent(tools.blue("Integrating the column [%s] over [%s]: " % (s2,s1)),2),
+                print(tools.indent(tools.blue("Integrating the column [%s] over [%s]: " % (s2,s1)),2), end=' ') # skip linebreak
             
             # 1.3.4   split the data array and set the two column vector x and y for integration
             data = np.reshape(data, (-1, line_len +1))
@@ -1498,7 +1499,7 @@ class Analyze_integrate_line(Analyze) :
                     dQ = dx * (y[i+1]+y[i])/2.0
                 Q += dQ
             Q = Q*self.multiplier
-            print "integrated value (trapezoid rule) Q = %s" % Q
+            print("integrated value (trapezoid rule) Q = %s" % Q)
             
             # 1.5   calculate difference and determine compare with tolerance
             success = tools.diff_value(Q, self.integral_value, self.tolerance_value, self.tolerance_type)

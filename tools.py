@@ -10,6 +10,7 @@
 #
 # You should have received a copy of the GNU General Public License along with reggie2.0. If not, see <http://www.gnu.org/licenses/>.
 #==================================================================================================================================
+from __future__ import print_function # required for print() function with line break via "end=' '"
 import logging
 import shutil
 import os
@@ -101,7 +102,7 @@ def find_basedir(basedir) :
 
 
 def remove_folder(path) :
-    print tools.yellow("[remove_folder]: deleting folder '%s'" % path)
+    print(tools.yellow("[remove_folder]: deleting folder '%s'" % path))
     shutil.rmtree(path,ignore_errors=True)
     #shutil.rmtree(path)
 
@@ -115,10 +116,10 @@ def create_folder(path):
                 i+=1
                 os.makedirs(path)
                 if i>60:
-                    print tools.red("OutputDirectory() : Tried creating a directory more than 60 times. Stop.")
+                    print(tools.red("OutputDirectory() : Tried creating a directory more than 60 times. Stop."))
                     exit(1)
                 break
-            except OSError, e:
+            except OSError as e:
                 if e.errno != os.errno.EEXIST:
                     raise   
                 time.sleep(1) # wait 1 second before next try
@@ -128,25 +129,25 @@ def create_folder(path):
 def finalize(start, build_errors, run_errors, analyze_errors) :
     """Display if regression check was successful or not and return the corresponding error code"""
     if build_errors + run_errors + analyze_errors > 0 :
-        print bcolors.RED + 132*'='
-        print "reggie 2.0  FAILED!",
+        print(bcolors.RED + 132*'=')
+        print("reggie 2.0  FAILED!", end=' ') # skip linebreak
         return_code = 1
     else :
-        print bcolors.BLUE + 132*'='
-        print "reggie 2.0  successful!",
+        print(bcolors.BLUE + 132*'=')
+        print("reggie 2.0  successful!", end=' ') # skip linebreak
         return_code = 0
 
     if start > 0 : # only calculate run time and display output when start > 0
         end = timer()
-        print "in [%2.2f sec]" % (end - start)
+        print("in [%2.2f sec]" % (end - start))
     else :
-        print ""
+        print("")
 
-    print "Number of build   errors: %d" % build_errors
-    print "Number of run     errors: %d" % run_errors
-    print "Number of analyze errors: %d" % analyze_errors
+    print("Number of build   errors: %d" % build_errors)
+    print("Number of run     errors: %d" % run_errors)
+    print("Number of analyze errors: %d" % analyze_errors)
 
-    print '='*132 + bcolors.ENDC
+    print('='*132 + bcolors.ENDC)
     exit(return_code)
 
 def diff_lists(x,x_ref,tol,tol_type) :
@@ -173,12 +174,11 @@ def diff_lists(x,x_ref,tol,tol_type) :
 
     # display information when a diff is not successful, display value+reference+difference
     if not all(success) :
-        print "Differences in vector comparison:"
-        print 5*"%13s   " % ("x","x_ref","diff","tolerance","type")
+        print("Differences in vector comparison:")
+        print(5*"%13s   " % ("x","x_ref","diff","tolerance","type"))
         for i in range(len(diff)) :
             if not success[i] : 
-                print 4*"%13.6e   " % (x[i],x_ref[i],diff[i],tol), "%12s" % (executed_tol_type[i])
-
+                print(4*"%13.6e   " % (x[i],x_ref[i],diff[i],tol), "%12s" % (executed_tol_type[i]))
     return success
 
 def diff_value(x,x_ref,tol,tol_type) :
@@ -206,9 +206,9 @@ def diff_value(x,x_ref,tol,tol_type) :
 
     # display information when a diff is not successful, display value+reference+difference
     if not success :
-        print "Differences in vector comparison:"
-        print 5*"%13s   " % ("x","x_ref","diff","tolerance","type")
-        print 4*"%13.6e   " % (x,x_ref,diff,tol), "%12s" % (tol_type)
+        print("Differences in vector comparison:")
+        print(5*"%13s   " % ("x","x_ref","diff","tolerance","type"))
+        print(4*"%13.6e   " % (x,x_ref,diff,tol), "%12s" % (tol_type))
 
     return success
 

@@ -43,9 +43,9 @@ def getArgsAndBuilds() :
 
     if re.search('^linux',platform) :
         hostname=socket.gethostname()
-        print "platform: %s, hostname: %s" % (platform,hostname)
+        print("platform: %s, hostname: %s" % (platform,hostname))
         if re.search('^mom[0-9]+$',hostname) :
-            print tools.yellow('Automatic detection of hlrs system: Assuming aprun is used and setting args.hlrs = True')
+            print(tools.yellow('Automatic detection of hlrs system: Assuming aprun is used and setting args.hlrs = True'))
             args.hlrs = True
         elif re.search('^eslogin[0-9]+$',hostname) :
             if args.hlrs :
@@ -58,8 +58,8 @@ def getArgsAndBuilds() :
         reggieDir = os.path.dirname(os.path.realpath(__file__))
         args.basedir = os.path.join(reggieDir, 'dummy_basedir')
         args.check =   os.path.join(reggieDir, 'dummy_checks/test')
-        print "Basedir directory switched to '%s'" % args.basedir
-        print "Check   directory switched to '%s'" % args.check
+        print("Basedir directory switched to '%s'" % args.basedir)
+        print("Check   directory switched to '%s'" % args.check)
     else :
         # For real reggie-execution:
         # Setup basedir (containing CMakeLists.txt) by searching upward from current working directory 
@@ -67,12 +67,12 @@ def getArgsAndBuilds() :
         try :
             if args.exe is None : # only get basedir if no executbale is supplied
                 args.basedir = tools.find_basedir(args.basedir)
-        except Exception,ex :
-            print tools.red("Basedir (containing 'CMakeLists.txt') not found!\nEither specify the basedir on the command line or execute reggie within a project with a 'CMakeLists.txt'.")
+        except Exception :
+            print(tools.red("Basedir (containing 'CMakeLists.txt') not found!\nEither specify the basedir on the command line or execute reggie within a project with a 'CMakeLists.txt'."))
             exit(1)
     
         if not os.path.exists(args.check) : # check if directory exists
-            print tools.red("Check directory not found: '%s'" % args.check)
+            print(tools.red("Check directory not found: '%s'" % args.check))
             exit(1)
     
     
@@ -85,26 +85,26 @@ def getArgsAndBuilds() :
         builds = check.getBuilds(args.basedir, args.check,args.compiletype)
     else :
         if not os.path.exists(args.exe) : # check if executable exists
-            print tools.red("No executable found under '%s'" % args.exe)
+            print(tools.red("No executable found under '%s'" % args.exe))
             exit(1)
         else :
             builds = [check.Standalone(args.exe,args.check)] # set builds list to contain only the supplied executable
             args.run = True      # set 'run-mode' do not compile the code
-            args.basedir = None  # since code will not be compiled, the basedir is not needed
+            args.basedir = None  # since code will not be compiled, the basedir is not required
     
     if args.run :
-        print "args.run -> skip building"
+        print("args.run -> skip building")
         # in 'run-mode' remove all build from list of builds if their binaries do not exist (build.binary_exists() == False)
         builds = [build for build in builds if build.binary_exists()]
     
     if len(builds) == 0 :
-        print tools.red("List of 'builds' is empty! Maybe switch off '--run'.")
+        print(tools.red("List of 'builds' is empty! Maybe switch off '--run'."))
         exit(1)
     
     # display all command line arguments
-    print "Running with the following command line options"
-    for arg in args.__dict__ :
-        print arg.ljust(15)," = [",getattr(args,arg),"]"
+    print("Running with the following command line options")
+    for arg in list(args.__dict__) :
+        print(arg.ljust(15)+" = [ "+str(getattr(args,arg))+" ]")
     print('='*132)
     
     
