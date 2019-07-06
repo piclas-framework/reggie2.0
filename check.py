@@ -303,7 +303,7 @@ def getExternalRuns(path, external) :
     combis, digits = combinations.getCombinations(path,CheckForMultipleKeys=True)  # path to parameter.ini (source)
     for parameters in combis :
         # check each [key] for empty [value] (e.g. wrong definition in parameter.ini file)
-        for key, value in parameters.iteritems():
+        for key, value in parameters.items():
             if not value :
                 raise Exception(tools.red('parameter.ini contains an empty parameter definition for [%s]. Remove unnecessary commas!' % key))
         # construct run information with one set of parameters (parameter.ini will be created in target directory when the setup
@@ -688,8 +688,9 @@ def SummaryOfErrors(builds) :
                     run.output_strings = {}
                     run.output_strings['#run']    = str(run.globalnumber)
                     run.output_strings['options'] = ""
+                    # Check number of variations in parameter list(run.digits.items())[0][1]
                     if list(run.digits.items())[0][1] > 0 :
-                        run.output_strings['options'] += "%s=%s"%(run.parameters.items()[0])
+                        run.output_strings['options'] += "%s=%s"%(list(run.parameters.items())[0]) # print parameter and value as [parameter]=[value]
                     run.output_strings['path']    = os.path.relpath(run.target_directory,OutputDirectory.output_dir)
                     run.output_strings['MPI']     = command_line.parameters.get('MPI', '-') 
                     run.output_strings['time']    = "%2.1f" % run.walltime

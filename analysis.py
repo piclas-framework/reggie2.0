@@ -1003,20 +1003,20 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
     def __init__(self, h5diff_one_diff_per_run, h5diff_reference_file, h5diff_file, h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type, referencescopy) :
         self.one_diff_per_run = (h5diff_one_diff_per_run in ('True', 'true', 't', 'T'))
         self.prms = { "reference_file" : h5diff_reference_file, "file" : h5diff_file, "data_set" : h5diff_data_set, "tolerance_value" : h5diff_tolerance_value, "tolerance_type" : h5diff_tolerance_type }
-        for key, prm in self.prms.iteritems() : 
+        for key, prm in self.prms.items() : 
            if type(prm) != type([]) :
               self.prms[key] = [prm]
-        numbers = {key: len(prm) for key, prm in self.prms.iteritems()}
+        numbers = {key: len(prm) for key, prm in self.prms.items()}
 
         ExternalCommand.__init__(self)
         
         self.nCompares = numbers[ max( numbers, key = numbers.get ) ]
-        for key, number in numbers.iteritems() : 
+        for key, number in numbers.items() : 
             if number == 1 : 
                 self.prms[key] = [ self.prms[key][0] for i in range(self.nCompares) ]
                 numbers[key] = self.nCompares
 
-        if any( [ (number != self.nCompares) for number in numbers.itervalues() ] ) : 
+        if any( [ (number != self.nCompares) for number in numbers.values() ] ) : 
             raise Exception(tools.red("Number of multiple data sets for multiple h5diffs is inconsitent. Please ensure all options have the same length or length 1.")) 
 
         for compare in range(self.nCompares) :
