@@ -57,6 +57,48 @@ def anyIsSubset(alist, b) :
     tmp = [isSubset(a, b) for a in alist] # build a list of booleans, that contains for every 'a' in alist if 'a' is a subset of 'b'
     return any(tmp)                       # return True, if any 'a' of alist is a subset of 'b'
 
+def readValueFromFile(filename,key) :
+    # Read the value of a single key from a file. Workflow:
+    # 1.  Read file line by line:
+    # 1.1   ignore exclusion (if line starts with 'exclude:')
+    # 1.2   ignore noCrossCombination (if line starts with 'nocrosscombination:')
+    # 1.3   get option and its values from line, if the key is the same as the key passed to the routine, break and return the matching value
+    found = os.path.exists(filename) # check if directory exists
+    if not found :
+        #raise getCombinationException(filename) # file not found
+        raise Exception(tools.red("getCombination failed. file '%s' not found." % filename))
+
+    options = []                               # list of all options
+    exclusions = []                            # list of all exclusions
+    noCrossCombinations = []                   # list of all noCrossCombinations
+
+    # 1. read options and exclusions from the file
+    with open(filename) as f :
+        for line in f.readlines() :   # iterate over all lines of the file
+            line = re.sub(r"\s+", "", line)        # remove all whitespaces ("\s" is the whitespac symbol)
+            line = re.sub(r"\\s", " ", line)       # add new whitespaces for all occurrances of "\s" in the string ("\s" is NOT the whitespace symbol here)
+            if line.startswith('!') : continue     # skip lines starting with a comment
+            line = line.split('!')[0]              # remove comments 
+
+            # 1.1 read an exclusion 
+            if line.lower().startswith('exclude:') :
+                continue                           # ignore exclusion
+
+            # 1.2 read a noCrossCombination
+            if line.lower().startswith('nocrosscombination:') :
+                continue                           # ignore noCrossCombination
+
+            # 1.3 read a option and its possible values 
+            if '=' in line :
+                (currentKey,currentValue) = line.split('=',1)  # split line at '=' 
+                if key.lower() == currentKey.lower():          # check if the key matches the one passed to the routine
+                    break                                      # if so, break from the for loop
+                else:
+                    continue                                   # better luck in the next line
+
+
+    return currentValue
+
 def readKeyValueFile(filename) :
     # General worflow:
     # 1.  Read file line by line:

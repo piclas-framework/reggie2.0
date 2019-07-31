@@ -20,6 +20,12 @@ from externalcommand import ExternalCommand
 import tools
 from analysis import Analyze, getAnalyzes, Clean_up_files
 import collections
+# import h5 I/O routines
+try :
+    import h5py
+    h5py_module_loaded = True
+except ImportError :
+    h5py_module_loaded = False
 
 class Build(OutputDirectory,ExternalCommand) :
 
@@ -369,6 +375,14 @@ class Run(OutputDirectory, ExternalCommand) :
 
         # check MPI threads for mpirun
         MPIthreads = command_line.parameters.get('MPI')
+
+        # Safety check: Get the mesh file, then extract the number of elements using h5py, limit the number of mpithreads
+        if h5py_module_loaded:
+            MeshFileName = combinations.readValueFromFile(self.parameter_path,'MeshFile')
+            with h5py.File(os.path.join(self.target_directory,MeshFileName), 'r') as MeshFile:
+                nElems = MeshFile.attrs[u'nElems']
+                if MPIthreads:
+                    MPIthreads = str(min(int(nElems[0]),int(MPIthreads)))
 
         # check MPI built binary (only possible for reggie-compiled binaries)
         MPI_built_flag=os.path.basename(build.binary_path).upper()+"_MPI"
