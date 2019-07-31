@@ -68,10 +68,6 @@ def readValueFromFile(filename,key) :
         #raise getCombinationException(filename) # file not found
         raise Exception(tools.red("getCombination failed. file '%s' not found." % filename))
 
-    options = []                               # list of all options
-    exclusions = []                            # list of all exclusions
-    noCrossCombinations = []                   # list of all noCrossCombinations
-
     # 1. read options and exclusions from the file
     with open(filename) as f :
         for line in f.readlines() :   # iterate over all lines of the file
