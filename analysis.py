@@ -67,8 +67,21 @@ def displayVector(vector,nVar) :
 
 # Copy new reference file: This is completely independent of the outcome of the current compare data file
 def copyReferenceFile(run,path,path_ref_source) :
+    # Check whether the file for copying exists
+    if not os.path.exists(path) :
+        s = tools.red("copyReferenceFile: Could not find file=[%s] for copying" % path)
+        print(s)
+        exit(1)
+
+    # Check whether the destination for copying the file exists
+    if not os.path.exists(os.path.dirname(path_ref_source)) :
+        s = tools.red("copyReferenceFile: Could not find location=[%s] for copying" % os.path.dirname(path_ref_source))
+        print(s)
+        exit(1)
+
+    # Copy file and create new reference
     shutil.copy(path,path_ref_source)
-    s = tools.red("New reference files are copied from file=[%s] to file=[%s]" % (path, path_ref_source))
+    s = tools.yellow("New reference files are copied from file=[%s] to file=[%s]" % (path, path_ref_source))
     print(s)
     run.analyze_results.append(s)
     run.analyze_successful=False
