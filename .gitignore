@@ -7,3 +7,8 @@
 ctags.txt
 output_dir/
 output_dir_gitlab_tool/
+std.out
+std.err
+err.out
+std.err
+config-reggie.json
