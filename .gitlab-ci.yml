@@ -1,0 +1,20 @@
+# ----------------------------------------------------------------------------------------------------------------------------------------------------
+# Stages
+# ----------------------------------------------------------------------------------------------------------------------------------------------------
+stages:
+  - deploy
+
+# ----------------------------------------------------------------------------------------------------------------------------------------------------
+# Stage "github": Push the master branch to github
+# ----------------------------------------------------------------------------------------------------------------------------------------------------
+github:
+  stage: deploy
+  tags:
+    - withmodules-concurrent
+  script:
+    - if [ -z "${DO_DEPLOY}" ]; then exit ; fi
+    - rm -rf reggie_github || true ;
+    - git clone -b master --single-branch git@gitlab.com:reggie2.0/reggie2.0.git reggie_github ;
+    - cd reggie_github ;
+    - git remote add reggie-framework git@github.com:piclas-framework/reggie2.0.git ;
+    - git push --force --follow-tags reggie-framework master ;
