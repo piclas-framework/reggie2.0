@@ -16,5 +16,7 @@ github:
     - rm -rf reggie_github || true ;
     - git clone -b master --single-branch git@gitlab.com:reggie2.0/reggie2.0.git reggie_github ;
     - cd reggie_github ;
-    - git remote add reggie-framework git@github.com:piclas-framework/reggie2.0.git ;
+    - git remote add piclas-framework git@github.com:piclas-framework/reggie2.0.git ;
+    - git push --force --follow-tags piclas-framework master ;
+    - git remote add reggie-framework git@github.com:reggie-framework/reggie2.0 ;
     - git push --force --follow-tags reggie-framework master ;
