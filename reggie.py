@@ -57,4 +57,4 @@ check.PerformCheck(start,builds,args,log)
 check.SummaryOfErrors(builds)
 
 # 5.  display if regression check was successful or not and return the corresponding error code
-tools.finalize(start, 0, check.Run.total_errors, check.Analyze.total_errors)
+tools.finalize(start, 0, check.Run.total_errors, check.Analyze.total_errors, check.Analyze.total_infos)
