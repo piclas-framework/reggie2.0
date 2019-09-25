@@ -137,7 +137,6 @@ def finalize(start, build_errors, run_errors, analyze_errors, analyze_infos) :
             print(bcolors.YELLOW + 132*'=')
             print("reggie 2.0  COMPLETED!", end=' ') # skip linebreak
             return_code = 1
-
     else :
         print(bcolors.BLUE + 132*'=')
         print("reggie 2.0  successful!", end=' ') # skip linebreak
