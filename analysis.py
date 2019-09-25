@@ -285,7 +285,8 @@ def getAnalyzes(path, example, args) :
 #==================================================================================================
  
 class Analyze() : # main class from which all analyze functions are derived
-    total_errors = 0
+    total_errors = 0 # errors gathered during run
+    total_infos = 0  # information/warnings gathered during run
 
 #==================================================================================================
 
@@ -1084,11 +1085,11 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                 # Copy new reference file: This is completely independent of the outcome of the current h5diff
                 if self.referencescopy :
                     run = copyReferenceFile(run,path,path_ref_source)
-                    s=tools.red("Analyze_compare_data_file: performed reference copy")
+                    s=tools.yellow("Analyze_compare_data_file: performed reference copy instead of analysis!")
                     print(s)
                     run.analyze_results.append(s)
                     run.analyze_successful=False
-                    Analyze.total_errors+=1
+                    Analyze.total_infos+=1
                     # do not skip the following analysis tests, because reference file will be created -> continue
                     continue 
 
@@ -1165,12 +1166,12 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
 
                             #global_errors+=1
                     except Exception as ex :
-                        self.result=tools.red("h5diff failed."+str(ex)) # print result here, because it was not added in "execute_cmd"
+                        self.result=tools.red("h5diff failed. (Exception="+str(ex)+")") # print result here, because it was not added in "execute_cmd"
                         print(" "+self.result)
 
                         # 1.3.1   add failed info if return a code != 0 to run
-                        run.analyze_results.append(tools.red("h5diff failed."+str(ex)))
-                        run.analyze_results.append(tools.red("try adding 'export PATH=/opt/hdf5/1.X/bin/:$PATH'"))
+                        run.analyze_results.append(tools.red("h5diff failed. (Exception="+str(ex)+")"))
+                        run.analyze_results.append(tools.red("Maybe h5diff is not found automatically. Find it with \"locate -b '\h5diff'\" and add the correspoding path, e.g., \"export PATH=/opt/hdf5/1.X/bin/:$PATH\""))
 
                         # 1.3.2   set analyzes to fail if return a code != 0
                         run.analyze_successful=False
@@ -1342,11 +1343,11 @@ class Analyze_compare_data_file(Analyze) :
             # Copy new reference file: This is completely independent of the outcome of the current compare data file
             if self.referencescopy :
                 run = copyReferenceFile(run,path,path_ref_source)
-                s=tools.red("Analyze_compare_data_file: performed reference copy")
+                s=tools.yellow("Analyze_compare_data_file: performed reference copy")
                 print(s)
                 run.analyze_results.append(s)
                 run.analyze_successful=False
-                Analyze.total_errors+=1
+                Analyze.total_infos+=1
                 # do not skip the following analysis tests, because reference file will be created -> continue
                 continue 
 

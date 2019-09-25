@@ -682,7 +682,7 @@ def PerformCheck(start,builds,args,log) :
         print(tools.bcolors.ENDC)
 
         print("run 'reggie' with the command line option '-c/--carryon' to skip successful builds.")
-        tools.finalize(start, 1, Run.total_errors, Analyze.total_errors)
+        tools.finalize(start, 1, Run.total_errors, Analyze.total_errors, Analyze.total_infos)
         exit(1)
 
 
