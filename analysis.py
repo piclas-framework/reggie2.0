@@ -233,9 +233,12 @@ def getAnalyzes(path, example, args) :
     h5diff_data_set         = options.get('h5diff_data_set',None)
     h5diff_tolerance_value  = options.get('h5diff_tolerance_value',1.0e-5)
     h5diff_tolerance_type   = options.get('h5diff_tolerance_type','absolute')
+    h5diff_sort             = options.get('h5diff_sort',False)
+    h5diff_sort_dim         = options.get('h5diff_sort_dim',-1)
+    h5diff_sort_var         = options.get('h5diff_sort_var',-1)
     # only do h5diff test if all variables are defined
     if h5diff_reference_file and h5diff_file and h5diff_data_set :
-        analyze.append(Analyze_h5diff(h5diff_one_diff_per_run,h5diff_reference_file, h5diff_file,h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type, args.referencescopy))
+        analyze.append(Analyze_h5diff(h5diff_one_diff_per_run,h5diff_reference_file, h5diff_file,h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type, args.referencescopy, h5diff_sort, h5diff_sort_dim, h5diff_sort_var))
 
     # 2.6   check array bounds in hdf5 file
     check_hdf5_file      = options.get('check_hdf5_file',None) 
@@ -1014,25 +1017,36 @@ class Analyze_Convtest_p(Analyze) :
 #==================================================================================================
 
 class Analyze_h5diff(Analyze,ExternalCommand) :
-    def __init__(self, h5diff_one_diff_per_run, h5diff_reference_file, h5diff_file, h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type, referencescopy) :
+    def __init__(self, h5diff_one_diff_per_run, h5diff_reference_file, h5diff_file, h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type, referencescopy, h5diff_sort, h5diff_sort_dim, h5diff_sort_var) :
+        # Set number of diffs per run [True/False]
         self.one_diff_per_run = (h5diff_one_diff_per_run in ('True', 'true', 't', 'T'))
-        self.prms = { "reference_file" : h5diff_reference_file, "file" : h5diff_file, "data_set" : h5diff_data_set, "tolerance_value" : h5diff_tolerance_value, "tolerance_type" : h5diff_tolerance_type }
+
+        # Create dictionary for all keys/parameters and insert a list for every value/options
+        self.prms = { "reference_file" : h5diff_reference_file, "file" : h5diff_file, "data_set" : h5diff_data_set, "tolerance_value" : h5diff_tolerance_value, "tolerance_type" : h5diff_tolerance_type, "sort" : h5diff_sort, "sort_dim" : h5diff_sort_dim, "sort_var" : h5diff_sort_var }
         for key, prm in self.prms.items() : 
+           # Check if prm is not of type 'list'
            if type(prm) != type([]) :
+              # create list with prm as entry
               self.prms[key] = [prm]
+
+        # Get the number of values/options for each key/parameter
         numbers = {key: len(prm) for key, prm in self.prms.items()}
 
         ExternalCommand.__init__(self)
         
+        # Get maximum number of values (from all possible keys)
         self.nCompares = numbers[ max( numbers, key = numbers.get ) ]
+
+        # Check all numbers and if a key has only 1 number, increase the number to maximum and use the same value for all
         for key, number in numbers.items() : 
             if number == 1 : 
                 self.prms[key] = [ self.prms[key][0] for i in range(self.nCompares) ]
                 numbers[key] = self.nCompares
 
         if any( [ (number != self.nCompares) for number in numbers.values() ] ) : 
-            raise Exception(tools.red("Number of multiple data sets for multiple h5diffs is inconsitent. Please ensure all options have the same length or length 1.")) 
+            raise Exception(tools.red("Number of multiple data sets for multiple h5diffs is inconsitent. Please ensure all options have the same length or length=1.")) 
 
+        # Check tolerance type (absolute or relative) and set the correct h5diff command line argument
         for compare in range(self.nCompares) :
             tolerance_type_loc = self.prms["tolerance_type"][compare]  
             if tolerance_type_loc in ('absolute', 'delta', '--delta') :
@@ -1041,6 +1055,16 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                 self.prms["tolerance_type"][compare] = "--relative"
             else :
                 raise Exception(tools.red("initialization of h5diff failed. h5diff_tolerance_type '%s' not accepted." % tolerance_type_loc))
+
+        # Check dataset sorting
+        for compare in range(self.nCompares) :
+            sort_loc = self.prms["sort"][compare]  
+            if sort_loc in ('True', 'true', 't', 'T', True) :
+                self.prms["sort"][compare] = True
+            elif sort_loc in ('False', 'false', 'f', 'F', False) :
+                self.prms["sort"][compare] = False
+            else :
+                raise Exception(tools.red("initialization of h5diff failed. h5diff_sort '%s' not accepted." % sort_loc))
 
         # set logical for creating new reference files and copying them to the example source directory
         self.referencescopy = referencescopy
@@ -1066,16 +1090,25 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
 
         # 1.  iterate over all runs
         for iRun, run in enumerate(runs) :
+
+            # Check whether the list of diffs is to be used one-at-a-time, i.e., a list of diffs for a list of runs (each run only observes one diff, not all of them)
             if self.one_diff_per_run : 
+                # One comparison for each run
                 compares = [iRun]
             else : 
+                # All comparisons for every run
                 compares = range(self.nCompares)
+
+            # Iterate over all comparisons for h5diff
             for compare in compares : 
                 reference_file_loc   = self.prms["reference_file"][compare] 
                 file_loc             = self.prms["file"][compare]           
                 data_set_loc         = self.prms["data_set"][compare]        
                 tolerance_value_loc  = self.prms["tolerance_value"][compare] 
                 tolerance_type_loc   = self.prms["tolerance_type"][compare]  
+                sort_loc             = self.prms["sort"][compare]  
+                sort_dim_loc         = int(self.prms["sort_dim"][compare])
+                sort_var_loc         = int(self.prms["sort_var"][compare])
 
                 # 1.1.0   Read the hdf5 file
                 path            = os.path.join(run.target_directory,file_loc)
@@ -1108,18 +1141,36 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                     Analyze.total_errors+=1
                     continue
 
-                f1 = h5py.File(path,'r')
-                f2 = h5py.File(path_ref_target,'r')
-                # available keys   : print("Keys: %s" % f.keys())
-                # first key in list: a_group_key = list(f.keys())[0]
+                # Open h5 file and read container info
+                # --------------------------------------------
+                #     r       : Readonly, file must exist
+                #     r+      : Read/write, file must exist
+                #     w       : Create file, truncate if exists
+                #     w- or x : Create file, fail if exists
+                #     a       : Read/write if exists, create otherwise (default
+                # --------------------------------------------
+                # When sorting is used, the sorted array is written to the original .h5 file with a new name
+                if sort_loc :
+                    f1 = h5py.File(path,'r+')
+                    f2 = h5py.File(path_ref_target,'r+')
+                else :
+                    f1 = h5py.File(path,'r')
+                    f2 = h5py.File(path_ref_target,'r')
+
+                # Usage:
+                # -------------------
+                # available keys   : print("Keys: %s" % f1.keys())         # yields, e.g., <KeysViewHDF5 ['DG_Solution', 'PartData']>
+                # first key in list: a_group_key = list(f1.keys())[0]      # yields 'DG_Solution'
+                # -------------------
 
                 # 1.1.1   Read the dataset from the hdf5 file
                 b1 = f1[data_set_loc][:]
                 b2 = f2[data_set_loc][:]
 
+
                 # 1.1.2 compare shape of the dataset of both files, throw error if they do not conincide
-                if b1.shape != b2.shape :
-                    self.result=tools.red(tools.red("h5diff failed,datasets are not comparable: [%s] with [%s]" % (f1,f2))) 
+                if b1.shape != b2.shape : # e.g.: b1.shape = (48, 1, 1, 32)
+                    self.result=tools.red(tools.red("h5diff failed because datasets are not comparable due to different shapes: Files [%s] and [%s] have shapes [%s] and [%s]" % (f1,f2,b1.shape,b2.shape))) 
                     print(" "+self.result)
 
                     # 1.1.3   add failed info if return a code != 0 to run
@@ -1129,8 +1180,46 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                     run.analyze_successful=False
                     Analyze.total_errors+=1
                 else :
+                    # 1.2.0 When sorting is used, the sorted array is written to the original .h5 file with a new name
+                    if sort_loc :
+                        print("    %s: Sorting dim=%s by variable=%s" % (data_set_loc,sort_dim_loc,sort_var_loc))
 
-                    # 1.2   execute the command 'cmd' = 'h5diff -r [--type] [value] [ref_file] [file] [DataSetName]'
+                        # Sort by X
+                        if sort_dim_loc == 1 : # Sort by row
+                            # Note that sort_var_loc-1 must be used as python starts by 0
+                            b1_sorted = b1[:,b1[sort_var_loc-1,:].argsort()]
+                            b2_sorted = b2[:,b2[sort_var_loc-1,:].argsort()]
+                        elif sort_dim_loc == 2 : # Sort by column
+                            # Note that sort_var_loc-1 must be used as python starts by 0
+                            b1_sorted = b1[b1[:,sort_var_loc-1].argsort()]
+                            b2_sorted = b2[b2[:,sort_var_loc-1].argsort()]
+                        else :
+                            s = tools.red("Analyze_h5diff: Sorting failed, because currently only sorting of 2-dimensional arrays is implemented. This means, that sorting by rows (dim=1) and columns (dim=2) is allowed. However, dim=[%s]" % sort_dim_loc)
+                            print(s)
+                            run.analyze_results.append(s)
+                            run.analyze_successful=False
+                            Analyze.total_errors+=1
+                            continue
+
+                        data_set_new=data_set_loc+"_sorted"
+                        # file: Create new dataset
+                        dset = f1.create_dataset(data_set_new, shape=b1.shape, dtype=np.float64)
+                        # write as C-continuous array via np.ascontiguousarray()
+                        dset.write_direct(np.ascontiguousarray(b1_sorted))
+                        f1.close()
+
+                        # refernece file: Create new dataset
+                        dset = f2.create_dataset(data_set_new, shape=b2.shape, dtype=np.float64)
+                        # write as C-continuous array via np.ascontiguousarray()
+                        dset.write_direct(np.ascontiguousarray(b2_sorted))
+                        f2.close()
+
+                        # In the following, compare the two sorted arrays instead of the original ones
+                        print("    Now comparing: %s instead of %s" % (data_set_new,data_set_loc))
+                        data_set_loc = data_set_new
+
+
+                    # 1.2.1   execute the command 'cmd' = 'h5diff -r [--type] [value] [ref_file] [file] [DataSetName]'
                     cmd = ["h5diff","-r",tolerance_type_loc,str(tolerance_value_loc),str(reference_file_loc),str(file_loc),str(data_set_loc)]
                     print(tools.indent("Running [%s]" % (" ".join(cmd)), 2), end=' ') # skip linebreak
                     try :
