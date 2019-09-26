@@ -234,8 +234,8 @@ def getAnalyzes(path, example, args) :
     h5diff_tolerance_value  = options.get('h5diff_tolerance_value',1.0e-5)
     h5diff_tolerance_type   = options.get('h5diff_tolerance_type','absolute')
     h5diff_sort             = options.get('h5diff_sort',False)
-    h5diff_sort_dim         = options.get('h5diff_sort_dim',-1)
-    h5diff_sort_var         = options.get('h5diff_sort_var',-1)
+    h5diff_sort_dim         = options.get('h5diff_sort_dim',None)
+    h5diff_sort_var         = options.get('h5diff_sort_var',None)
     # only do h5diff test if all variables are defined
     if h5diff_reference_file and h5diff_file and h5diff_data_set :
         analyze.append(Analyze_h5diff(h5diff_one_diff_per_run,h5diff_reference_file, h5diff_file,h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type, args.referencescopy, h5diff_sort, h5diff_sort_dim, h5diff_sort_var))
@@ -1182,17 +1182,16 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                 else :
                     # 1.2.0 When sorting is used, the sorted array is written to the original .h5 file with a new name
                     if sort_loc :
-                        print("    %s: Sorting dim=%s by variable=%s" % (data_set_loc,sort_dim_loc,sort_var_loc))
 
                         # Sort by X
                         if sort_dim_loc == 1 : # Sort by row
-                            # Note that sort_var_loc-1 must be used as python starts by 0
-                            b1_sorted = b1[:,b1[sort_var_loc-1,:].argsort()]
-                            b2_sorted = b2[:,b2[sort_var_loc-1,:].argsort()]
+                            # Note that sort_var_loc begins at 0 as python starts by 0
+                            b1_sorted = b1[:,b1[sort_var_loc,:].argsort()]
+                            b2_sorted = b2[:,b2[sort_var_loc,:].argsort()]
                         elif sort_dim_loc == 2 : # Sort by column
-                            # Note that sort_var_loc-1 must be used as python starts by 0
-                            b1_sorted = b1[b1[:,sort_var_loc-1].argsort()]
-                            b2_sorted = b2[b2[:,sort_var_loc-1].argsort()]
+                            # Note that sort_var_loc begins at 0 as python starts by 0
+                            b1_sorted = b1[b1[:,sort_var_loc].argsort()]
+                            b2_sorted = b2[b2[:,sort_var_loc].argsort()]
                         else :
                             s = tools.red("Analyze_h5diff: Sorting failed, because currently only sorting of 2-dimensional arrays is implemented. This means, that sorting by rows (dim=1) and columns (dim=2) is allowed. However, dim=[%s]" % sort_dim_loc)
                             print(s)
@@ -1215,7 +1214,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                         f2.close()
 
                         # In the following, compare the two sorted arrays instead of the original ones
-                        print("    Now comparing: %s instead of %s" % (data_set_new,data_set_loc))
+                        print("    %s: Sorting dim=%s by variable=%s (note that variables begin at 0). Now comparing: '%s' instead of '%s')" % (data_set_loc,sort_dim_loc,sort_var_loc,data_set_new,data_set_loc))
                         data_set_loc = data_set_new
 
 
