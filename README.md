@@ -304,7 +304,6 @@ h5diff_file             = sphere_PartStateBoundary_000.00000010000000000.h5
 h5diff_reference_file   = sphere_PartStateBoundary_000.00000010000000000_ref.h5
 h5diff_data_set         = PartData
 h5diff_tolerance_value  = 1.0e-2
-!h5diff_tolerance_value = 1.0e-2
 h5diff_tolerance_type   = relative
 h5diff_sort             = T
 h5diff_sort_dim         = 1
