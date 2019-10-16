@@ -234,8 +234,8 @@ def getAnalyzes(path, example, args) :
     h5diff_tolerance_value  = options.get('h5diff_tolerance_value',1.0e-5)
     h5diff_tolerance_type   = options.get('h5diff_tolerance_type','absolute')
     h5diff_sort             = options.get('h5diff_sort',False)
-    h5diff_sort_dim         = options.get('h5diff_sort_dim',None)
-    h5diff_sort_var         = options.get('h5diff_sort_var',None)
+    h5diff_sort_dim         = options.get('h5diff_sort_dim',-1)
+    h5diff_sort_var         = options.get('h5diff_sort_var',-1)
     # only do h5diff test if all variables are defined
     if h5diff_reference_file and h5diff_file and h5diff_data_set :
         analyze.append(Analyze_h5diff(h5diff_one_diff_per_run,h5diff_reference_file, h5diff_file,h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type, args.referencescopy, h5diff_sort, h5diff_sort_dim, h5diff_sort_var))
