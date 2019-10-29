@@ -236,9 +236,10 @@ def getAnalyzes(path, example, args) :
     h5diff_sort             = options.get('h5diff_sort',False)
     h5diff_sort_dim         = options.get('h5diff_sort_dim',-1)
     h5diff_sort_var         = options.get('h5diff_sort_var',-1)
+    h5diff_max_differences  = options.get('h5diff_max_differences',0)
     # only do h5diff test if all variables are defined
     if h5diff_reference_file and h5diff_file and h5diff_data_set :
-        analyze.append(Analyze_h5diff(h5diff_one_diff_per_run,h5diff_reference_file, h5diff_file,h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type, args.referencescopy, h5diff_sort, h5diff_sort_dim, h5diff_sort_var))
+        analyze.append(Analyze_h5diff(h5diff_one_diff_per_run,h5diff_reference_file, h5diff_file,h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type, args.referencescopy, h5diff_sort, h5diff_sort_dim, h5diff_sort_var, h5diff_max_differences))
 
     # 2.6   check array bounds in hdf5 file
     check_hdf5_file      = options.get('check_hdf5_file',None) 
@@ -1017,12 +1018,12 @@ class Analyze_Convtest_p(Analyze) :
 #==================================================================================================
 
 class Analyze_h5diff(Analyze,ExternalCommand) :
-    def __init__(self, h5diff_one_diff_per_run, h5diff_reference_file, h5diff_file, h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type, referencescopy, h5diff_sort, h5diff_sort_dim, h5diff_sort_var) :
+    def __init__(self, h5diff_one_diff_per_run, h5diff_reference_file, h5diff_file, h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type, referencescopy, h5diff_sort, h5diff_sort_dim, h5diff_sort_var, h5diff_max_differences) :
         # Set number of diffs per run [True/False]
         self.one_diff_per_run = (h5diff_one_diff_per_run in ('True', 'true', 't', 'T'))
 
         # Create dictionary for all keys/parameters and insert a list for every value/options
-        self.prms = { "reference_file" : h5diff_reference_file, "file" : h5diff_file, "data_set" : h5diff_data_set, "tolerance_value" : h5diff_tolerance_value, "tolerance_type" : h5diff_tolerance_type, "sort" : h5diff_sort, "sort_dim" : h5diff_sort_dim, "sort_var" : h5diff_sort_var }
+        self.prms = { "reference_file" : h5diff_reference_file, "file" : h5diff_file, "data_set" : h5diff_data_set, "tolerance_value" : h5diff_tolerance_value, "tolerance_type" : h5diff_tolerance_type, "sort" : h5diff_sort, "sort_dim" : h5diff_sort_dim, "sort_var" : h5diff_sort_var, "max_differences" : h5diff_max_differences }
         for key, prm in self.prms.items() : 
            # Check if prm is not of type 'list'
            if type(prm) != type([]) :
@@ -1080,7 +1081,15 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
         '''
         General workflow:
         1.  iterate over all runs
-        1.2   execute the command 'cmd' = 'h5diff -r --XXX [value] ref_file file DataArray'
+        1.1.0   Read the hdf5 file
+        1.1.1   Read the dataset from the hdf5 file
+        1.1.1   Read the dataset from the hdf5 file
+        1.1.2   compare shape of the dataset of both files, throw error if they do not conincide
+        1.1.3   add failed info if return a code != 0 to run
+        1.1.4   set analyzes to fail if return a code != 0
+        1.2.0   When sorting is used, the sorted array is written to the original .h5 file with a new name
+        1.2.1   Execute the command 'cmd' = 'h5diff -r --XXX [value] ref_file file DataArray'
+        1.2.2   Check maximum number of differences if user has selected h5diff_max_differences > 0
         1.3   if the command 'cmd' returns a code != 0, set failed
         1.3.1   add failed info (for return a code != 0) to run
         1.3.2   set analyzes to fail (for return a code != 0)
@@ -1109,6 +1118,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                 sort_loc             = self.prms["sort"][compare]  
                 sort_dim_loc         = int(self.prms["sort_dim"][compare])
                 sort_var_loc         = int(self.prms["sort_var"][compare])
+                max_differences_loc  = int(self.prms["max_differences"][compare])
 
                 # 1.1.0   Read the hdf5 file
                 path            = os.path.join(run.target_directory,file_loc)
@@ -1224,13 +1234,29 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                     try :
                         self.execute_cmd(cmd, run.target_directory,"h5diff") # run the code
 
+                        # 1.2.2   Check maximum number of differences if user has selected h5diff_max_differences > 0
+                        try : 
+                            if max_differences_loc > 0 and self.return_code != 0 :
+                                for line in self.stdout[-1:] : # check only the last line in std.out
+                                    lastline = line.rstrip()
+                                    idx=lastline.find('differences found') # the string should look something like "XX differences found"
+                                    if idx >= 0 :
+                                        NbrOfDifferences=int(lastline[:idx]) # get the number of differences that where identified by h5diff
+                                        if NbrOfDifferences <= max_differences_loc :
+                                            print(tools.indent("%s, but %s differences are allowed (given by h5diff_max_differences). The h5diff is therefore marked as passed." % (str(lastline),max_differences_loc), 2))
+                                            self.return_code = 0
+                        # if this try fails, just ignore it
+                        except :
+                            pass
+
+
                         # 1.3   if the comman 'cmd' return a code != 0, set failed
                         if self.return_code != 0 :
-                            print("   tolerance_type     : "+tolerance_type_loc)
-                            print("   tolernace_value    : "+str(tolerance_value_loc))
-                            print("   reference          : "+str(reference_file_loc))
-                            print("   file               : "+str(file_loc))
-                            print("   data_set           : "+str(data_set_loc))
+                            print(tools.indent("tolerance_type  : "+tolerance_type_loc, 2))
+                            print(tools.indent("tolernace_value : "+str(tolerance_value_loc), 2))
+                            print(tools.indent("reference       : "+str(reference_file_loc), 2))
+                            print(tools.indent("file            : "+str(file_loc), 2))
+                            print(tools.indent("data_set        : "+str(data_set_loc), 2))
                             run.analyze_results.append("h5diff failed (self.return_code != 0) for [%s] in %s" % (str(data_set_loc),str(file_loc)))
 
                             # 1.3.1   add failed info if return a code != 0 to run
@@ -1252,7 +1278,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                             run.analyze_successful=False
                             Analyze.total_errors+=1
 
-                            #global_errors+=1
+                    # h5diff could not be executed
                     except Exception as ex :
                         self.result=tools.red("h5diff failed. (Exception="+str(ex)+")") # print result here, because it was not added in "execute_cmd"
                         print(" "+self.result)
