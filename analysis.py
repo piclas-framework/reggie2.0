@@ -355,7 +355,7 @@ class Analyze_L2_file(Analyze) :
         1.4   calculate difference and determine compare with tolerance
         """
 
-        LastLines = 35 # search the last 35 lines in the std.out file for the L2 error
+        LastLines = 150 # search the last X lines in the std.out file for the L2 error
         # 1.  Iterate over all runs
         for run in runs :
             
@@ -457,7 +457,7 @@ class Analyze_L2(Analyze) :
         1.4   set analyzes to fail
         """
 
-        LastLines = 35 # search the last 35 lines in the std.out file for the L2 error
+        LastLines = 150 # search the last X lines in the std.out file for the L2 error
         # 1.  Iterate over all runs
         for run in runs :
             
@@ -525,7 +525,7 @@ class Analyze_Convtest_h(Analyze) :
         1.7.2   set analyzes to fail if success rate is not reached for all runs
         """
 
-        LastLines = 35 # search the last 35 lines in the std.out file for the L2 error
+        LastLines = 150 # search the last X lines in the std.out file for the L2 error
         # 1.  check if number of successful runs is equal the number of supplied cells
         nRuns = len(runs)
         if nRuns < 2 :
