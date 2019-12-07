@@ -37,9 +37,6 @@ class Case(ExternalCommand) :
     def __init__(self, command) :
         self.command = command
         self.failed = False
-        #self.source_directory = source_directory
-        #self.configuration    = configuration
-        #OutputDirectory.__init__(self, None, name, number)  
         ExternalCommand.__init__(self)
 
 
