@@ -29,6 +29,35 @@ if not os.path.exists(reggie_exe_path) :
     print("Reggie main file not found in reggie repository under: '%s'" % reggie_exe_path)
     exit(1)
 
+def CheckBinaryCall(c) :
+    if c.find("-e") >= 0 :    # find lines which contain "-e"
+        c=c[:c.find("-e")]    # remove everything after "-e"
+
+        b = c[c.find("/regressioncheck/checks")+24:].strip() # cut away name before /regressioncheck/checks/
+        if b.find("/") >= 0 : # find lines which contain "/"
+            print("  "+c, end=' ') # skip linebreak
+            remove_string=b[b.find("/"):]
+            print(" (Removed "+tools.red(remove_string)+" and '-e' binary call)")
+            b = b[:b.find("/")]     # remove everything after "/"
+            case_dir = os.path.join(basedir,'regressioncheck')
+            case_dir = os.path.join(case_dir,'checks')
+            case_dir = os.path.join(case_dir,b)
+            if not os.path.exists(case_dir) : # Sanity check if folder exists: use only the part of the string up to the first (whitespace (" ")
+                print(tools.red("case directory not found under: '%s'" % case_dir))
+                exit(1)
+            c=c[:c.find(remove_string)].strip() # remove everything after remove_string
+        else:
+            print("  "+c, end=' ') # skip linebreak
+            print(" (Removed '-e' binary call)")
+
+    return c.strip()
+
+def DisplayInitMessage(Bool,Message) :
+    if Bool :
+        print("\n%s\n" % Message)
+        Bool=False
+    
+    return Bool
 
 import tools
 import args_parser
@@ -88,6 +117,7 @@ reggiedir = os.path.abspath(os.path.dirname(reggie_exe_path))
 print(tools.blue("Using code under      [basedir]: "+str(basedir)))
 print(tools.blue("Using reggie under  [reggiedir]: "+str(reggiedir)))
 print(tools.blue("Running checks for [args.stage]: "+str(args.stage)))
+print('='*132)
 
 reggie_path = os.path.join(reggiedir, 'reggie.py')
 if not os.path.exists(reggie_path) : # check if file exists
@@ -97,12 +127,17 @@ if not os.path.exists(reggie_path) : # check if file exists
 cases = []
 commands = []
 firstCheckInExample=True
+firstConditionalExample=True
 with open(args.gitlab_ci, 'r') as f :        # read file as "f"
     for line in f :                           # read every line
-        s=str(line.strip())                   # remove leadgin and ending whitespaces
-        if s.find("#") == 0 :                 # Skip comments
+        s=str(line.strip())                   # remove leading and trailing whitespaces
+
+        # 1.  Skip comments
+        if s.find("#") == 0 :
             continue
-        if s.find("if") >= 0 :                # find lines which contain "if"
+
+        # 2. Check for conditional (nightly, weekly) runs, by finding lines which contain "if"
+        if s.find("if") >= 0 :
             if re.search(r'\[(.*?)\]',s) :    # find lines with "[....]" in it, meaning opening "[" and closing "]" parenthesis
                 if args.stage != 'full' :     # Check stage only if user supplies one
                     if s.lower().find(args.stage.lower()) == -1 : # Skip stages that do not correspond to the user supplied stage
@@ -111,38 +146,33 @@ with open(args.gitlab_ci, 'r') as f :        # read file as "f"
                     c=s[s.find("python"):]    # create string "c" starting at "python"
                     if c.find(";") >= 0 :     # find lines which contain ";"
                         c=c[:c.find(";")]     # remove everything after ";"
-                    if c not in commands:     # add the new command line only if it is unique
-                        commands.append(c)    # add command line to list
+
+                    # Display Init Information
+                    firstConditionalExample = DisplayInitMessage(firstConditionalExample,'Conditional examples: Removing reggie calls with supplied binary (it must be built from scratch here)')
+
+                    # Remove possible calls with binaries
+                    c = CheckBinaryCall(c)
+
+                    # Add the new command line only if it is unique
+                    if c not in commands:
+                        commands.append(c)                    # add command line to list
                         cases.append(gitlab_ci_tools.Case(c)) # and the case to the list of cases
+
+        # 3. Check other runs (generally "CHECKIN" examples)
         else :
-            if args.stage == 'full' or args.stage.lower() == 'do_checkin' :     # Check stage only if user supplies one
+            if args.stage == 'full' or args.stage.lower() == 'do_checkin' : # Check stage only if user supplies one
                 if s.find("python") >= 0 :    # find lines which contain "python"
                     c=s[s.find("python"):]    # create string "c" starting at "python"
-                    if firstCheckInExample :
-                        print('='*132)
-                        print("CHECKIN examples")
-                        firstCheckInExample=False
-                    if c.find("-e") >= 0 :     # find lines which contain "-e"
-                        c=c[:c.find("-e")]     # remove everything after "-e"
 
-                        b = c[c.find("/regressioncheck/checks")+24:].strip() # cut away name before /regressioncheck/checks/
-                        if b.find("/") >= 0 : # find lines which contain "/"
-                            print(c, end=' ') # skip linebreak
-                            remove_string=b[b.find("/"):]
-                            print(" (Removed "+tools.red(remove_string)+")")
-                            b = b[:b.find("/")]     # remove everything after "/"
-                            case_dir = os.path.join(basedir,'regressioncheck')
-                            case_dir = os.path.join(case_dir,'checks')
-                            case_dir = os.path.join(case_dir,b)
-                            if not os.path.exists(case_dir) : # Sanity check if folder exists: use only the part of the string up to the first (whitespace (" ")
-                                print(tools.red("case directory not found under: '%s'" % case_dir))
-                                exit(1)
-                            c=c[:c.find(remove_string)].strip() # remove everything after remove_string
-                        else:
-                            print(c)
-                    c = c.strip()
-                    if c not in commands:     # add the new command line only if it is unique
-                        commands.append(c)    # add command line to list
+                    # Display Init Information
+                    firstCheckInExample = DisplayInitMessage(firstCheckInExample,'CHECKIN examples: Removing reggie calls with supplied binary (it must be built from scratch here)')
+
+                    # Remove possible calls with binaries
+                    c = CheckBinaryCall(c)
+
+                    # Add the new command line only if it is unique
+                    if c not in commands:
+                        commands.append(c)                    # add command line to list
                         cases.append(gitlab_ci_tools.Case(c)) # and the case to the list of cases
 
 
