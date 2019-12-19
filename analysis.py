@@ -1344,7 +1344,6 @@ class Analyze_check_hdf5(Analyze) :
 
             # 1.3   Read the dataset from the hdf5 file
             b = f[self.data_set][:]
-            print(b.shape)
 
             # 1.3.1   loop over each dimension supplied
             for i in range(self.dim1, self.dim2+1) : 
