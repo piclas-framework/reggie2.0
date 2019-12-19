@@ -244,10 +244,11 @@ def getAnalyzes(path, example, args) :
     # 2.6   check array bounds in hdf5 file
     check_hdf5_file      = options.get('check_hdf5_file',None) 
     check_hdf5_data_set  = options.get('check_hdf5_data_set',None) 
+    check_hdf5_span      = options.get('check_hdf5_span',2) # default is column
     check_hdf5_dimension = options.get('check_hdf5_dimension',None) 
     check_hdf5_limits    = options.get('check_hdf5_limits',None) 
     if all([check_hdf5_file, check_hdf5_data_set, check_hdf5_dimension, check_hdf5_limits]) :
-        analyze.append(Analyze_check_hdf5(check_hdf5_file, check_hdf5_data_set, check_hdf5_dimension, check_hdf5_limits))
+        analyze.append(Analyze_check_hdf5(check_hdf5_file, check_hdf5_data_set, check_hdf5_span, check_hdf5_dimension, check_hdf5_limits))
 
     # 2.7   check data file row
     compare_data_file_name           = options.get('compare_data_file_name',None)
@@ -1074,7 +1075,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
         global h5py_module_loaded
         # check if this analysis can be performed: h5py must be imported
         if not h5py_module_loaded : # this boolean is set when importing h5py
-            print(tools.red('Could not import h5py module. This is required for "Analyze_check_hdf5". Aborting.'))
+            print(tools.red('Could not import h5py module. This is required for "Analyze_h5diff". Aborting.'))
             Analyze.total_errors+=1
             return
 
@@ -1203,7 +1204,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                             b1_sorted = b1[b1[:,sort_var_loc].argsort()]
                             b2_sorted = b2[b2[:,sort_var_loc].argsort()]
                         else :
-                            s = tools.red("Analyze_h5diff: Sorting failed, because currently only sorting of 2-dimensional arrays is implemented. This means, that sorting by rows (dim=1) and columns (dim=2) is allowed. However, dim=[%s]" % sort_dim_loc)
+                            s = tools.red("Analyze_h5diff: Sorting failed, because currently only sorting of 2-dimensional arrays is implemented.\nThis means, that sorting by rows (dim=1) and columns (dim=2) is allowed. However, dim=[%s]" % sort_dim_loc)
                             print(s)
                             run.analyze_results.append(s)
                             run.analyze_successful=False
@@ -1297,9 +1298,10 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
 #==================================================================================================
 
 class Analyze_check_hdf5(Analyze) :
-    def __init__(self, check_hdf5_file, check_hdf5_data_set, check_hdf5_dimension, check_hdf5_limits) :
+    def __init__(self, check_hdf5_file, check_hdf5_data_set, check_hdf5_span, check_hdf5_dimension, check_hdf5_limits) :
         self.file                = check_hdf5_file
         self.data_set            = check_hdf5_data_set
+        self.span                = int(check_hdf5_span)
         (self.dim1, self.dim2)   = [int(x)   for x in check_hdf5_dimension.split(":")]
         (self.lower, self.upper) = [float(x) for x in check_hdf5_limits.split(":")]
 
@@ -1319,8 +1321,9 @@ class Analyze_check_hdf5(Analyze) :
         1.2   Read the hdf5 file
         1.3   Read the dataset from the hdf5 file
         1.3.1   loop over each dimension supplied
-        1.3.2   Check if all values are within the supplied interval
-        1.3.3   set analyzes to fail if return a code != 0
+        1.3.2   Check either rows or columns
+        1.3.3   Check if all values are within the supplied interval
+        1.3.4   set analyzes to fail if return a code != 0
         '''
 
         # 1.  iterate over all runs
@@ -1341,24 +1344,43 @@ class Analyze_check_hdf5(Analyze) :
 
             # 1.3   Read the dataset from the hdf5 file
             b = f[self.data_set][:]
+            print(b.shape)
 
             # 1.3.1   loop over each dimension supplied
             for i in range(self.dim1, self.dim2+1) : 
 
-                # 1.3.2   Check if all values are within the supplied interval
-                lower_test = any([x < self.lower for x in b[:][i]])
-                upper_test = any([x > self.upper for x in b[:][i]])
+                # 1.3.2   Check either rows or columns
+                if self.span == 1 : # Check each row element
+                    # Note that sort_var_loc begins at 0 as python starts by 0
+                    lower_test = any([x < self.lower for x in b[:,i]])
+                    upper_test = any([x > self.upper for x in b[:,i]])
+                elif self.span == 2 : # Check each column element
+                    lower_test = any([x < self.lower for x in b[i,:]])
+                    upper_test = any([x > self.upper for x in b[i,:]])
+                else :
+                    s = tools.red("Analyze_check_hdf5: Bounding box check failed for i=%s, because currently only sorting of 2-dimensional arrays is implemented.\nThis means, that sorting by rows (dim=1) and columns (dim=2) is allowed. However, dim=[%s] (parameter: check_hdf5_span)" % (i, self.span))
+                    print(s)
+                    run.analyze_results.append(s)
+                    run.analyze_successful=False
+                    Analyze.total_errors+=1
+                    continue
+
+                # 1.3.3   Check if all values are within the supplied interval
                 if lower_test or upper_test :
-                    print(tools.red("values = "+str(b[:][i])+" MIN=["+str(min(b[:][i]))+"]"+" MAX=["+str(max(b[:][i]))+"]"))
+                    if self.span == 1 : # Check each row element
+                        print(tools.red("values = "+str(b[:,i])+" MIN=["+str(min(b[:,i]))+"]"+" MAX=["+str(max(b[:,i]))+"]"))
+                    else : # Check each column element
+                        print(tools.red("values = "+str(b[i,:])+" MIN=["+str(min(b[i,:]))+"]"+" MAX=["+str(max(b[i,:]))+"]"))
+
                     s = tools.red("HDF5 array out of bounds for dimension = %2d (array dimension index starts at 0). " % i)
                     if lower_test :
                         s += tools.red(" [values found  < "+str(self.lower)+"]")
                     if upper_test :
-                        s += tools.red(" [values found  > "+str(self.upper)+"]")
+                        s += tools.red("  and  [values found  > "+str(self.upper)+"]")
                     print(s)
                     run.analyze_results.append(s)
            
-                    # 1.3.3   set analyzes to fail if return a code != 0
+                    # 1.3.4   set analyzes to fail if return a code != 0
                     run.analyze_successful=False
                     Analyze.total_errors+=1
 
