@@ -16,7 +16,6 @@ import shutil
 import os
 from timeit import default_timer as timer
 import re
-import tools
 import time
 
 class bcolors :
@@ -102,7 +101,7 @@ def find_basedir(basedir) :
 
 
 def remove_folder(path) :
-    print(tools.yellow("[remove_folder]: deleting folder '%s'" % path))
+    print(yellow("[remove_folder]: deleting folder '%s'" % path))
     shutil.rmtree(path,ignore_errors=True)
     #shutil.rmtree(path)
 
@@ -116,7 +115,7 @@ def create_folder(path):
                 i+=1
                 os.makedirs(path)
                 if i>60:
-                    print(tools.red("OutputDirectory() : Tried creating a directory more than 60 times. Stop."))
+                    print(red("OutputDirectory() : Tried creating a directory more than 60 times. Stop."))
                     exit(1)
                 break
             except OSError as e:
