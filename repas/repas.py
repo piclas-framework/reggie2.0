@@ -86,12 +86,13 @@ start = timer()
 # argument parser
 parser = argparse.ArgumentParser(description='DESCRIPTION:\nScript for executing the regression checker for NRG codes multiple times with for parameter studies.', formatter_class=argparse.RawTextHelpFormatter)
 #parser.add_argument('gitlab_ci', help='Path to gitlab-ci.yml which also contains a /regressioncheck/checks/... structure')
-#parser.add_argument('-s', '--stage', default='DO_NIGHTLY', help='Supply DO_NIGHTLY, DO_WEEKLY, etc. flag for extracting the command from gitlab-ci.yml.')
+parser.add_argument('-c', '--case', default='.', help='Path to casedir, where repas should be executed.')
 #parser.add_argument('-b', '--begin', type=int, default=1,  help='Number of the case: where to start with the run (from the list that this tools creates)')
 parser.add_argument('-d', '--debug', type=int, default=0, help='Debug level for this program. Dumps all info to the screen.')
 #parser.add_argument('-i', '--info', type=int, default=1, help='Debug level for the subsequent program execution (e.g. flexi).')
 #parser.add_argument('-o', '--only', action='store_true',help='Only run one case and exit afterwards (from the list that this tools creates).')
-#parser.add_argument('-n', '--dryrun', action='store_true',help='Simply list all possible cases without performing any run.')
+parser.add_argument('-x', '--dummy', action='store_true',help='Run repas without supplying parameter_rename.ini and parameter_change.ini files.')
+parser.add_argument('-n', '--dryrun', action='store_true',help='Simply list all possible cases without performing any run.')
 parser.add_argument('-a', '--hlrs', action='store_true', help='Run on with aprun (hlrs system).')
 parser.add_argument('exe', help='Path to executable of code that should be tested.')
 
@@ -127,7 +128,15 @@ if args.hlrs :
 else :
   cmd = ['python',reggie_exe_path,'-e',str(args.exe),'.','-s','-d1']
 #cmd = ["ls","-l"] # for testing some other commands
+if args.case :
+    if os.path.isdir(args.case) :  
+        os.chdir(args.case)
+    else :
+        raise Exception('Supplied case directory is not correctly defined! -c [%s]' %args.case)
 
+if args.dummy :
+    open('parameter_rename.ini', 'a').close()
+    open('parameter_change.ini', 'a').close()
 # initialize central object and run in current working dir
 cwd   = os.getcwd()
 repas = repas_tools.Case(cwd,cmd,'parameter_rename.ini','parameter_change.ini','parameter.ini') # and the case to the list of cases
