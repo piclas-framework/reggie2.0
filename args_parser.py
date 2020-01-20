@@ -26,6 +26,7 @@ def getArgsAndBuilds() :
       --carryon         : build non-existing binary-combinations and run all examples for thoses builds
       --carryon --run   : run all failed examples''')
     parser.add_argument('-e', '--exe'        , help='Path to executable of code that should be tested.')
+    parser.add_argument('-m', '--MPIexe'     , help='Path to mpirun executable. The correct MPI lib must be used, i.e. the one which which the executable (e.g. flexi) was compiled, e.g., /opt/openmpi/2.0.2/bin/mpirun.', default = 'mpirun')
     parser.add_argument('-d', '--debug'      , help='Debug level.', type=int, default=0)
     parser.add_argument('-j', '--buildprocs' , help='Number of processors used for compiling (make -j XXX).', type=int, default=0)
     parser.add_argument('-b', '--basedir'    , help='Path to basedir of code that should be tested (contains CMakeLists.txt).')
@@ -85,7 +86,7 @@ def getArgsAndBuilds() :
             print(tools.red("Check directory not found: '%s'" % args.check))
             exit(1)
     
-    
+
     # delete the building directory when [carryon = False] and [run = False] before getBuilds is called
     if not args.carryon and not args.run : tools.remove_folder(OutputDirectory.output_dir)
     

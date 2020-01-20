@@ -217,7 +217,7 @@ def SetMPIrun(build, args, MPIthreads) :
                     else :
                         cmd = ["aprun","-n",MPIthreads,"-N","24"]
                 else :
-                    cmd = ["mpirun","-np",MPIthreads,"--oversubscribe"]
+                    cmd = [args.MPIexe,"-np",MPIthreads,"--oversubscribe"]
             else :
                 print(tools.indent(tools.yellow("Found %s=%s (binary has been built with MPI=OFF) with external setting MPIthreads=%s, running case in single (without 'mpirun -np')" % (MPI_built_flag,MPIbuilt,MPIthreads)),3))
                 cmd = []
