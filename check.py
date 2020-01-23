@@ -174,20 +174,77 @@ class Command_Lines(OutputDirectory) :
     def __init__(self, parameters, example, number) :
         self.parameters = parameters
         OutputDirectory.__init__(self, example, 'cmd', number)
+
     def __str__(self) :
         s = "command_line parameters:\n"
         s += ",".join(["%s: %s" % (k,v) for k,v in self.parameters.items()])    
         return tools.indent(s,2)
 
-def getCommand_Lines(path, example) :
+def getCommand_Lines(args, path, example) :
     command_lines = []
     i = 1
-    combis, digits = combinations.getCombinations(path) 
+
+    # If single execution is to be performed, remove "MPI =! 1" from command line list
+    if args.noMPI :
+        combis, digits = combinations.getCombinations(path,OverrideOptionKey='MPI', OverrideOptionValue='1') 
+    else :
+        combis, digits = combinations.getCombinations(path) 
+
     for r in combis :
         command_lines.append(Command_Lines(r, example, i))
         i += 1
+
     return command_lines
 
+#==================================================================================================
+def SetMPIrun(build, args, MPIthreads) :
+    ''' check MPI built binary (only possible for reggie-compiled binaries) '''
+
+    MPI_built_flag=os.path.basename(build.binary_path).upper()+"_MPI"
+    MPIbuilt = build.configuration.get(MPI_built_flag,'ON')
+
+    if MPIthreads :
+        # Check if single execution is wanted (independent of the compiled executable)
+        if args.noMPI :
+            print(tools.indent(tools.yellow("noMPI=%s, running case in single (without 'mpirun -np')" % (args.noMPI)),3))
+            cmd = []
+        else :
+            # Check whether the compiled executable was created with MPI=ON
+            if MPIbuilt == "ON" :
+                if args.hlrs :
+                    if int(MPIthreads) < 24 :
+                        cmd = ["aprun","-n",MPIthreads,"-N",MPIthreads]
+                    else :
+                        cmd = ["aprun","-n",MPIthreads,"-N","24"]
+                else :
+                    cmd = [args.MPIexe,"-np",MPIthreads,"--oversubscribe"]
+            else :
+                print(tools.indent(tools.yellow("Found %s=%s (binary has been built with MPI=OFF) with external setting MPIthreads=%s, running case in single (without 'mpirun -np')" % (MPI_built_flag,MPIbuilt,MPIthreads)),3))
+                cmd = []
+    else :
+        cmd = []
+
+    return cmd
+
+#==================================================================================================
+def copyRestartFile(path,path_target) :
+    '''  Copy new restart file into example folder'''
+    # Check whether the file for copying exists
+    if not os.path.exists(path) :
+        s = tools.red("copyRestartFile: Could not find file=[%s] for copying" % path)
+        print(s)
+        exit(1)
+
+    # Check whether the destination for copying the file exists
+    if not os.path.exists(os.path.dirname(path_target)) :
+        s = tools.red("copyRestartFile: Could not find location=[%s] for copying" % os.path.dirname(path_target))
+        print(s)
+        exit(1)
+
+    # Copy file and create new reference
+    shutil.copy(path,path_target)
+    s = tools.yellow("New restart file is copied from file=[%s] to file=[%s]" % (path, path_target))
+    print(s)
 
 #==================================================================================================
 class Externals(OutputDirectory) :
@@ -246,7 +303,7 @@ class ExternalRun(OutputDirectory,ExternalCommand) :
         # external folders already there
         self.skip = False
 
-    def execute(self, build, external,args) :
+    def execute(self, build, external, args) :
 
         # set path to parameter file (single combination of values for execution "parameter.ini" for example)
         self.parameter_path = os.path.join(external.directory, external.parameterfile)
@@ -258,23 +315,7 @@ class ExternalRun(OutputDirectory,ExternalCommand) :
         MPIthreads = external.parameters.get('MPI')
 
         # check MPI built binary (only possible for reggie-compiled binaries)
-        MPI_built_flag=os.path.basename(build.binary_path).upper()+"_MPI"
-        MPIbuilt = build.configuration.get(MPI_built_flag,'ON')
-
-        if MPIthreads :
-            if MPIbuilt == "ON" :
-                if args.hlrs :
-                    if int(MPIthreads) < 24 :
-                        cmd = ["aprun","-n",MPIthreads,"-N",MPIthreads]
-                    else :
-                        cmd = ["aprun","-n",MPIthreads,"-N","24"]
-                else :
-                    cmd = ["mpirun","-np",MPIthreads,"--oversubscribe"]
-            else :
-                print(tools.indent(tools.yellow("Found %s=%s (binary has been built with MPI=OFF) with external setting MPIthreads=%s, running case in single (without 'mpirun -np')" % (MPI_built_flag,MPIbuilt,MPIthreads)),3))
-                cmd = []
-        else :
-            cmd = []
+        cmd = SetMPIrun(build, args, MPIthreads)
        
         binary_path = os.path.abspath(os.path.join(build.binary_dir,'./bin/'+ external.parameters.values()[0]))
 
@@ -363,7 +404,7 @@ class Run(OutputDirectory, ExternalCommand) :
         shutil.move(self.target_directory,self.target_directory+"_failed") # rename folder (non-existent folder fails)
         self.target_directory = self.target_directory+"_failed" # set new name for summary of errors
 
-    def execute(self, build, command_line,args) :
+    def execute(self, build, command_line, args) :
         Run.total_number_of_runs += 1
         self.globalnumber = Run.total_number_of_runs
 
@@ -397,23 +438,7 @@ class Run(OutputDirectory, ExternalCommand) :
 
 
         # check MPI built binary (only possible for reggie-compiled binaries)
-        MPI_built_flag=os.path.basename(build.binary_path).upper()+"_MPI"
-        MPIbuilt = build.configuration.get(MPI_built_flag,'ON')
-
-        if MPIthreads :
-            if MPIbuilt == "ON" :
-                if args.hlrs :
-                    if int(MPIthreads) < 24 :
-                        cmd = ["aprun","-n",MPIthreads,"-N",MPIthreads]
-                    else :
-                        cmd = ["aprun","-n",MPIthreads,"-N","24"]
-                else :
-                    cmd = ["mpirun","-np",MPIthreads,"--oversubscribe"]
-            else :
-                print(tools.indent(tools.yellow("Found %s=%s (binary has been built with MPI=OFF) with command_line setting MPIthreads=%s, running case in single (without 'mpirun -np')" % (MPI_built_flag,MPIbuilt,MPIthreads)),3))
-                cmd = []
-        else :
-            cmd = []
+        cmd = SetMPIrun(build, args, MPIthreads)
         
         cmd.append(build.binary_path)
         cmd.append("parameter.ini")
@@ -426,14 +451,19 @@ class Run(OutputDirectory, ExternalCommand) :
         # append restart file name
         cmd_restart_file = command_line.parameters.get('restart_file')
         if cmd_restart_file :
-            cmd.append(cmd_restart_file)
             # check if file exists
             cmd_restart_file_abspath = os.path.abspath(os.path.join(self.target_directory,cmd_restart_file))
             found = os.path.exists(cmd_restart_file_abspath)
             if not found :
-                self.return_code = -1 
-                self.result=tools.red("Restart file not found")
-                s=tools.red("Restart file '%s' not found under \n '%s'" % (cmd_restart_file,cmd_restart_file_abspath))
+                if args.restartcopy :
+                    s=tools.yellow("Restart file copy activated. Starting fresh simulation at t=0.")
+                    print(tools.indent(s,2))
+                else :
+                    self.return_code = -1 
+                    self.result=tools.red("Restart file not found")
+                    s=tools.red("Restart file '%s' not found under \n '%s'" % (cmd_restart_file,cmd_restart_file_abspath))
+            else :
+                cmd.append(cmd_restart_file)
 
         # check if the command 'cmd' can be executed
         if self.return_code != 0 :
@@ -442,9 +472,30 @@ class Run(OutputDirectory, ExternalCommand) :
             print(tools.indent("Running [%s] ..." % (" ".join(cmd)), 2), end=' ') # skip linebreak
             self.execute_cmd(cmd, self.target_directory) # run the code
 
+        # Copy restart file if required
+        if cmd_restart_file and args.restartcopy:
+            # Get directory path and filename of the originally required restart file
+            head, tail = os.path.split(cmd_restart_file_abspath)
+            # file path to be copied
+            restart_file_path=os.path.abspath(os.path.join(self.target_directory,tail))
+            # target file path
+            restart_file_path_target=os.path.join(self.source_directory,tail)
+
+            found = os.path.exists(restart_file_path)
+            if not found :
+                self.return_code = -1 
+                self.result=tools.red("Restart file was not created")
+                s=tools.red("Restart file (which should have been created) '%s' not generated under \n '%s'" % (cmd_restart_file,cmd_restart_file_abspath))
+            else :
+                # Copy new restart file
+                copyRestartFile(restart_file_path,restart_file_path_target)
+                s=tools.yellow("Run(OutputDirectory, ExternalCommand): performed restart file copy!")
+                print(s)
+
         if self.return_code != 0 :
             self.successful = False
             self.rename_failed()
+
 
     def __str__(self) :
         s = "RUN parameters:\n"
@@ -547,7 +598,7 @@ def PerformCheck(start,builds,args,log) :
                 # 2.1    read the command line options in 'command_line.ini' for binary execution 
                 #        (e.g. number of threads for mpirun)
                 example.command_lines = \
-                        getCommand_Lines(os.path.join(example.source_directory,'command_line.ini'), example)
+                        getCommand_Lines(args, os.path.join(example.source_directory,'command_line.ini'), example)
                 
                 # 2.2    read the analyze options in 'analyze.ini' within each example directory (e.g. L2 error analyze)
                 example.analyzes = \
@@ -666,7 +717,7 @@ def PerformCheck(start,builds,args,log) :
     # catch exception if bulding fails
     except BuildFailedException as ex:
         # print table with summary of errors
-        SummaryOfErrors(builds)
+        SummaryOfErrors(builds, args)
     
         # display error message
         print(tools.red(str(ex))) # display error msg
@@ -686,7 +737,7 @@ def PerformCheck(start,builds,args,log) :
         exit(1)
 
 
-def SummaryOfErrors(builds) :
+def SummaryOfErrors(builds, args) :
     """
     General workflow:
     1. loop over all builds, examples, command_lines, runs and for every run set the output strings 
@@ -748,7 +799,7 @@ def SummaryOfErrors(builds) :
         for example in build.examples :
             for command_line in example.command_lines :
                 for run in command_line.runs :
-                    # 3.2.1 print separation line if MPI threads change
+                    # 3.2.1 print separation line only if MPI threads change
                     if run.output_strings["MPI"] != str_MPI_old :
                         print("")
                         str_MPI_old = run.output_strings["MPI"]
@@ -762,8 +813,11 @@ def SummaryOfErrors(builds) :
 
                     # 3.2.3 print all output_strings
                     for key,value in list(max_lens.items()) :
+                        # Print options with .ljust
                         if key == "options" :
                             print(tools.yellow(run.output_strings[key].ljust(value)), end=' ') # skip linebreak
+                        elif key == "MPI" and args.noMPI:
+                            print(tools.yellow("1"), end=' ') # skip linebreak
                         else :
                             print(run.output_strings[key].ljust(value), end=' ') # skip linebreak
                         print(spacing*' ', end=' ') # skip linebreak

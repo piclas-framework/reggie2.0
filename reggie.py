@@ -54,7 +54,7 @@ log = logging.getLogger('logger')
 check.PerformCheck(start,builds,args,log)
 
 # 4.  display the summary table with information for each build, run and analysis step
-check.SummaryOfErrors(builds)
+check.SummaryOfErrors(builds, args)
 
 # 5.  display if regression check was successful or not and return the corresponding error code
 tools.finalize(start, 0, check.Run.total_errors, check.Analyze.total_errors, check.Analyze.total_infos)
