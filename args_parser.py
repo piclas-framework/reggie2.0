@@ -25,18 +25,29 @@ def getArgsAndBuilds() :
     parser.add_argument('-c', '--carryon', action='store_true', help='''Continue build/run process. 
       --carryon         : build non-existing binary-combinations and run all examples for thoses builds
       --carryon --run   : run all failed examples''')
-    parser.add_argument('-e', '--exe', help='Path to executable of code that should be tested.')
-    parser.add_argument('-d', '--debug', type=int, default=0, help='Debug level.')
-    parser.add_argument('-j', '--buildprocs', type=int, default=0, help='Number of processors used for compiling (make -j XXX).')
-    parser.add_argument('-b', '--basedir', help='Path to basedir of code that should be tested (contains CMakeLists.txt).')
-    parser.add_argument('-y', '--dummy', action='store_true',help='Use dummy_basedir and dummy_checks for fast testing on dummy code.')
-    parser.add_argument('-r', '--run', action='store_true' ,help='Run all binaries for all examples with all run-combinations for all existing binaries.')
-    parser.add_argument('-s', '--save', action='store_true',help='Do not remove output directories buildsXXXX in output_dir after successful run.')
+    parser.add_argument('-e', '--exe'        , help='Path to executable of code that should be tested.')
+    parser.add_argument('-m', '--MPIexe'     , help='Path to mpirun executable. The correct MPI lib must be used, i.e. the one which which the executable (e.g. flexi) was compiled, e.g., /opt/openmpi/2.0.2/bin/mpirun.', default = 'mpirun')
+    parser.add_argument('-d', '--debug'      , help='Debug level.', type=int, default=0)
+    parser.add_argument('-j', '--buildprocs' , help='Number of processors used for compiling (make -j XXX).', type=int, default=0)
+    parser.add_argument('-b', '--basedir'    , help='Path to basedir of code that should be tested (contains CMakeLists.txt).')
+    parser.add_argument('-y', '--dummy'      , help='Use dummy_basedir and dummy_checks for fast testing on dummy code.', action='store_true')
+    parser.add_argument('-r', '--run'        , help='Run all binaries for all examples with all run-combinations for all existing binaries.', action='store_true' )
+    parser.add_argument('-s', '--save'       , help='Do not remove output directories buildsXXXX in output_dir after successful run.', action='store_true')
     parser.add_argument('-t', '--compiletype', help='Override all CMAKE_BUILD_TYPE settings by ignoring the value set in builds.ini (e.g. DEBUG or RELEASE).')
-    parser.add_argument('-a', '--hlrs', action='store_true', help='Run on with aprun (hlrs system).')
-    parser.add_argument('-z', '--rc', dest='referencescopy', help='Create/Replace reference files that are required for analysis. After running the program, the output files are stored in the check-/example-directory.', action='store_true')
-    parser.set_defaults(referencescopy=False)
+    parser.add_argument('-a', '--hlrs'       , help='Run on with aprun (24-core hlrs system).', action='store_true')
+    parser.add_argument('-z', '--rc'         , help='Create/Replace reference files that are required for analysis. After running the program, the output files are stored in the check-/example-directory.', action='store_true', dest='referencescopy')
+    parser.add_argument('-f', '--fc'         , help='Create/Replace required restart files (if defined in command_line.ini). After running the program, the output files are stored in the check-/example-directory.', action='store_true', dest='restartcopy')
+    parser.add_argument('-i', '--noMPI'      , help='Run program without "mpirun" (single thread execution).', action='store_true')
     parser.add_argument('check', help='Path to check-/example-directory.')
+
+    #parser.set_defaults(carryon=False)
+    #parser.set_defaults(dummy=False)
+    #parser.set_defaults(run=False)
+    #parser.set_defaults(save=False)
+    #parser.set_defaults(hlrs=False)
+    #parser.set_defaults(referencescopy=False)
+    #parser.set_defaults(restartcopy=False)
+    #parser.set_defaults(noMPI=False)
     
     # get reggie command line arguments
     args = parser.parse_args()
@@ -75,7 +86,7 @@ def getArgsAndBuilds() :
             print(tools.red("Check directory not found: '%s'" % args.check))
             exit(1)
     
-    
+
     # delete the building directory when [carryon = False] and [run = False] before getBuilds is called
     if not args.carryon and not args.run : tools.remove_folder(OutputDirectory.output_dir)
     
