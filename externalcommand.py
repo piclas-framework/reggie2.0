@@ -35,7 +35,7 @@ class ExternalCommand() :
         cmd                    : command given as list of strings (the command is split at every white space occurrence)
         target_directory       : path to directory where the cmd command is to be executed
         name (optional)        : [name].std and [name].err files are created for storing the std and err output of the job
-        ncols (optional)       : required for printing "successful" or "failed" after job completion into the previous line shifted to the right by ncols columns 
+        string_info (optional) : Print info regarding the command that is executed before execution
         environment (optional) : run cmd command with environment variables as given by environment=os.environ (and possibly modified)
         """
         # Display string_info
