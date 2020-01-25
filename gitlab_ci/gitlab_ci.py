@@ -243,8 +243,7 @@ for case in cases :
 
             # run the code and generate output
             try :
-                if case.execute_cmd(cmd, target_directory, ncols=len(s_NoColor.strip())+1) != 0 : # use uncolored string for cmake
-                #if case.execute_cmd(cmd, target_directoryg) != 0 : # use uncolored string for cmake
+                if case.execute_cmd(cmd, target_directory, string_info = s_NoColor.strip()) != 0 : # use uncolored string for cmake
                     case.failed=True
             except : # this fails, if the supplied command line is corrupted
                 print(tools.red("Failed"))

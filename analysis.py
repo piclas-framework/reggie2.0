@@ -1231,9 +1231,9 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
 
                     # 1.2.1   execute the command 'cmd' = 'h5diff -r [--type] [value] [ref_file] [file] [DataSetName]'
                     cmd = ["h5diff","-r",tolerance_type_loc,str(tolerance_value_loc),str(reference_file_loc),str(file_loc),str(data_set_loc)]
-                    print(tools.indent("Running [%s]" % (" ".join(cmd)), 2), end=' ') # skip linebreak
                     try :
-                        self.execute_cmd(cmd, run.target_directory,"h5diff") # run the code
+                        s="Running [%s] ..." % (" ".join(cmd))
+                        self.execute_cmd(cmd, run.target_directory,name="h5diff", string_info = tools.indent(s, 2)) # run the code
 
                         # 1.2.2   Check maximum number of differences if user has selected h5diff_max_differences > 0
                         try : 

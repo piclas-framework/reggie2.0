@@ -28,7 +28,7 @@ class ExternalCommand() :
         self.result = ""
         self.walltime = 0
 
-    def execute_cmd(self, cmd, target_directory, name="std", ncols=0, environment = None):
+    def execute_cmd(self, cmd, target_directory, name="std", string_info = None, environment = None):
         """Execute an external program specified by 'cmd'. The working directory of this program is set to target_directory.
         Returns the return_code of the external program.
 
@@ -38,9 +38,15 @@ class ExternalCommand() :
         ncols (optional)       : required for printing "successful" or "failed" after job completion into the previous line shifted to the right by ncols columns 
         environment (optional) : run cmd command with environment variables as given by environment=os.environ (and possibly modified)
         """
-        if type(cmd) != type([]) : # check that only cmd arguments of type 'list' are supplied to this function
+        # Display string_info
+        if string_info is not None:
+            print(string_info)
+
+        # check that only cmd arguments of type 'list' are supplied to this function
+        if type(cmd) != type([]) :
             print(tools.red("cmd must be of type 'list'\ncmd=")+str(cmd)+tools.red(" and type(cmd)="),type(cmd))
             exit(1)
+
         sys.stdout.flush() # flush output here, because the subprocess will force buffering until it is finished
         log = logging.getLogger('logger')
 
@@ -121,10 +127,11 @@ class ExternalCommand() :
             self.result=tools.blue("Successful")
 
         # Display result (Successful or Failed)
-        if ncols > 0:
+        if string_info is not None:
             # display result and wall time in previous line and shift the text by ncols columns to the right
-            # f-strings in print statements only work in python 3
-            #print(f"\033[F\033[{ncols}G "+str(self.result)+" [%.2f sec]" % self.walltime)
+            # Note that f-strings in print statements, e.g. print(f"...."), only work in python 3
+            # print(f"\033[F\033[{ncols}G "+str(self.result)+" [%.2f sec]" % self.walltime)
+            ncols = len(string_info)+1
             print("\033[F\033[%sG " % ncols +str(self.result)+" [%.2f sec]" % self.walltime)
         else :
             print(self.result+" [%.2f sec]" % self.walltime)
