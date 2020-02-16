@@ -157,7 +157,7 @@ def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None
 
     # 1.4   Check if a options[].values (key in the dict) is to be overridden (removes all other occurrences too!)
     if OverrideOptionKey and OverrideOptionValue :
-        print(tools.red("Setting all options for: %s=[%s]" % (OverrideOptionKey,OverrideOptionValue)))
+        print(tools.yellow("Setting all options for: %s=[%s]" % (OverrideOptionKey,OverrideOptionValue)))
 
         # find the key/value pair in the options and replace the key/value + re-sort the list
         option_not_found=True

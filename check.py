@@ -45,6 +45,9 @@ class Build(OutputDirectory,ExternalCommand) :
         # set path to binary/executable
         if binary_path :
             self.binary_path = binary_path
+            head, tail       = os.path.split(binary_path)
+            self.binary_dir  = head
+            binary_name      = tail
         else :
             # get 'binary' from 'configuration' dict and remove it 
             try :
@@ -267,14 +270,25 @@ def getExternals(path, example, build) :
     combis, digits = combinations.getCombinations(path) 
 
     for combi in combis :
+        # Check directory
         externaldirectory = combi.get('externaldirectory','')
         if not externaldirectory or not os.path.exists(os.path.join(example.source_directory, externaldirectory)) : # string is or empty and path does not exist
             print(tools.red('getExternals: "externaldirectory" is empty or the path %s does not exist' % os.path.join(example.source_directory,externaldirectory)))
             ExternalRun.total_errors+=1 # add error if externalrun fails
             continue
+
+        # Check binary
         externalbinary=combi.get('externalbinary','')
-        if not externalbinary or not os.path.exists(os.path.join(os.path.dirname(build.binary_path), externalbinary)) : # string is or empty and path does not exist
-            print(tools.red('getExternals: "externalbinary" is empty or the path %s does not exist' % os.path.join(os.path.dirname(build.binary_path), externalbinary)))
+
+        if isinstance(build, Standalone) :
+            head, tail       = os.path.split(externalbinary)
+            binary_path = os.path.abspath(os.path.join(build.binary_dir, tail))
+        else: # build mode
+            binary_path = os.path.abspath(os.path.join(build.binary_dir, externalbinary))
+        combi['binary_path'] = binary_path
+
+        if not externalbinary or not os.path.exists(binary_path) : # string is or empty and path does not exist
+            print(tools.red('getExternals: "externalbinary" is empty or the path %s does not exist' % binary_path))
             ExternalRun.total_errors+=1 # add error if externalrun fails
             continue
         else :
@@ -284,6 +298,9 @@ def getExternals(path, example, build) :
                 externals_post.append(Externals(combi, example, -1))
             else :
                 print(tools.red('External tools is neither "pre" nor "post".'))
+                ExternalRun.total_errors+=1 # add error if externalrun fails
+                continue
+
     return externals_pre, externals_post
 
 
@@ -319,11 +336,28 @@ class ExternalRun(OutputDirectory,ExternalCommand) :
 
         # check MPI built binary (only possible for reggie-compiled binaries)
         cmd = SetMPIrun(build, args, MPIthreads)
-       
-        binary_path = os.path.abspath(os.path.join(build.binary_dir,'./bin/'+ external.parameters.values()[0]))
+
+        # Get binary path
+        binary_path = external.parameters.get('binary_path')
 
         cmd.append(binary_path)
         cmd.append(external.parameterfile)
+
+        # append suffix commands, e.g., a second parameter file 'DSMC.ini' or '-N 12'
+        cmd_suffix = external.parameters.get('cmd_suffix')
+        if cmd_suffix :
+            cmd.append(cmd_suffix)
+
+        # Command for executing beforehand 
+        cmd_pre_execute = external.parameters.get('cmd_pre_execute')
+        if cmd_pre_execute:
+            cmd_pre = cmd_pre_execute.split()
+            s="Running [%s] ..." % (" ".join(cmd_pre))
+            self.execute_cmd(cmd_pre, external.directory, string_info = tools.indent(s, 2)) # run something
+
+        if self.return_code != 0 :
+            self.successful = False
+            return
 
         # check if the command 'cmd' can be executed
         if self.return_code != 0 :
@@ -399,7 +433,6 @@ class Run(OutputDirectory, ExternalCommand) :
                   shutil.copytree(src, dst) # copy tree
           else :
               shutil.copyfile(src, dst) # copy file
-
     def rename_failed(self) :
         """Rename failed run directories in order to repeat the run when the regression check is repeated.
         This routine is called if either the execution fails or an analysis."""
