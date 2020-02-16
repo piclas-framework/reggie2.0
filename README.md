@@ -1,4 +1,4 @@
-# Reggie2.0 toolbox
+supply external two e# Reggie2.0 toolbox
 ```mermaid
 graph TD;
   gitlab_ci.py["gitlab_ci.py"]-->|call|A[reggie.py];
@@ -454,8 +454,8 @@ parameters used in `externals.ini`
 |runtime of external (pre or post)          | externalruntime                      | pre,post                                              | None                             | supply the runtime of the external binary and its parameterfiles as pre- or postprocessing                                 |
 
 # Example
-* supply external two external binary hopr and posti
-* supply two directories with paramterfiles for each external 
+* supply two external binaries: hopr and posti
+* supply two directories with paramterfiles for each external tool
 * different runtimes for hopr and posti
 * (optional: run different MPI threads with hopr and posti, see above)
 
