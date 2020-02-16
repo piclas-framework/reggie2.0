@@ -576,7 +576,7 @@ class Analyze_Convtest_h(Analyze) :
 
             # 1.4.1   determine average convergence rate
             mean = [np.mean(L2_order[i]) for i in range(nVar)]
-            print(tools.blue("L2 average order for nVar=%s (exprected order = %s)" % (nVar,p+1)))
+            print(tools.blue("L2 average order for nVar=%s (expected order = %s)" % (nVar,p+1)))
             displayVector(mean,nVar)
 
             if pyplot_module_loaded : # this boolean is set when importing matplotlib.pyplot
@@ -585,7 +585,7 @@ class Analyze_Convtest_h(Analyze) :
                     if 1 == 2 :
                         self.grid_spacing = [1.0/((p+1)*float(x)) for x in self.cells]
                         plt.plot(self.grid_spacing, L2_errors[i], 'ro-')    # create plot
-                        plt.xlabel('Average grid spacing for unit domain lenght L_domain=1')                # set x-label
+                        plt.xlabel('Average grid spacing for unit domain length L_domain=1')                # set x-label
                     else :
                         plt.plot(self.cells, L2_errors[i], 'ro-')    # create plot
                         plt.xlabel('Number of cells')                # set x-label
@@ -792,7 +792,7 @@ class Analyze_Convtest_t(Analyze) :
 
             # 1.4.1   determine average convergence rate
             mean = [np.mean(L2_order[i]) for i in range(nVar)]
-            print(tools.blue("L2 average order for nVar=%s (exprected order = %s)" % (nVar,self.order)))
+            print(tools.blue("L2 average order for nVar=%s (expected order = %s)" % (nVar,self.order)))
             displayVector(mean,nVar)
 
             if pyplot_module_loaded : # this boolean is set when importing matplotlib.pyplot
@@ -801,7 +801,7 @@ class Analyze_Convtest_t(Analyze) :
                     if 1 == 2 :
                         self.grid_spacing = [1.0/((self.order)*float(x)) for x in self.x_values]
                         plt.plot(self.grid_spacing, L2_errors[i], 'ro-')    # create plot
-                        plt.xlabel('Average grid spacing for unit domain lenght L_domain=1')                # set x-label
+                        plt.xlabel('Average grid spacing for unit domain length L_domain=1')                # set x-label
                     else :
                         plt.plot(self.x_values, L2_errors[i], 'ro-')    # create plot
                         plt.xlabel('x: %s' % self.name)                # set x-label
@@ -1231,9 +1231,9 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
 
                     # 1.2.1   execute the command 'cmd' = 'h5diff -r [--type] [value] [ref_file] [file] [DataSetName]'
                     cmd = ["h5diff","-r",tolerance_type_loc,str(tolerance_value_loc),str(reference_file_loc),str(file_loc),str(data_set_loc)]
-                    print(tools.indent("Running [%s]" % (" ".join(cmd)), 2), end=' ') # skip linebreak
                     try :
-                        self.execute_cmd(cmd, run.target_directory,"h5diff") # run the code
+                        s="Running [%s] ..." % (" ".join(cmd))
+                        self.execute_cmd(cmd, run.target_directory,name="h5diff", string_info = tools.indent(s, 2)) # run the code
 
                         # 1.2.2   Check maximum number of differences if user has selected h5diff_max_differences > 0
                         try : 

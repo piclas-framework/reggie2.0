@@ -28,13 +28,25 @@ class ExternalCommand() :
         self.result = ""
         self.walltime = 0
 
-    def execute_cmd(self, cmd, target_directory, name="std"):
+    def execute_cmd(self, cmd, target_directory, name="std", string_info = None, environment = None):
         """Execute an external program specified by 'cmd'. The working directory of this program is set to target_directory.
         Returns the return_code of the external program.
+
+        cmd                    : command given as list of strings (the command is split at every white space occurrence)
+        target_directory       : path to directory where the cmd command is to be executed
+        name (optional)        : [name].std and [name].err files are created for storing the std and err output of the job
+        string_info (optional) : Print info regarding the command that is executed before execution
+        environment (optional) : run cmd command with environment variables as given by environment=os.environ (and possibly modified)
         """
-        if type(cmd) != type([]) : # check that only cmd arguments of type 'list' are supplied to this function
+        # Display string_info
+        if string_info is not None:
+            print(string_info)
+
+        # check that only cmd arguments of type 'list' are supplied to this function
+        if type(cmd) != type([]) :
             print(tools.red("cmd must be of type 'list'\ncmd=")+str(cmd)+tools.red(" and type(cmd)="),type(cmd))
             exit(1)
+
         sys.stdout.flush() # flush output here, because the subprocess will force buffering until it is finished
         log = logging.getLogger('logger')
 
@@ -44,16 +56,22 @@ class ExternalCommand() :
         start = timer()
         (pipeOut_r, pipeOut_w) = os.pipe()
         (pipeErr_r, pipeErr_w) = os.pipe()
-        process = subprocess.Popen(cmd, stdout=pipeOut_w, \
-                                        stderr=pipeErr_w, \
-                                        universal_newlines=True, cwd=workingDir)
+        if environment is None :
+            self.process = subprocess.Popen(cmd, stdout=pipeOut_w, \
+                                            stderr=pipeErr_w, \
+                                            universal_newlines=True, cwd=workingDir)
+        else :
+            self.process = subprocess.Popen(cmd, stdout=pipeOut_w, \
+                                            stderr=pipeErr_w, \
+                                            universal_newlines=True, cwd=workingDir, \
+                                            env = environment)
 
         self.stdout = []
         self.stderr = []
 
         bufOut = ""
         bufErr = ""
-        while process.poll() is None:
+        while self.process.poll() is None:
             # Loop long as the selct mechanism indicates there
             # is data to be read from the buffer
 
@@ -89,7 +107,7 @@ class ExternalCommand() :
         os.close(pipeErr_r)
 
 
-        self.return_code = process.returncode
+        self.return_code = self.process.returncode
 
         end = timer()
         self.walltime = end - start
@@ -107,7 +125,18 @@ class ExternalCommand() :
                     f.write(line)
         else :
             self.result=tools.blue("Successful")
-        print(self.result+" [%.2f sec]" % self.walltime)
+
+        # Display result (Successful or Failed)
+        if string_info is not None:
+            # display result and wall time in previous line and shift the text by ncols columns to the right
+            # Note that f-strings in print statements, e.g. print(f"...."), only work in python 3
+            # print(f"\033[F\033[{ncols}G "+str(self.result)+" [%.2f sec]" % self.walltime)
+            ncols = len(string_info)+1
+            print("\033[F\033[%sG " % ncols +str(self.result)+" [%.2f sec]" % self.walltime)
+        else :
+            print(self.result+" [%.2f sec]" % self.walltime)
 
         return self.return_code
     
+    def kill(self):
+        self.process.kill()

@@ -136,11 +136,12 @@ class Case(ExternalCommand) :
         logging.getLogger('logger').debug("")
 
         self.suffix = suffix
+        self.prefix = suffix[1:]+"_"
 
     def run(self,i) :
-        print("cmd=%s" % self.command)
         try :
-            if self.execute_cmd(self.command, self.target_directory) != 0 : # use uncolored string for cmake
+            s = "cmd=%s" % self.command
+            if self.execute_cmd(self.command, self.target_directory, string_info = s) != 0 : # use uncolored string for cmake
                 self.failed=True
         except : # this fails, if the supplied command line is corrupted
             print(tools.red("Failed"))
@@ -201,7 +202,8 @@ class Case(ExternalCommand) :
                     try :
                         if file.index('order') != -1 :
                             order = file[file.index('order')+5:-4]             # get string from 'order' + 5 to the end, but remove last 4 character ".pdf"
-                            new_name = "L2"+self.suffix+"_order%s.pdf" % order # add suffix to name
+                            #new_name = "L2"+self.suffix+"_order%s.pdf" % order # add suffix to name
+                            new_name = self.prefix+file
                     except :
                         new_name = "L2"+self.suffix+".pdf" 
                     os.system("cp output_dir/standalone/examples/cmd_0001/"+file+" "+self.results_main+new_name) # move file to upper most path
@@ -210,7 +212,8 @@ class Case(ExternalCommand) :
                     try :
                         if file.index('order') != -1 :
                             order = file[file.index('order')+5:-4]             # get string from 'order' + 5 to the end, but remove last 4 character ".pdf"
-                            new_name = "L2"+self.suffix+"_order%s.csv" % order # add suffix to name
+                            #new_name = "L2"+self.suffix+"_order%s.csv" % order # add suffix to name
+                            new_name = self.prefix+file
                     except :
                         new_name = "L2"+self.suffix+".csv" 
                     os.system("cp output_dir/standalone/examples/cmd_0001/"+file+" "+self.results_main+new_name) # move file to upper most path

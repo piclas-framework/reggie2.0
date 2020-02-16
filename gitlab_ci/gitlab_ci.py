@@ -78,7 +78,7 @@ print(132*'='+"\n"+"gitlab-ci processing tool, add nice ASCII art here"+"\n"+132
 start = timer()
 
 # argument parser
-parser = argparse.ArgumentParser(description='DESCRIPTION:\nScript for executing the regression checker for NRG codes multiple times with gitlab-ci.yml.\nSupply the path to the gitlab-ci.yml of the repository that also contains a /regressioncheck/checks structure supporting reggie2.0 and multiple tests can automatically be performed.\nThe output will be stored in the top repository directory under /output_dir_gitlab_tool/.', formatter_class=argparse.RawTextHelpFormatter)
+parser = argparse.ArgumentParser(description='DESCRIPTION:\nScript for executing the regression checker for NRG codes multiple times with information from a gitlab-ci.yml runner file (the relevant python calls will be extracted).\nSupply the path to the gitlab-ci.yml of the repository that also contains a /regressioncheck/checks structure supporting reggie2.0 and multiple tests can automatically be performed.\nThe output will be stored in the top repository directory under /output_dir_gitlab_tool/.', formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument('gitlab_ci', help='Path to gitlab-ci.yml which also contains a /regressioncheck/checks/... structure')
 parser.add_argument('-s', '--stage', default='full', help='Gitlab-ci execution stage: Supply DO_NIGHTLY, DO_WEEKLY, DO_CHECKIN, etc. flag for extracting the relevant cases from gitlab-ci.yml. Default executes all stages.')
 parser.add_argument('-b', '--begin', type=int, default=1,  help='Number of the case: where to start with the run (from the list that this tools creates)')
@@ -188,7 +188,6 @@ if not args.dryrun : # do not execute anythin in dryrun mode
 else :
     print("List of possible cases from gitlab-ci.yml are")
 
-
 print(" ")
 i=1
 nErrors=0
@@ -204,12 +203,13 @@ for case in cases :
 
     # set the command line "cmd"
     cmd=["python", reggie_path]
+    #cmd=["python2.7", reggie_path]
     for x in c.split(" ") :
         cmd.append(str(x).strip())
 
     # add debug level to gitlab-ci command line
     if args.info :
-        cmd.append("-d1")
+        cmd.append("-d2")
 
     # add compiletype if supplied
     if args.compiletype :
@@ -224,13 +224,26 @@ for case in cases :
     else :
         # run case depending on supplied (or default) number "begin"
         if i >= args.begin : # run this case
-            print(str("[%5d]" % i)+tools.blue(" Running  ")+cmd_string, end=' ') # skip linebreak
+            s_Color = str("[%5d]" % i)+tools.blue(" Running  ")+cmd_string+" ..."
+            s_NoColor = str("[%5d]" % i)+" Running  "+cmd_string+" ..."
+            print(s_Color)
+            #print(s+" ...", end=' ') # skip linebreak
+            #print(s+" ...") # skip linebreak
+            #print(s+" ...", end='\r') # skip linebreak
+            #print(s+" ...\r") # skip linebreak
+            #log.debug(s+" ...") # skip linebreak
+            #ncols=len(s)
+            #print(s+f"\033[F\033[{ncols}G Space-lead appended text", end=' ')
+            #print(str("[%5d]" % i)+tools.blue(" Running  ")+cmd_string, end='\r') # skip linebreak
+
+            #print(s, end='\r') # skip linebreak
+            # When debug output is desired, break line here in order for debugging output to beging in the following line from execute_cmd method
             if args.debug > 0 :
                 print(" ")
 
             # run the code and generate output
             try :
-                if case.execute_cmd(cmd, target_directory) != 0 : # use uncolored string for cmake
+                if case.execute_cmd(cmd, target_directory, string_info = s_NoColor.strip()) != 0 : # use uncolored string for cmake
                     case.failed=True
             except : # this fails, if the supplied command line is corrupted
                 print(tools.red("Failed"))

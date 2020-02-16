@@ -78,16 +78,19 @@ class Build(OutputDirectory,ExternalCommand) :
         print("building")
 
         # CMAKE: execute cmd in build directory
-        print("C-making with [%s] ..." % (" ".join(self.cmake_cmd_color)), end=' ') # skip linebreak
-        if self.execute_cmd(self.cmake_cmd, self.target_directory) != 0 : # use unclolored string for cmake
+        s_Color   = "C-making with [%s] ..." % (" ".join(self.cmake_cmd_color))
+        s_NoColor = "C-making with [%s] ..." % (" ".join(self.cmake_cmd))
+
+        if self.execute_cmd(self.cmake_cmd, self.target_directory, string_info = s_Color) != 0 : # use unclolored string for cmake
             raise BuildFailedException(self) # "CMAKE failed"
 
         # MAKE: default with '-j'
         self.make_cmd = ["make", "-j"]
         if buildprocs > 0 : self.make_cmd.append(str(buildprocs))
         # execute cmd in build directory
-        print("Building with [%s] ..." % (" ".join(self.make_cmd)), end=' ') # skip linebreak
-        if self.execute_cmd(self.make_cmd, self.target_directory) != 0 :
+        s_NoColor="Building with [%s] ..." % (" ".join(self.make_cmd))
+
+        if self.execute_cmd(self.make_cmd, self.target_directory, string_info = s_NoColor) != 0 :
             raise BuildFailedException(self) # "MAKE failed"
         print('-'*132)
 
@@ -326,8 +329,8 @@ class ExternalRun(OutputDirectory,ExternalCommand) :
         if self.return_code != 0 :
             print(tools.indent("Cannot run the code: "+s,2))
         else :
-            print(tools.indent("Running [%s] ..." % (" ".join(cmd)), 2), end=' ') # skip linebreak
-            self.execute_cmd(cmd, external.directory) # run the code
+            s="Running [%s] ..." % (" ".join(cmd))
+            self.execute_cmd(cmd, external.directory, string_info = tools.indent(s, 2)) # run the code
 
         if self.return_code != 0 :
             self.successful = False
@@ -469,8 +472,8 @@ class Run(OutputDirectory, ExternalCommand) :
         if self.return_code != 0 :
             print(tools.indent("Cannot run the code: "+s,2))
         else :
-            print(tools.indent("Running [%s] ..." % (" ".join(cmd)), 2), end=' ') # skip linebreak
-            self.execute_cmd(cmd, self.target_directory) # run the code
+            s="Running [%s] ..." % (" ".join(cmd))
+            self.execute_cmd(cmd, self.target_directory, string_info = tools.indent(s, 2)) # run the code
 
         # Copy restart file if required
         if cmd_restart_file and args.restartcopy:
