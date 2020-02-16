@@ -125,10 +125,10 @@ def create_folder(path):
                 pass
 
 
-def finalize(start, build_errors, run_errors, analyze_errors, analyze_infos) :
+def finalize(start, build_errors, run_errors, external_run_errors, analyze_errors, analyze_infos) :
     """Display if regression check was successful or not and return the corresponding error code"""
-    if build_errors + run_errors + analyze_errors + analyze_infos > 0 :
-        if run_errors + analyze_errors > 0 :
+    if build_errors + run_errors + analyze_errors + analyze_infos + external_run_errors > 0 :
+        if run_errors + analyze_errors + external_run_errors > 0 :
             print(bcolors.RED + 132*'=')
             print("reggie 2.0  FAILED!", end=' ') # skip linebreak
             return_code = 1
@@ -147,10 +147,11 @@ def finalize(start, build_errors, run_errors, analyze_errors, analyze_infos) :
     else :
         print("")
 
-    print("Number of build   errors: %d" % build_errors)
-    print("Number of run     errors: %d" % run_errors)
-    print("Number of analyze errors: %d" % analyze_errors)
-    print("Number of analyze  infos: %d" % analyze_infos)
+    print("Number of build        errors: %d" % build_errors)
+    print("Number of run          errors: %d" % run_errors)
+    print("Number of external run errors: %d" % external_run_errors)
+    print("Number of analyze      errors: %d" % analyze_errors)
+    print("Number of analyze       infos: %d" % analyze_infos)
 
     print('='*132 + bcolors.ENDC)
     exit(return_code)
