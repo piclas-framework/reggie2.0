@@ -439,19 +439,20 @@ Template for copying to `command_line.ini`
 ```
 ! command line parameters
 MPI=2
-cmd_suffix=DSMC.ini
+cmd\_suffix=DSMC.ini
 ```
 
 # Externals
 
 parameters used in `externals.ini` 
 
-|**function**                               | **options**                          | **values**                                            | **Default values**               | **Description**           
-|:-----------------------------------------:|:-------------------------------------|:------------------------------------------------------|:---------------------------------|:---------------------------------------------------------------------------------------------------------------------------|
-|mpirun                                     | MPI                                  | 1,2,4,8                                               | None                             | number of MPI threads with which the runs are repeated                                                                     |
-|name of external binary in bin folder      | externalbinary                       | hopr                                                  | None                             | supply the external binary name (the binary is assume to lie in each "build/bin/" directory                                |
-|directory of ini-files for external binary | externaldirectory                    | hopr                                                  | None                             | supply the relative path (starting from each example folder) to the directory of the parameterfiles for the external binary|
-|runtime of external (pre or post)          | externalruntime                      | pre,post                                              | None                             | supply the runtime of the external binary and its parameterfiles as pre- or postprocessing                                 |
+| **function**                                 | **options**           | **values**                     | **Default values** | **Description**
+| :-----------------------------------------:  | :-------------------- | :----------------------------- | :---------------   | :--------------------------------------------------------------------------------------------------------------------------- |
+| mpirun                                       | MPI                   | 1,2,4,8                        | None               | number of MPI threads with which the runs are repeated                                                                       |
+| name of external binary in bin folder        | externalbinary        | hopr                           | None               | supply the external binary name (the binary is assume to lie in each "build/bin/" directory                                  |
+| directory of ini-files for external binary   | externaldirectory     | hopr                           | None               | supply the relative path (starting from each example folder) to the directory of the parameterfiles for the external binary  |
+| runtime of external (pre or post)            | externalruntime       | pre,post                       | None               | supply the runtime of the external binary and its parameterfiles as pre- or postprocessing                                   |
+| Pre-execution command                        | cmd\_pre\_execute     | ln\s-s\s../cube_mesh.h5        | None               | Run additional script before external in executed (e.g. create an symbolic link)                                             |
 
 # Example
 * supply two external binaries: hopr and posti
@@ -459,7 +460,7 @@ parameters used in `externals.ini`
 * different runtimes for hopr and posti
 * (optional: run different MPI threads with hopr and posti, see above)
 
-Template for copying to `command_line.ini`
+Template for copying to `command\_line.ini`
 
 ```
 ! external parameters
@@ -481,7 +482,7 @@ parameters used in `builds.ini` and example arguments
 |:------------------------:|:-------------------------------------|:------------------------------------------------------|:---------------------------------|:---------------------------------------------------------------------------------------------------------------------------|
 |program to execute        | binary                               | ./bin/flexi                                           | None                             | set the relative binary path in build directory                                                                            |
 |compile flags             | CMAKE\_BUILD\_TYPE                   | DEBUG                                                 | None                             | set compile flags to the corresponding settings                                                                            |
-|exclude combinations      | EXCLUDE:                             | FLEXI_VISCOSITY=sutherland,FLEXI_PARABOLIC=OFF        | None                             | exclude specific combinations of compile flags, these will be skipped                                                      |
+|exclude combinations      | EXCLUDE:                             | FLEXI\_VISCOSITY=sutherland,FLEXI\_PARABOLIC=OFF        | None                             | exclude specific combinations of compile flags, these will be skipped                                                      |
 
 
 # Runs
