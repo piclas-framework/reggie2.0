@@ -139,9 +139,9 @@ class Case(ExternalCommand) :
         self.prefix = suffix[1:]+"_"
 
     def run(self,i) :
-        print("cmd=%s" % self.command)
         try :
-            if self.execute_cmd(self.command, self.target_directory) != 0 : # use uncolored string for cmake
+            s = "cmd=%s" % self.command
+            if self.execute_cmd(self.command, self.target_directory, string_info = s) != 0 : # use uncolored string for cmake
                 self.failed=True
         except : # this fails, if the supplied command line is corrupted
             print(tools.red("Failed"))
