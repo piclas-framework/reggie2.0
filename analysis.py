@@ -34,6 +34,8 @@ except ImportError :
 
 # import pyplot for creating plots
 try :
+    import matplotlib
+    matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator # required for setting axis format to integer only (p-convergence)
     pyplot_module_loaded = True # will be set false if user does not supply read-in flag in getAnalyzes(path, example) function
@@ -580,8 +582,8 @@ class Analyze_Convtest_h(Analyze) :
             displayVector(mean,nVar)
 
             if pyplot_module_loaded : # this boolean is set when importing matplotlib.pyplot
+                f = plt.figure()                             # create figure
                 for i in range(nVar) :
-                    f = plt.figure()                             # create figure
                     if 1 == 2 :
                         self.grid_spacing = [1.0/((p+1)*float(x)) for x in self.cells]
                         plt.plot(self.grid_spacing, L2_errors[i], 'ro-')    # create plot
@@ -597,6 +599,8 @@ class Analyze_Convtest_h(Analyze) :
                     #plt.show() # display the plot figure for the user (comment out when running in batch mode)
                     f_save_path = os.path.join(os.path.dirname(runs[0].target_directory),"L2_error_nVar"+str(i)+"_order%.2f.pdf" % mean[i]) # set file path for saving the figure to the disk
                     f.savefig(f_save_path, bbox_inches='tight')                                                         # save figure to .pdf file
+                    plt.cla()
+                plt.close(f)
             else :
                 print(tools.yellow('Could not import matplotlib.pyplot module. This is required for creating plots under "Analyze_Convtest_h(Analyze)". \nSet "use_matplot_lib=True" in analyze.ini in order to activate plotting.'))
 
@@ -796,8 +800,8 @@ class Analyze_Convtest_t(Analyze) :
             displayVector(mean,nVar)
 
             if pyplot_module_loaded : # this boolean is set when importing matplotlib.pyplot
+                f = plt.figure()                             # create figure
                 for i in range(nVar) :
-                    f = plt.figure()                             # create figure
                     if 1 == 2 :
                         self.grid_spacing = [1.0/((self.order)*float(x)) for x in self.x_values]
                         plt.plot(self.grid_spacing, L2_errors[i], 'ro-')    # create plot
@@ -813,6 +817,8 @@ class Analyze_Convtest_t(Analyze) :
                     #plt.show() # display the plot figure for the user (comment out when running in batch mode)
                     f_save_path = os.path.join(os.path.dirname(runs[0].target_directory),"L2_error_nVar"+str(i)+"_order%.2f.pdf" % mean[i]) # set file path for saving the figure to the disk
                     f.savefig(f_save_path, bbox_inches='tight')                                                         # save figure to .pdf file
+                    plt.cla()
+                plt.close(f)
             else :
                 print(tools.yellow('Could not import matplotlib.pyplot module. This is required for creating plots under "Analyze_Convtest_t(Analyze)". \nSet "use_matplot_lib=True" in analyze.ini in order to activate plotting.'))
 
@@ -938,8 +944,8 @@ class Analyze_Convtest_p(Analyze) :
             writeTableToFile(L2_errors,nVar,nRuns,p,os.path.dirname(runs[0].target_directory),"L2_error.csv")
 
             if pyplot_module_loaded : # this boolean is set when importing matplotlib.pyplot
+                f = plt.figure()                             # create figure
                 for i in range(nVar) :
-                    f = plt.figure()                                    # create figure
                     ax = f.gca()                                        # set axis handle
                     plt.plot(p , L2_errors[i], 'ro-')                   # create plot
                     #plt.xscale('log')                                  # set x-xis to log scale
@@ -952,6 +958,8 @@ class Analyze_Convtest_p(Analyze) :
                     #plt.show() # display the plot figure for the user (comment out when running in batch mode)
                     f_save_path = os.path.join(os.path.dirname(runs[0].target_directory),"L2_error_nVar"+str(i)+".pdf") # set file path for saving the figure to the disk
                     f.savefig(f_save_path, bbox_inches='tight')                                                         # save figure to .pdf file
+                    plt.cla()
+                plt.close(f)
             else :
                 print(tools.yellow('Could not import matplotlib.pyplot module. This is required for creating plots under "Analyze_Convtest_p(Analyze)". \nSet "use_matplot_lib=True" in analyze.ini in order to activate plotting.'))
 
