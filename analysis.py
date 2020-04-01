@@ -253,12 +253,13 @@ def getAnalyzes(path, example, args) :
         analyze.append(Analyze_check_hdf5(check_hdf5_file, check_hdf5_data_set, check_hdf5_span, check_hdf5_dimension, check_hdf5_limits))
 
     # 2.7   check data file row
-    compare_data_file_name           = options.get('compare_data_file_name',None)
-    compare_data_file_reference      = options.get('compare_data_file_reference',None)
-    compare_data_file_tolerance      = options.get('compare_data_file_tolerance',None)
-    compare_data_file_tolerance_type = options.get('compare_data_file_tolerance_type','absolute')
-    compare_data_file_line           = options.get('compare_data_file_line','last')
-    compare_data_file_delimiter      = options.get('compare_data_file_delimiter',',')
+    compare_data_file_name            = options.get('compare_data_file_name',None)
+    compare_data_file_reference       = options.get('compare_data_file_reference',None)
+    compare_data_file_tolerance       = options.get('compare_data_file_tolerance',None)
+    compare_data_file_tolerance_type  = options.get('compare_data_file_tolerance_type','absolute')
+    compare_data_file_line            = options.get('compare_data_file_line','last')
+    compare_data_file_delimiter       = options.get('compare_data_file_delimiter',',')
+    compare_data_file_max_differences = options.get('compare_data_file_max_differences',0)
     if all([compare_data_file_name, compare_data_file_reference, compare_data_file_tolerance, compare_data_file_line]) :
         if compare_data_file_tolerance_type in ('absolute', 'delta', '--delta') :
             compare_data_file_tolerance_type = "absolute"
@@ -266,7 +267,7 @@ def getAnalyzes(path, example, args) :
             compare_data_file_tolerance_type = "relative"
         else :
             raise Exception(tools.red("initialization of compare data file failed. h5diff_tolerance_type '%s' not accepted." % h5diff_tolerance_type))
-        analyze.append(Analyze_compare_data_file(compare_data_file_name, compare_data_file_reference, compare_data_file_tolerance, compare_data_file_line, compare_data_file_delimiter, compare_data_file_tolerance_type, args.referencescopy))
+        analyze.append(Analyze_compare_data_file(compare_data_file_name, compare_data_file_reference, compare_data_file_tolerance, compare_data_file_line, compare_data_file_delimiter, compare_data_file_max_differences, compare_data_file_tolerance_type, args.referencescopy))
 
     # 2.8   integrate data file column
     integrate_line_file            = options.get('integrate_line_file',None)                 # file name (path) which is analyzed
@@ -1398,7 +1399,7 @@ class Analyze_check_hdf5(Analyze) :
 #==================================================================================================
 
 class Analyze_compare_data_file(Analyze) :
-    def __init__(self, compare_data_file_name, compare_data_file_reference, compare_data_file_tolerance, compare_data_file_line, compare_data_file_delimiter, compare_data_file_tolerance_type, referencescopy) :
+    def __init__(self, compare_data_file_name, compare_data_file_reference, compare_data_file_tolerance, compare_data_file_line, compare_data_file_delimiter, compare_data_file_max_differences, compare_data_file_tolerance_type, referencescopy) :
         # set file for comparison
         self.file           = compare_data_file_name
         if type(self.file) == type([]) :
@@ -1425,8 +1426,11 @@ class Analyze_compare_data_file(Analyze) :
         else :
             self.line = int(compare_data_file_line)
 
-        # set the delimter symbol (',' is default)
+        # set the delimiter symbol (',' is default)
         self.delimiter = compare_data_file_delimiter
+
+        # set maximum number of allowed differences where the error is greater than the tolerance
+        self.max_differences = int(compare_data_file_max_differences)
 
         # set logical for creating new reference files and copying them to the example source directory
         self.referencescopy = referencescopy
@@ -1516,11 +1520,11 @@ class Analyze_compare_data_file(Analyze) :
                         header_line = row
                     i+=1
                     if i == self.line :
-                        print(tools.yellow(str(i)), end=' ') # skip linebreak
+                        print(tools.yellow(str(i)), end=' ') # skip line break
                         break
                 line_len = len(line)
             
-            # 1.3.2   read refernece file
+            # 1.3.2   read reference file
             line_ref = []
             with open(path_ref_target, 'r') as csvfile:
                 line_str = csv.reader(csvfile, delimiter=self.delimiter, quotechar='!')
@@ -1543,13 +1547,20 @@ class Analyze_compare_data_file(Analyze) :
 
             # 1.3.4   calculate difference and determine compare with tolerance
             success = tools.diff_lists(line, line_ref, self.tolerance, self.tolerance_type)
-            if not all(success) :
-                s = tools.red("Mismatch in columns: "+", ".join([str(header_line[i]).strip() for i in range(len(success)) if not success[i]]))
-                print(s)
-                run.analyze_results.append(s)
-                run.analyze_successful=False
-                Analyze.total_errors+=1
-            
+            NbrOfDifferences = success.count(False)
+
+            #if not all(success) :
+            if NbrOfDifferences > 0 :
+                s = tools.red("Found %s differences.\n" % NbrOfDifferences)
+                s = s+tools.red("Mismatch in columns: "+", ".join([str(header_line[i]).strip() for i in range(len(success)) if not success[i]]))
+                if NbrOfDifferences > self.max_differences :
+                    print(s)
+                    run.analyze_results.append(s)
+                    run.analyze_successful=False
+                    Analyze.total_errors+=1
+                else :
+                    s2 = tools.red(", but %s differences are allowed (given by compare_data_file_max_differences). This analysis is therefore marked as passed." % self.max_differences)
+                    print(s+s2)
 
     def __str__(self) :
         return "compare line in data file (e.g. .csv file): file=[%s] and reference file=[%s]" % (self.file, self.reference)
