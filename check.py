@@ -490,16 +490,18 @@ class Run(OutputDirectory, ExternalCommand) :
             # check if file exists
             cmd_restart_file_abspath = os.path.abspath(os.path.join(self.target_directory,cmd_restart_file))
             found = os.path.exists(cmd_restart_file_abspath)
-            if not found :
-                if args.restartcopy :
-                    s=tools.yellow("Restart file copy activated. Starting fresh simulation at t=0.")
-                    print(tools.indent(s,2))
-                else :
+
+            # Check if restartcopy is activated (if true start the simulation at t=0 and copy (create/replace if already exists) to example directory
+            if args.restartcopy :
+                s=tools.yellow("Restart file copy activated. Starting fresh simulation at t=0.")
+                print(tools.indent(s,2))
+            else : # default
+                if not found :
                     self.return_code = -1 
                     self.result=tools.red("Restart file not found")
                     s=tools.red("Restart file '%s' not found under \n '%s'" % (cmd_restart_file,cmd_restart_file_abspath))
-            else :
-                cmd.append(cmd_restart_file)
+                else :
+                    cmd.append(cmd_restart_file)
 
         # check if the command 'cmd' can be executed
         if self.return_code != 0 :
