@@ -466,7 +466,7 @@ class Run(OutputDirectory, ExternalCommand) :
                     # Limit the number of mpithreads
                     if MPIthreads:
                         if int(MPIthreads) > int(nElems[0]) :
-                            s = tools.yellow("Reducing number of MPI threads from %s to %s (number of elements in mesh)!" % (int(MPIthreads),int(nElems[0])))
+                            s = tools.yellow("Automatically reducing number of MPI threads from %s to %s (number of elements in mesh)!" % (int(MPIthreads),int(nElems[0])))
                             print(s)
                         MPIthreads = str(min(int(nElems[0]),int(MPIthreads)))
             except Exception as ex :

@@ -483,7 +483,7 @@ class Analyze_L2(Analyze) :
             
             # 1.2   if one L2 errors is larger than the tolerance -> fail
             if (L2_errors > self.L2_tolerance).any() :
-                s = tools.red("analysis failed: L2 error >"+str(self.L2_tolerance))
+                s = tools.red("analysis failed. L2 error: L2_errors > "+str(self.L2_tolerance))
                 print(s)
                 
                 # 1.3   append info for summary of errors
@@ -1667,7 +1667,7 @@ class Analyze_integrate_line(Analyze) :
                     dQ = dx * (y[i+1]+y[i])/2.0
                 Q += dQ
             Q = Q*self.multiplier
-            print("integrated value (trapezoid rule) Q = %s" % Q)
+            print("integrated value (trapezoid rule) Q = %s (reference value is %s)" % (Q,self.integral_value))
             
             # 1.5   calculate difference and determine compare with tolerance
             success = tools.diff_value(Q, self.integral_value, self.tolerance_value, self.tolerance_type)
