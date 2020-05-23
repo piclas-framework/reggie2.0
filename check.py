@@ -213,7 +213,7 @@ def SetMPIrun(build, args, MPIthreads) :
     if MPIthreads :
         # Check if single execution is wanted (independent of the compiled executable)
         if args.noMPI :
-            print(tools.indent(tools.yellow("noMPI=%s, running case in single (without 'mpirun -np')" % (args.noMPI)),3))
+            print(tools.indent(tools.yellow("noMPI=%s, running case in single (without 'mpirun -np')" % (args.noMPI)),2))
             cmd = []
         else :
             # Check whether the compiled executable was created with MPI=ON
@@ -500,55 +500,61 @@ class Run(OutputDirectory, ExternalCommand) :
                 if not found :
                     self.return_code = -1 
                     self.result=tools.red("Restart file not found")
-                    s=tools.red("Restart file '%s' not found under \n '%s'" % (cmd_restart_file,cmd_restart_file_abspath))
+                    s=tools.red("Restart file [%s] not found under [%s]" % (cmd_restart_file,cmd_restart_file_abspath))
                 else :
                     cmd.append(cmd_restart_file)
 
         # check if the command 'cmd' can be executed
         if self.return_code != 0 :
-            print(tools.indent("Cannot run the code: "+s,2))
+            s=tools.red(tools.indent("Cannot run the code: "+s,2))
+            print(s)
         else :
             s="Running [%s] ..." % (" ".join(cmd))
             self.execute_cmd(cmd, self.target_directory, string_info = tools.indent(s, 2)) # run the code
 
         # Copy restart file if required
         if cmd_restart_file and args.restartcopy:
-            # Get directory path and filename of the originally required restart file
+            # 1. Get directory path and filename of the originally required restart file
             head, tail = os.path.split(cmd_restart_file_abspath)
-            # file path to be copied
+
+            # 2. File path to be copied
             restart_file_path=os.path.abspath(os.path.join(self.target_directory,tail))
-            # target file path
+
+            # Check whether the newly created restart file actually has a different name than the one supplied in cmd_restart_file,
+            # e.g., [Test_State_000.000000.h5] instead of [Test_State_000.000000_restart.h5] the first will be the source and the 
+            # latter will be the target file name
+            try:
+                file_name = os.path.join(self.target_directory,'std.out')
+                with open(file_name) as f:
+                    for line in f.readlines() : # iterate over all lines of the file
+                        if 'WRITE STATE TO HDF5 FILE' in line:
+                           s=line.rstrip()
+                           FileName=re.search(r'\[(.*?)\]',s).group(1) # search for string within parenthesis [...] and check if that is a file that exists
+                           replace_restart_file_path = os.path.join(self.target_directory,FileName)
+                           print("replace_restart_file_path = %s" % (replace_restart_file_path))
+                           print("os.path.isfile(replace_restart_file_path) = %s" % (os.path.isfile(replace_restart_file_path)))
+                           if replace_restart_file_path and os.path.isfile(replace_restart_file_path):
+                               print(tools.yellow("Found replacement for restart file copy: [%s] instead of [%s]" % (FileName,cmd_restart_file)))
+                               restart_file_path = replace_restart_file_path
+                               cmd_restart_file  = FileName
+                           break 
+            except Exception as e:
+                print(tools.red("Tried getting the first State file name from std.out. Failed. Using original restart file for copying: [%s]" % cmd_restart_file))
+                print(tools.red("e = %s" % (e)))
+                pass
+
+            # 3. Target file path
             restart_file_path_target=os.path.join(self.source_directory,tail)
 
+            # 4. Check if the file for copying exists
             found = os.path.exists(restart_file_path)
             if not found :
+                # Restart file not found (or not created)
                 self.return_code = -1 
-                self.result=tools.red("Restart file was not created")
-                s=tools.red("Restart file (which should have been created) '%s' not generated under \n '%s'" % (cmd_restart_file,cmd_restart_file_abspath))
+                self.result=tools.red("Restart file [%s] was not created" % cmd_restart_file)
+                s=tools.red("Restart file (which should have been created) [%s] not found under [%s]" % (cmd_restart_file,restart_file_path))
+                print(s)
             else :
-                # Check whether the newly created restart file actually has a different name than the one supplied in cmd_restart_file,
-                # e.g., [Test_State_000.000000.h5] instead of [Test_State_000.000000_restart.h5] the first will be the source and the 
-                # latter will be the target file name
-                try:
-                    #cmd = ['grep','"WRITE STATE TO HDF5 FI"','std.out']
-                    #s="Running [%s] ..." % (" ".join(cmd))
-                    #self.execute_cmd(cmd, self.target_directory, name="restart-file-grep", string_info = tools.indent(s, 2)) # run the code
-                    file_name = os.path.join(self.target_directory,'std.out')
-                    with open(file_name) as f:
-                        for line in f.readlines() : # iterate over all lines of the file
-                            if 'WRITE STATE TO HDF5 FILE' in line:
-                               s=line.rstrip()
-                               name=re.search(r'\[(.*?)\]',s).group(1) # search for string within parenthesis [...] and check if that is a file that exists
-                               replace_restart_file_path = os.path.join(self.target_directory,name)
-                               if replace_restart_file_path and os.path.isfile(replace_restart_file_path):
-                                   print(tools.yellow("Found replacement for restart file copy: [%s] instead of [%s]" % (name,cmd_restart_file)))
-                                   restart_file_path = replace_restart_file_path
-                               break 
-                except Exception as e:
-                    print(tools.red("Tried getting the first State file name from std.out. Failed. Using original restart file for copying: [%s]" % cmd_restart_file))
-                    print(tools.red("e = %s" % (e)))
-                    pass
-
                 # Copy new restart file
                 copyRestartFile(restart_file_path,restart_file_path_target)
                 s=tools.yellow("Run(OutputDirectory, ExternalCommand): performed restart file copy!")
