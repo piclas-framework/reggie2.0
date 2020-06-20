@@ -93,7 +93,7 @@ class ExternalCommand() :
                 # Read up to a 1 KB chunk of data
                 out_s = os.read(pipeErr_r, 1024)
                 if not isinstance(out_s, str):
-                    out_s = out_s.decode("utf-8")
+                    out_s = out_s.decode("utf-8", 'ignore')
                 bufErr = bufErr + out_s
                 tmp = bufErr.split('\n') 
                 for line in tmp[:-1] :
