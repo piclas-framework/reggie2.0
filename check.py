@@ -142,7 +142,7 @@ class Example(OutputDirectory) :
         OutputDirectory.__init__(self, build, os.path.join("examples",os.path.basename(self.source_directory)))
 
     def __str__(self) :
-        s = "EXAMPLE in: " + self.source_directory
+        s = tools.yellow("EXAMPLE in: " + self.source_directory)
         return tools.indent(s,1)
 
 def getExamples(path, build, log) :
