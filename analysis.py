@@ -438,7 +438,7 @@ class Analyze_L2_file(Analyze) :
                 Analyze.total_errors+=1
 
     def __str__(self) :
-        return "perform L2 error comparison with L2 errors in file %s" % self.file
+        return "perform L2 error comparison with L2 errors in file %s, tolerance=%s (%s) for $%s" % (self.file,self.L2_tolerance,self.L2_tolerance_type,self.error_name)
 
 
 #==================================================================================================
@@ -494,7 +494,7 @@ class Analyze_L2(Analyze) :
                 Analyze.total_errors+=1
 
     def __str__(self) :
-        return "perform L2 error comparison with a pre-defined tolerance"
+        return "perform L2 error comparison with a pre-defined tolerance=%s for $%s" % (self.L2_tolerance,self.error_name)
 
 #==================================================================================================
 
