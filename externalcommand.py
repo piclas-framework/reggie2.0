@@ -136,9 +136,9 @@ class ExternalCommand() :
         else :
             print(self.result+" [%.2f sec]" % self.walltime)
 
-        # Display error information if the code has failed to run: the last 6 lines of std.out and the last 15 lines of std.err
+        # Display error information if the code has failed to run: the last 15 lines of std.out and the last 15 lines of std.err
         if self.return_code != 0 :
-            for line in self.stdout[-6:] :
+            for line in self.stdout[-15:] :
                 print(tools.red("%s" % line.strip()))
             for line in self.stderr[-15:]:
                 print(tools.red("%s" % line.strip()))
