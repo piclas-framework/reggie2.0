@@ -1656,6 +1656,15 @@ class Analyze_integrate_line(Analyze) :
             x = data[self.dim1]
             y = data[self.dim2]
 
+            # 1.3.5   Check the number of data points: Integration can only be performed if at least two points exist
+            if max_lines-header < 2:
+                s="cannot perform analyze Analyze_integrate_line, because there are not enough lines of data to perform the integral calculation. Number of lines = %s" % (max_lines-header)
+                print(tools.red(s))
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                return
+
             # 1.4 integrate the values numerically
             Q=0.0
             for i in range(max_lines-header-1) :
