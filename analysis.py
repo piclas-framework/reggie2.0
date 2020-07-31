@@ -1676,7 +1676,7 @@ class Analyze_integrate_line(Analyze) :
                     dQ = dx * (y[i+1]+y[i])/2.0
                 Q += dQ
             Q = Q*self.multiplier
-            print("integrated value (trapezoid rule) Q = %s (reference value is %s)" % (Q,self.integral_value))
+            print("Integration (trapezoid rule) over %s points gives an integrated value of Q = %s (reference value is %s)" % (max_lines-header,Q,self.integral_value))
             
             # 1.5   calculate difference and determine compare with tolerance
             success = tools.diff_value(Q, self.integral_value, self.tolerance_value, self.tolerance_type)
