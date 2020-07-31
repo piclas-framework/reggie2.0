@@ -136,6 +136,11 @@ class ExternalCommand() :
         else :
             print(self.result+" [%.2f sec]" % self.walltime)
 
+        # Display error information if the code has failed to run
+        if self.return_code != 0 :
+            for line in self.stderr :
+                print(tools.red("%s" % line.strip()))
+
         return self.return_code
     
     def kill(self):
