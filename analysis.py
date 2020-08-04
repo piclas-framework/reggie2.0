@@ -1850,50 +1850,17 @@ class Analyze_compare_column(Analyze) :
                 Analyze.total_errors+=1
                 return
 
-            #                  # 1.4 integrate the values numerically
-            #                  Q=0.0
-            #                  for i in range(max_lines-header-1) :
-            #                      # use trapezoidal rule (also known as the trapezoid rule or trapezium rule)
-            #                      dx = x[i+1]-x[i]
-            #                      dQ = dx * (y[i+1]+y[i])/2.0
-            #                      Q += dQ
-            #                  Q = Q*self.multiplier
-            #                  print("Integration (trapezoid rule) over %s points gives an integrated value of Q = %s (reference value is %s)" % (max_lines-header,Q,self.integral_value))
-            #                  
-            #                  # 1.5   calculate difference and determine compare with tolerance
-            #                  success = tools.diff_value(Q, self.integral_value, self.tolerance_value, self.tolerance_type)
-            #                  if not success :
-            #                      s=tools.red("Mismatch in integrated line: value %s compared with reference value %s (tolerance %s and %s comparison)" % (Q, self.integral_value, self.tolerance_value, self.tolerance_type))
-            #                      print(s)
-            #                      run.analyze_successful=False
-            #                      run.analyze_results.append(s)
-            #                      Analyze.total_errors+=1
-
-
-
-            #print("x = %s" % (x))
-            #print("data_ref = %s" % (data_ref))
-            #print( )
-            #print("len(x) = %s" % (len(x)))
-            #print("len(data_ref) = %s" % (len(data_ref)))
-
             # 1.3.4   calculate difference and determine compare with tolerance
             success = tools.diff_lists(x, data_ref, self.tolerance_value, self.tolerance_type)
             NbrOfDifferences = success.count(False)
 
-            #if not all(success) :
             if NbrOfDifferences > 0 :
                 s = tools.red("Found %s differences.\n" % NbrOfDifferences)
-                #s = s+tools.red("Mismatch in columns: "+", ".join([str(header_line[i]).strip() for i in range(len(success)) if not success[i]]))
                 s = s+tools.red("Mismatch in column: %s" % header_line[self.dim])
-                #if NbrOfDifferences > self.max_differences :
                 print(s)
                 run.analyze_results.append(s)
                 run.analyze_successful=False
                 Analyze.total_errors+=1
-                #else :
-                    #s2 = tools.red(", but %s differences are allowed (given by compare_data_file_max_differences). This analysis is therefore marked as passed." % self.max_differences)
-                    #print(s+s2)
 
 
     def __str__(self) :
