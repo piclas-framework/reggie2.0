@@ -181,6 +181,7 @@ The intention of a whitespace must be stated explcitly.
 |                            | integrate\_line\_option                | DivideByTimeStep                                        | None                               | special option, e.g., calculating a rate by dividing the integrated values by the timestep which is used in the values 'x'                                                                                                               |
 |                            | integrate\_line\_multiplier            | 1                                                       | 1                                  | factor for multiplying the result (in order to acquire a physically meaning value for comparison)                                                                                                                                        |
 | compare data column        | compare\_column\_file                  | PartAnalyze.csv                                         | None                               | name of calculated output file (e.g. .csv file)                                                                                                                                                                                          |
+|                            | compare\_column\_reference\_file       | Refernece.csv                                           | None                               | name of of the reference file
 |                            | compare\_column\_delimiter             | :                                                       | ,                                  | delimiter symbol, default is comma ',' (note that a comma cannot be supplied in this file as it is a delimiter itself)                                                                                                                   |
 |                            | compare\_column\_index                 | 0                                                       | None                               | column index for comparison (Note that the index of the column start at 0)                                                                                                                                                               |
 |                            | compare\_column\_tolerance_value       | 0.8e-2                                                  | None                               | tolerance that is used in comparison                                                                                                                                                                                                     |
@@ -415,6 +416,7 @@ Template for copying to **analyze.ini**
 ```
 ! compare columns in a data file
 compare_column_file            = PartAnalyze.csv ! data file name
+compare_column_reference_file  = reference.csv   ! reference data file name
 compare_column_index           = 0               ! columns index (starts at 0)
 compare_column_tolerance_value = 0.8e-2          ! tolerance
 compare_column_tolerance_type  = relative        ! absolute or relative comparison
