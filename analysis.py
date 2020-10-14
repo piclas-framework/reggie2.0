@@ -1284,7 +1284,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                             print(tools.indent("reference       : "+str(reference_file_loc), 2))
                             print(tools.indent("file            : "+str(file_loc), 2))
                             print(tools.indent("data_set        : "+str(data_set_loc), 2))
-                            run.analyze_results.append("h5diff failed (self.return_code != 0) for [%s] in %s" % (str(data_set_loc),str(file_loc)))
+                            run.analyze_results.append("h5diff failed (self.return_code != 0) for [%s] in [%s] vs. [%s]" % (str(data_set_loc),str(file_loc),str(reference_file_loc)))
 
                             # 1.3.1   add failed info if return a code != 0 to run
                             print(" ")
