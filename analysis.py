@@ -1207,7 +1207,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
 
                 # 1.1.2 compare shape of the dataset of both files, throw error if they do not conincide
                 if b1.shape != b2.shape : # e.g.: b1.shape = (48, 1, 1, 32)
-                    self.result=tools.red(tools.red("h5diff failed because datasets are not comparable due to different shapes: Files [%s] and [%s] have shapes [%s] and [%s]" % (f1,f2,b1.shape,b2.shape))) 
+                    self.result=tools.red(tools.red("h5diff failed because datasets for [%s] are not comparable due to different shapes: Files [%s] and [%s] have shapes [%s] and [%s]" % (data_set_loc,f1,f2,b1.shape,b2.shape))) 
                     print(" "+self.result)
 
                     # 1.1.3   add failed info if return a code != 0 to run
