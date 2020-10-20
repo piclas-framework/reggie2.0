@@ -1200,9 +1200,26 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                 # first key in list: a_group_key = list(f1.keys())[0]      # yields 'DG_Solution'
                 # -------------------
 
-                # 1.1.1   Read the dataset from the hdf5 file
-                b1 = f1[data_set_loc][:]
-                b2 = f2[data_set_loc][:]
+                # 1.1.1   Read the datasets from the hdf5 file
+                try:
+                    b1 = f1[data_set_loc][:]
+                except Exception as e:
+                    s = tools.red("Analyze_h5diff: Could not open .h5 dataset [%s] under in file [%s]. Error message [%s]" % (data_set_loc,path,e))
+                    print(s)
+                    run.analyze_results.append(s)
+                    run.analyze_successful=False
+                    Analyze.total_errors+=1
+                    continue
+
+                try:
+                    b2 = f2[data_set_loc][:]
+                except Exception as e:
+                    s = tools.red("Analyze_h5diff: Could not open .h5 dataset [%s] under in file [%s]. Error message [%s]" % (data_set_loc,path_ref_target,e))
+                    print(s)
+                    run.analyze_results.append(s)
+                    run.analyze_successful=False
+                    Analyze.total_errors+=1
+                    continue
 
 
                 # 1.1.2 compare shape of the dataset of both files, throw error if they do not conincide
@@ -1259,7 +1276,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                     cmd = ["h5diff","-r",tolerance_type_loc,str(tolerance_value_loc),str(reference_file_loc),str(file_loc),str(data_set_loc)]
                     try :
                         s="Running [%s] ..." % (" ".join(cmd))
-                        self.execute_cmd(cmd, run.target_directory,name="h5diff", string_info = tools.indent(s, 2)) # run the code
+                        self.execute_cmd(cmd, run.target_directory,name="h5diff", string_info = tools.indent(s, 2), displayOnFailure = False) # run the code
 
                         # 1.2.2   Check maximum number of differences if user has selected h5diff_max_differences > 0
                         try : 
