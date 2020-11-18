@@ -1122,7 +1122,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
         1.3.2   set analyzes to fail (for return a code != 0)
         '''
         if self.one_diff_per_run and ( self.nCompares != len(runs)) :
-            raise Exception(tools.red("Number of h5diffs and runs is inconsistent. Please ensure all options have the same length or set h5diff_one_diff_per_run=F.")) 
+            raise Exception(tools.red("Number of h5diffs [=%s] and runs [=%s] is inconsistent. Please ensure all options have the same length or set h5diff_one_diff_per_run=F." % (self.nCompares, len(runs))))
 
         # 1.  iterate over all runs
         for iRun, run in enumerate(runs) :
