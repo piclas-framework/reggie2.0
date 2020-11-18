@@ -316,7 +316,7 @@ class Analyze() : # main class from which all analyze functions are derived
 #==================================================================================================
 
 class Clean_up_files() :
-    """Clean up the output folder by deleting sepcified files"""
+    """Clean up the output folder by deleting specified files"""
     def __init__(self, clean_up_files) :
         self.files = clean_up_files
 
@@ -349,7 +349,7 @@ class Clean_up_files() :
                     os.remove(wildcard)
 
     def __str__(self) :
-        return "Clean up the output folder by deleting sepcified files"
+        return "Clean up the output folder by deleting specified files"
 
 
 
@@ -1072,7 +1072,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                 numbers[key] = self.nCompares
 
         if any( [ (number != self.nCompares) for number in numbers.values() ] ) : 
-            raise Exception(tools.red("Number of multiple data sets for multiple h5diffs is inconsitent. Please ensure all options have the same length or length=1.")) 
+            raise Exception(tools.red("Number of multiple data sets for multiple h5diffs is inconsistent. Please ensure all options have the same length or length=1.")) 
 
         # Check tolerance type (absolute or relative) and set the correct h5diff command line argument
         for compare in range(self.nCompares) :
@@ -1111,7 +1111,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
         1.1.0   Read the hdf5 file
         1.1.1   Read the dataset from the hdf5 file
         1.1.1   Read the dataset from the hdf5 file
-        1.1.2   compare shape of the dataset of both files, throw error if they do not conincide
+        1.1.2   compare shape of the dataset of both files, throw error if they do not coincide
         1.1.3   add failed info if return a code != 0 to run
         1.1.4   set analyzes to fail if return a code != 0
         1.2.0   When sorting is used, the sorted array is written to the original .h5 file with a new name
@@ -1122,7 +1122,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
         1.3.2   set analyzes to fail (for return a code != 0)
         '''
         if self.one_diff_per_run and ( self.nCompares != len(runs)) :
-            raise Exception(tools.red("Number of h5diffs and runs is inconsitent. Please ensure all options have the same length or set h5diff_one_diff_per_run=F.")) 
+            raise Exception(tools.red("Number of h5diffs and runs is inconsistent. Please ensure all options have the same length or set h5diff_one_diff_per_run=F.")) 
 
         # 1.  iterate over all runs
         for iRun, run in enumerate(runs) :
@@ -1222,7 +1222,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                     continue
 
 
-                # 1.1.2 compare shape of the dataset of both files, throw error if they do not conincide
+                # 1.1.2 compare shape of the dataset of both files, throw error if they do not coincide
                 if b1.shape != b2.shape : # e.g.: b1.shape = (48, 1, 1, 32)
                     self.result=tools.red(tools.red("h5diff failed because datasets for [%s] are not comparable due to different shapes: Files [%s] and [%s] have shapes [%s] and [%s]" % (data_set_loc,f1,f2,b1.shape,b2.shape))) 
                     print(" "+self.result)
@@ -1297,7 +1297,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                         # 1.3   if the comman 'cmd' return a code != 0, set failed
                         if self.return_code != 0 :
                             print(tools.indent("tolerance_type  : "+tolerance_type_loc, 2))
-                            print(tools.indent("tolernace_value : "+str(tolerance_value_loc), 2))
+                            print(tools.indent("tolerance_value : "+str(tolerance_value_loc), 2))
                             print(tools.indent("reference       : "+str(reference_file_loc), 2))
                             print(tools.indent("file            : "+str(file_loc), 2))
                             print(tools.indent("data_set        : "+str(data_set_loc), 2))
@@ -1329,7 +1329,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
 
                         # 1.3.1   add failed info if return a code != 0 to run
                         run.analyze_results.append(tools.red("h5diff failed. (Exception="+str(ex)+")"))
-                        run.analyze_results.append(tools.red("Maybe h5diff is not found automatically. Find it with \"locate -b '\h5diff'\" and add the correspoding path, e.g., \"export PATH=/opt/hdf5/1.X/bin/:$PATH\""))
+                        run.analyze_results.append(tools.red("Maybe h5diff is not found automatically. Find it with \"locate -b '\h5diff'\" and add the corresponding path, e.g., \"export PATH=/opt/hdf5/1.X/bin/:$PATH\""))
 
                         # 1.3.2   set analyzes to fail if return a code != 0
                         run.analyze_successful=False
@@ -1477,7 +1477,7 @@ class Analyze_compare_data_file(Analyze) :
         1.1   Set the file and reference file for comparison
         1.2   Check existence the file and reference values
         1.3.1   read data file
-        1.3.2   read refernece file
+        1.3.2   read reference file
         1.3.3   check length of vectors
         1.3.4   calculate difference and determine compare with tolerance
         '''
