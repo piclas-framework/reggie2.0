@@ -433,7 +433,13 @@ class Run(OutputDirectory, ExternalCommand) :
               if not os.path.basename(src) == 'output_dir' : # do not copy the output_dir recursively into itself! (infinite loop)
                   shutil.copytree(src, dst) # copy tree
           else :
-              shutil.copyfile(src, dst) # copy file
+              # Check for symbolic links
+              if os.path.islink(src):
+                  # Do not copy broken symbolic links
+                  if os.path.exists(src):
+                      shutil.copyfile(src, dst) # copy symbolic link
+              else:
+                  shutil.copyfile(src, dst) # copy file
     def rename_failed(self) :
         """Rename failed run directories in order to repeat the run when the regression check is repeated.
         This routine is called if either the execution fails or an analysis."""
