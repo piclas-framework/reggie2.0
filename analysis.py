@@ -253,6 +253,7 @@ def getAnalyzes(path, example, args) :
         analyze.append(Analyze_check_hdf5(check_hdf5_file, check_hdf5_data_set, check_hdf5_span, check_hdf5_dimension, check_hdf5_limits))
 
     # 2.7   check data file row
+    compare_data_file_one_diff_per_run = options.get('h5diff_one_diff_per_run',True)
     compare_data_file_name            = options.get('compare_data_file_name',None)
     compare_data_file_reference       = options.get('compare_data_file_reference',None)
     compare_data_file_tolerance       = options.get('compare_data_file_tolerance',None)
@@ -260,14 +261,14 @@ def getAnalyzes(path, example, args) :
     compare_data_file_line            = options.get('compare_data_file_line','last')
     compare_data_file_delimiter       = options.get('compare_data_file_delimiter',',')
     compare_data_file_max_differences = options.get('compare_data_file_max_differences',0)
-    if all([compare_data_file_name, compare_data_file_reference, compare_data_file_tolerance, compare_data_file_line]) :
-        if compare_data_file_tolerance_type in ('absolute', 'delta', '--delta') :
-            compare_data_file_tolerance_type = "absolute"
-        elif compare_data_file_tolerance_type in ('relative', "--relative") :
-            compare_data_file_tolerance_type = "relative"
-        else :
-            raise Exception(tools.red("initialization of compare data file failed. h5diff_tolerance_type '%s' not accepted." % h5diff_tolerance_type))
-        analyze.append(Analyze_compare_data_file(compare_data_file_name, compare_data_file_reference, compare_data_file_tolerance, compare_data_file_line, compare_data_file_delimiter, compare_data_file_max_differences, compare_data_file_tolerance_type, args.referencescopy))
+    #     if all([compare_data_file_name, compare_data_file_reference, compare_data_file_tolerance, compare_data_file_line]) :
+    #         if compare_data_file_tolerance_type in ('absolute', 'delta', '--delta') :
+    #             compare_data_file_tolerance_type = "absolute"
+    #         elif compare_data_file_tolerance_type in ('relative', "--relative") :
+    #             compare_data_file_tolerance_type = "relative"
+    #         else :
+    #             raise Exception(tools.red("initialization of compare data file failed. h5diff_tolerance_type '%s' not accepted." % h5diff_tolerance_type))
+    analyze.append(Analyze_compare_data_file(compare_data_file_one_diff_per_run, compare_data_file_name, compare_data_file_reference, compare_data_file_tolerance, compare_data_file_line, compare_data_file_delimiter, compare_data_file_max_differences, compare_data_file_tolerance_type, args.referencescopy))
 
     # 2.8   integrate data file column
     integrate_line_file            = options.get('integrate_line_file',None)                 # file name (path) which is analyzed
@@ -1055,7 +1056,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                 numbers[key] = self.nCompares
 
         if any( [ (number != self.nCompares) for number in numbers.values() ] ) : 
-            raise Exception(tools.red("Number of multiple data sets for multiple h5diffs is inconsitent. Please ensure all options have the same length or length=1.")) 
+            raise Exception(tools.red("Number of multiple data sets for multiple h5diffs is inconsistent. Please ensure all options have the same length or length=1.")) 
 
         # Check tolerance type (absolute or relative) and set the correct h5diff command line argument
         for compare in range(self.nCompares) :
@@ -1094,7 +1095,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
         1.1.0   Read the hdf5 file
         1.1.1   Read the dataset from the hdf5 file
         1.1.1   Read the dataset from the hdf5 file
-        1.1.2   compare shape of the dataset of both files, throw error if they do not conincide
+        1.1.2   compare shape of the dataset of both files, throw error if they do not coincide
         1.1.3   add failed info if return a code != 0 to run
         1.1.4   set analyzes to fail if return a code != 0
         1.2.0   When sorting is used, the sorted array is written to the original .h5 file with a new name
@@ -1105,7 +1106,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
         1.3.2   set analyzes to fail (for return a code != 0)
         '''
         if self.one_diff_per_run and ( self.nCompares != len(runs)) :
-            raise Exception(tools.red("Number of h5diffs and runs is inconsitent. Please ensure all options have the same length or set h5diff_one_diff_per_run=F.")) 
+            raise Exception(tools.red("Number of h5diffs and runs is inconsistent. Please ensure all options have the same length or set h5diff_one_diff_per_run=F.")) 
 
         # 1.  iterate over all runs
         for iRun, run in enumerate(runs) :
@@ -1399,38 +1400,71 @@ class Analyze_check_hdf5(Analyze) :
 #==================================================================================================
 
 class Analyze_compare_data_file(Analyze) :
-    def __init__(self, compare_data_file_name, compare_data_file_reference, compare_data_file_tolerance, compare_data_file_line, compare_data_file_delimiter, compare_data_file_max_differences, compare_data_file_tolerance_type, referencescopy) :
-        # set file for comparison
-        self.file           = compare_data_file_name
-        if type(self.file) == type([]) :
-            self.file_number = len(self.file)
-        else :
-            self.file_number = 1
+    def __init__(self, compare_data_file_one_diff_per_run, compare_data_file_name, compare_data_file_reference, compare_data_file_tolerance, compare_data_file_line, compare_data_file_delimiter, compare_data_file_max_differences, compare_data_file_tolerance_type, referencescopy) :
 
-        # set reference file for comparison
-        self.reference      = compare_data_file_reference
-        if type(self.reference) == type([]) :
-            self.reference_number = len(self.reference)
-        else :
-            self.reference_number = 1
+        # Set number of diffs per run [True/False]
+        if type(compare_data_file_one_diff_per_run) == type(True): # check if default value is still set
+            self.one_diff_per_run = True
+        else:
+            # Check what the user set
+            self.one_diff_per_run = (compare_data_file_one_diff_per_run in ('False', 'false', 'f', 'F'))
+            if self.one_diff_per_run:
+                # User selected False
+                self.one_diff_per_run = False
+            else:
+                # User selected something else
+                self.one_diff_per_run = (compare_data_file_one_diff_per_run in (('True', 'true', 't', 'T')))
+                if self.one_diff_per_run:
+                    # User selected True
+                    pass
+                else:
+                    raise Exception(tools.red("compare_data_file_one_diff_per_run is set neither True/False, check the parameter"))
 
-        # set tolerance value
-        self.tolerance      = float(compare_data_file_tolerance)
+        # Create dictionary for all keys/parameters and insert a list for every value/options
+        self.prms = { "file"            : compare_data_file_name,\
+                      "reference_file"  : compare_data_file_reference,\
+                      "tolerance_value" : compare_data_file_tolerance,\
+                      "tolerance_type"  : compare_data_file_tolerance_type,\
+                      "line"            : compare_data_file_line,\
+                      "delimiter"       : compare_data_file_delimiter,\
+                      "max_differences" : compare_data_file_max_differences }
 
-        # set tolerance type (relative or absolute)
-        self.tolerance_type = compare_data_file_tolerance_type 
+        for key, prm in self.prms.items() : 
+           # Check if prm is not of type 'list'
+           if type(prm) != type([]) :
+              # create list with prm as entry
+              self.prms[key] = [prm]
 
-        # set which line in the file is to be compared with the reference file
-        if compare_data_file_line == 'last' : 
-            self.line = int(1e20)
-        else :
-            self.line = int(compare_data_file_line)
+        # Get the number of values/options for each key/parameter
+        numbers = {key: len(prm) for key, prm in self.prms.items()}
 
-        # set the delimiter symbol (',' is default)
-        self.delimiter = compare_data_file_delimiter
+        # Get maximum number of values (from all possible keys)
+        self.nCompares = numbers[ max( numbers, key = numbers.get ) ]
 
-        # set maximum number of allowed differences where the error is greater than the tolerance
-        self.max_differences = int(compare_data_file_max_differences)
+        # Check all numbers and if a key has only 1 number, increase the number to maximum and use the same value for all
+        for key, number in numbers.items() : 
+            if number == 1 : 
+                self.prms[key] = [ self.prms[key][0] for i in range(self.nCompares) ]
+                numbers[key] = self.nCompares
+
+        if any( [ (number != self.nCompares) for number in numbers.values() ] ) : 
+            raise Exception(tools.red("Number of multiple data sets for multiple compare_data_file is inconsistent. Please ensure all options have the same length or length=1.")) 
+
+        # Check tolerance type (absolute or relative) and set the correct h5diff command line argument
+        for compare in range(self.nCompares) :
+            tolerance_type_loc = self.prms["tolerance_type"][compare]
+            if tolerance_type_loc in ('absolute', 'delta', '--delta') :
+                self.prms["tolerance_type"][compare] = "absolute"
+            elif tolerance_type_loc in ('relative', "--relative") :
+                self.prms["tolerance_type"][compare] = "relative"
+            else :
+                raise Exception(tools.red("initialization of compare_data_file failed. compare_data_file_tolerance_type '%s' not accepted." % tolerance_type_loc))
+
+            line_loc = self.prms["line"][compare]
+            if line_loc == 'last':
+                self.prms["line"][compare] = int(1e20)
+            else:
+                self.prms["line"][compare] = int(line_loc)
 
         # set logical for creating new reference files and copying them to the example source directory
         self.referencescopy = referencescopy
@@ -1443,127 +1477,117 @@ class Analyze_compare_data_file(Analyze) :
         1.1   Set the file and reference file for comparison
         1.2   Check existence the file and reference values
         1.3.1   read data file
-        1.3.2   read refernece file
+        1.3.2   read reference file
         1.3.3   check length of vectors
         1.3.4   calculate difference and determine compare with tolerance
         '''
 
+        if self.one_diff_per_run and ( self.nCompares != len(runs) ) and self.nCompares > 1 :
+            raise Exception(tools.red("Number of compare_data_file tests and runs is inconsistent. Please ensure all options have the same length or set compare_data_file_one_diff_per_run=F.")) 
+
         # 1.  iterate over all runs
-        j = 0
-        nRuns = len(runs)
-        for run in runs :
-            ##  1.1   Set the file and reference file for comparison
-            if self.file_number > 1 :
-                # check consistency when multiple files are supplied
-                if (nRuns != self.file_number) :
-                    s=tools.red("Analyze_compare_data_file: Number of data files [compare_data_file_name] %s does not match number of runs %s" % (self.file_number,nRuns))
+        for iRun, run in enumerate(runs) :
+
+            # Check whether the list of diffs is to be used one-at-a-time, i.e., a list of diffs for a list of runs (each run only observes one diff, not all of them)
+            if self.one_diff_per_run : 
+                # One comparison for each run
+                compares = [iRun]
+            else : 
+                # All comparisons for every run
+                compares = range(self.nCompares)
+
+            # Iterate over all comparisons for h5diff
+            for compare in compares : 
+                reference_file_loc   = self.prms["reference_file"][compare]
+                file_loc             = self.prms["file"][compare]
+                tolerance_value_loc  = float(self.prms["tolerance_value"][compare])
+                tolerance_type_loc   = self.prms["tolerance_type"][compare]
+                delimiter_loc        = self.prms["delimiter"][compare]
+                max_differences_loc  = int(self.prms["max_differences"][compare])
+                line_loc             = int(self.prms["line"][compare])
+
+                # 1.1.0   Read the hdf5 file
+                path            = os.path.join(run.target_directory,file_loc)
+                path_ref_target = os.path.join(run.target_directory,reference_file_loc)
+                path_ref_source = os.path.join(run.source_directory,reference_file_loc)
+
+                # Copy new reference file: This is completely independent of the outcome of the current compare data file
+                if self.referencescopy :
+                    run = copyReferenceFile(run,path,path_ref_source)
+                    s=tools.yellow("Analyze_compare_data_file: performed reference copy")
+                    print(s)
+                    run.analyze_results.append(s)
+                    run.analyze_successful=False
+                    Analyze.total_infos+=1
+                    # do not skip the following analysis tests, because reference file will be created -> continue
+                    continue 
+
+                if not os.path.exists(path) or not os.path.exists(path_ref_target) :
+                    s=tools.red("Analyze_compare_data_file: cannot find both file=[%s] and reference file=[%s]" % (file_loc, reference_file_loc))
                     print(s)
                     run.analyze_results.append(s)
                     run.analyze_successful=False
                     Analyze.total_errors+=1
-                    return
-                # set the file name
-                file_name = self.file[j]
-            else :
-                file_name = self.file
-            if self.reference_number > 1 :
-                if (nRuns != self.reference_number) :
-                    s=tools.red("Analyze_compare_data_file: Number of reference files [compare_data_file_name]) %s does not match number of runs %s" % (self.reference_number,nRuns))
+                    return # skip the following analysis tests
+                
+                # 1.3.1   read data file
+                line = []
+                with open(path, 'r') as csvfile:
+                    line_str = csv.reader(csvfile, delimiter=delimiter_loc, quotechar='!')
+                    i=0
+                    header=0
+                    for row in line_str:
+                        try :
+                            line = np.array([float(x) for x in row])
+                        except :
+                            header+=1
+                            header_line = row
+                        i+=1
+                        if i == line_loc :
+                            print(tools.yellow(str(i)), end=' ') # skip line break
+                            break
+                    line_len = len(line)
+                
+                # 1.3.2   read reference file
+                line_ref = []
+                with open(path_ref_target, 'r') as csvfile:
+                    line_str = csv.reader(csvfile, delimiter=delimiter_loc, quotechar='!')
+                    header_ref=0
+                    for row in line_str:
+                        try :
+                            line_ref = np.array([float(x) for x in row])
+                        except :
+                            header_ref+=1
+                    line_ref_len = len(line_ref)
+
+                # 1.3.3   check length of vectors
+                if line_len != line_ref_len :
+                    s=tools.red("Analyze_compare_data_file: length of lines in file [%s] and reference file [%s] are not of the same length" % (file_loc, reference_file_loc))
                     print(s)
                     run.analyze_results.append(s)
                     run.analyze_successful=False
                     Analyze.total_errors+=1
-                    return
-                # set the reference file name
-                ref_name  = self.reference[j]
-            else :
-                ref_name  = self.reference
-            j += 1
-            if self.file_number > 1 or self.reference_number > 1 :
-                print(tools.blue("comparing file=[%s] and reference file=[%s]" % (file_name, ref_name)))
+                    return # skip the following analysis tests
 
-            # 1.2   Check existence the file and reference values
-            path            = os.path.join(run.target_directory,file_name)
-            path_ref_target = os.path.join(run.target_directory,ref_name)
-            path_ref_source = os.path.join(run.source_directory,ref_name)
+                # 1.3.4   calculate difference and determine compare with tolerance
+                success = tools.diff_lists(line, line_ref, tolerance_value_loc, tolerance_type_loc)
+                NbrOfDifferences = success.count(False)
 
-            # Copy new reference file: This is completely independent of the outcome of the current compare data file
-            if self.referencescopy :
-                run = copyReferenceFile(run,path,path_ref_source)
-                s=tools.yellow("Analyze_compare_data_file: performed reference copy")
-                print(s)
-                run.analyze_results.append(s)
-                run.analyze_successful=False
-                Analyze.total_infos+=1
-                # do not skip the following analysis tests, because reference file will be created -> continue
-                continue 
-
-            if not os.path.exists(path) or not os.path.exists(path_ref_target) :
-                s=tools.red("Analyze_compare_data_file: cannot find both file=[%s] and reference file=[%s]" % (file_name, ref_name))
-                print(s)
-                run.analyze_results.append(s)
-                run.analyze_successful=False
-                Analyze.total_errors+=1
-                return # skip the following analysis tests
-            
-            # 1.3.1   read data file
-            line = []
-            with open(path, 'r') as csvfile:
-                line_str = csv.reader(csvfile, delimiter=self.delimiter, quotechar='!')
-                i=0
-                header=0
-                for row in line_str:
-                    try :
-                        line = np.array([float(x) for x in row])
-                    except :
-                        header+=1
-                        header_line = row
-                    i+=1
-                    if i == self.line :
-                        print(tools.yellow(str(i)), end=' ') # skip line break
-                        break
-                line_len = len(line)
-            
-            # 1.3.2   read reference file
-            line_ref = []
-            with open(path_ref_target, 'r') as csvfile:
-                line_str = csv.reader(csvfile, delimiter=self.delimiter, quotechar='!')
-                header_ref=0
-                for row in line_str:
-                    try :
-                        line_ref = np.array([float(x) for x in row])
-                    except :
-                        header_ref+=1
-                line_ref_len = len(line_ref)
-
-            # 1.3.3   check length of vectors
-            if line_len != line_ref_len :
-                s=tools.red("Analyze_compare_data_file: length of lines in file [%s] and reference file [%s] are not of the same length" % (file_name, ref_name))
-                print(s)
-                run.analyze_results.append(s)
-                run.analyze_successful=False
-                Analyze.total_errors+=1
-                return # skip the following analysis tests
-
-            # 1.3.4   calculate difference and determine compare with tolerance
-            success = tools.diff_lists(line, line_ref, self.tolerance, self.tolerance_type)
-            NbrOfDifferences = success.count(False)
-
-            #if not all(success) :
-            if NbrOfDifferences > 0 :
-                s = tools.red("Found %s differences.\n" % NbrOfDifferences)
-                s = s+tools.red("Mismatch in columns: "+", ".join([str(header_line[i]).strip() for i in range(len(success)) if not success[i]]))
-                if NbrOfDifferences > self.max_differences :
-                    print(s)
-                    run.analyze_results.append(s)
-                    run.analyze_successful=False
-                    Analyze.total_errors+=1
-                else :
-                    s2 = tools.red(", but %s differences are allowed (given by compare_data_file_max_differences). This analysis is therefore marked as passed." % self.max_differences)
-                    print(s+s2)
+                #if not all(success) :
+                if NbrOfDifferences > 0 :
+                    s = tools.red("Found %s differences.\n" % NbrOfDifferences)
+                    s = s+tools.red("Mismatch in columns: "+", ".join([str(header_line[i]).strip() for i in range(len(success)) if not success[i]]))
+                    if NbrOfDifferences > max_differences_loc :
+                        print(s)
+                        run.analyze_results.append(s)
+                        run.analyze_successful=False
+                        Analyze.total_errors+=1
+                    else :
+                        s2 = tools.red(", but %s differences are allowed (given by compare_data_file_max_differences). This analysis is therefore marked as passed." % max_differences_loc)
+                        print(s+s2)
 
     def __str__(self) :
-        return "compare line in data file (e.g. .csv file): file=[%s] and reference file=[%s]" % (self.file, self.reference)
+        return "compare line in data file (e.g. .csv file): file=[%s] and reference file=[%s]" % (self.prms["file"], self.prms["reference_file"])
 
 
 
