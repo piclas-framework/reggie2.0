@@ -1613,7 +1613,8 @@ class Analyze_compare_data_file(Analyze) :
 
                 #if not all(success) :
                 if NbrOfDifferences > 0 :
-                    s = tools.red("Found %s differences.\n" % NbrOfDifferences)
+                    s = tools.red("Comparison failed for %s with %s\n" % (path, reference_file_loc))
+                    s = s+tools.red("Found %s differences.\n" % NbrOfDifferences)
                     s = s+tools.red("Mismatch in columns: "+", ".join([str(header_line[i]).strip() for i in range(len(success)) if not success[i]]))
                     if NbrOfDifferences > max_differences_loc :
                         print(s)
