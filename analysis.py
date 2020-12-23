@@ -109,6 +109,7 @@ def getAnalyzes(path, example, args) :
      2.6   check array bounds in hdf5 file
      2.7   check data file row
      2.8   integrate data file column
+     2.9   compare data file column
     """
 
     # 1.  Read the analyze options from file 'path'
@@ -272,13 +273,13 @@ def getAnalyzes(path, example, args) :
 
     # 2.8   integrate data file column
     integrate_line_file            = options.get('integrate_line_file',None)                 # file name (path) which is analyzed
-    integrate_line_delimiter       = options.get('integrate_line_delimiter',',')             # delimter symbol if not comma-separated
+    integrate_line_delimiter       = options.get('integrate_line_delimiter',',')             # delimiter symbol if not comma-separated
     integrate_line_columns         = options.get('integrate_line_columns',None)              # two columns for the values x and y supplied as 'x:y'
     integrate_line_integral_value  = options.get('integrate_line_integral_value',None)       # integral value used for comparison
     integrate_line_tolerance_value = options.get('integrate_line_tolerance_value',1e-5)      # tolerance that is used in comparison
     integrate_line_tolerance_type  = options.get('integrate_line_tolerance_type','absolute') # type of tolerance, either 'absolute' or 'relative'
-    integrate_line_option          = options.get('integrate_line_option',None)               # special option, e.g., calculating a rate by dividing the integrated values by the timestep which is used in the values 'x'
-    integrate_line_multiplier      = options.get('integrate_line_multiplier',1)              # factor for multiplying the result (in order to accquire a physically meaning value for comparison)
+    integrate_line_option          = options.get('integrate_line_option',None)               # special option, e.g., calculating a rate by dividing the integrated values by the time step which is used in the values 'x'
+    integrate_line_multiplier      = options.get('integrate_line_multiplier',1)              # factor for multiplying the result (in order to acquire a physically meaning value for comparison)
     if all([integrate_line_file,  integrate_line_delimiter, integrate_line_columns, integrate_line_integral_value]) :
         if integrate_line_tolerance_type in ('absolute', 'delta', '--delta') :
             integrate_line_tolerance_type = "absolute"
@@ -288,6 +289,22 @@ def getAnalyzes(path, example, args) :
             raise Exception(tools.red("initialization of integrate line failed. integrate_line_tolerance_type '%s' not accepted." % integrate_line_tolerance_type))
         analyze.append(Analyze_integrate_line(integrate_line_file, integrate_line_delimiter, integrate_line_columns, integrate_line_integral_value, integrate_line_tolerance_value, integrate_line_tolerance_type, integrate_line_option, integrate_line_multiplier))
 
+    # 2.9   compare data file column
+    compare_column_file            = options.get('compare_column_file',None)                 # file name (path) which is analyzed
+    compare_column_reference_file  = options.get('compare_column_reference_file',None)       # reference file name (path)
+    compare_column_delimiter       = options.get('compare_column_delimiter',',')             # delimiter symbol if not comma-separated
+    compare_column_index           = options.get('compare_column_index',None)                # index of the column that is to be compared
+    compare_column_tolerance_value = options.get('compare_column_tolerance_value',1e-5)      # tolerance that is used in comparison
+    compare_column_tolerance_type  = options.get('compare_column_tolerance_type','absolute') # type of tolerance, either 'absolute' or 'relative'
+    compare_column_multiplier      = options.get('compare_column_multiplier',1)              # factor for multiplying the result (in order to acquire a physically meaning value for comparison)
+    if all([compare_column_file, compare_column_reference_file,  compare_column_delimiter, compare_column_index]) :
+        if compare_column_tolerance_type in ('absolute', 'delta', '--delta') :
+            compare_column_tolerance_type = "absolute"
+        elif compare_column_tolerance_type in ('relative', "--relative") :
+            compare_column_tolerance_type = "relative"
+        else :
+            raise Exception(tools.red("initialization of compare line failed. compare_column_tolerance_type '%s' not accepted." % compare_column_tolerance_type))
+        analyze.append(Analyze_compare_column(compare_column_file, compare_column_reference_file, compare_column_delimiter, compare_column_index,  compare_column_tolerance_value, compare_column_tolerance_type, compare_column_multiplier))
 
     return analyze
 
@@ -300,7 +317,7 @@ class Analyze() : # main class from which all analyze functions are derived
 #==================================================================================================
 
 class Clean_up_files() :
-    """Clean up the output folder by deleting sepcified files"""
+    """Clean up the output folder by deleting specified files"""
     def __init__(self, clean_up_files) :
         self.files = clean_up_files
 
@@ -333,7 +350,7 @@ class Clean_up_files() :
                     os.remove(wildcard)
 
     def __str__(self) :
-        return "Clean up the output folder by deleting sepcified files"
+        return "Clean up the output folder by deleting specified files"
 
 
 
@@ -439,7 +456,7 @@ class Analyze_L2_file(Analyze) :
                 Analyze.total_errors+=1
 
     def __str__(self) :
-        return "perform L2 error comparison with L2 errors in file %s" % self.file
+        return "perform L2 error comparison with L2 errors in file %s, tolerance=%s (%s) for $%s" % (self.file,self.L2_tolerance,self.L2_tolerance_type,self.error_name)
 
 
 #==================================================================================================
@@ -495,7 +512,7 @@ class Analyze_L2(Analyze) :
                 Analyze.total_errors+=1
 
     def __str__(self) :
-        return "perform L2 error comparison with a pre-defined tolerance"
+        return "perform L2 error comparison with a pre-defined tolerance=%s for $%s" % (self.L2_tolerance,self.error_name)
 
 #==================================================================================================
 
@@ -1106,7 +1123,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
         1.3.2   set analyzes to fail (for return a code != 0)
         '''
         if self.one_diff_per_run and ( self.nCompares != len(runs)) :
-            raise Exception(tools.red("Number of h5diffs and runs is inconsistent. Please ensure all options have the same length or set h5diff_one_diff_per_run=F."))
+            raise Exception(tools.red("Number of h5diffs [=%s] and runs [=%s] is inconsistent. Please ensure all options have the same length or set h5diff_one_diff_per_run=F." % (self.nCompares, len(runs))))
 
         # 1.  iterate over all runs
         for iRun, run in enumerate(runs) :
@@ -1184,14 +1201,31 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                 # first key in list: a_group_key = list(f1.keys())[0]      # yields 'DG_Solution'
                 # -------------------
 
-                # 1.1.1   Read the dataset from the hdf5 file
-                b1 = f1[data_set_loc][:]
-                b2 = f2[data_set_loc][:]
+                # 1.1.1   Read the datasets from the hdf5 file
+                try:
+                    b1 = f1[data_set_loc][:]
+                except Exception as e:
+                    s = tools.red("Analyze_h5diff: Could not open .h5 dataset [%s] under in file [%s]. Error message [%s]" % (data_set_loc,path,e))
+                    print(s)
+                    run.analyze_results.append(s)
+                    run.analyze_successful=False
+                    Analyze.total_errors+=1
+                    continue
+
+                try:
+                    b2 = f2[data_set_loc][:]
+                except Exception as e:
+                    s = tools.red("Analyze_h5diff: Could not open .h5 dataset [%s] under in file [%s]. Error message [%s]" % (data_set_loc,path_ref_target,e))
+                    print(s)
+                    run.analyze_results.append(s)
+                    run.analyze_successful=False
+                    Analyze.total_errors+=1
+                    continue
 
 
-                # 1.1.2 compare shape of the dataset of both files, throw error if they do not conincide
+                # 1.1.2 compare shape of the dataset of both files, throw error if they do not coincide
                 if b1.shape != b2.shape : # e.g.: b1.shape = (48, 1, 1, 32)
-                    self.result=tools.red(tools.red("h5diff failed because datasets are not comparable due to different shapes: Files [%s] and [%s] have shapes [%s] and [%s]" % (f1,f2,b1.shape,b2.shape)))
+                    self.result=tools.red(tools.red("h5diff failed because datasets for [%s] are not comparable due to different shapes: Files [%s] and [%s] have shapes [%s] and [%s]" % (data_set_loc,f1,f2,b1.shape,b2.shape)))
                     print(" "+self.result)
 
                     # 1.1.3   add failed info if return a code != 0 to run
@@ -1243,7 +1277,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                     cmd = ["h5diff","-r",tolerance_type_loc,str(tolerance_value_loc),str(reference_file_loc),str(file_loc),str(data_set_loc)]
                     try :
                         s="Running [%s] ..." % (" ".join(cmd))
-                        self.execute_cmd(cmd, run.target_directory,name="h5diff", string_info = tools.indent(s, 2)) # run the code
+                        self.execute_cmd(cmd, run.target_directory,name="h5diff", string_info = tools.indent(s, 2), displayOnFailure = False) # run the code
 
                         # 1.2.2   Check maximum number of differences if user has selected h5diff_max_differences > 0
                         try :
@@ -1264,11 +1298,11 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                         # 1.3   if the comman 'cmd' return a code != 0, set failed
                         if self.return_code != 0 :
                             print(tools.indent("tolerance_type  : "+tolerance_type_loc, 2))
-                            print(tools.indent("tolernace_value : "+str(tolerance_value_loc), 2))
+                            print(tools.indent("tolerance_value : "+str(tolerance_value_loc), 2))
                             print(tools.indent("reference       : "+str(reference_file_loc), 2))
                             print(tools.indent("file            : "+str(file_loc), 2))
                             print(tools.indent("data_set        : "+str(data_set_loc), 2))
-                            run.analyze_results.append("h5diff failed (self.return_code != 0) for [%s] in %s" % (str(data_set_loc),str(file_loc)))
+                            run.analyze_results.append("h5diff failed (self.return_code != 0) for [%s] in [%s] vs. [%s]" % (str(data_set_loc),str(file_loc),str(reference_file_loc)))
 
                             # 1.3.1   add failed info if return a code != 0 to run
                             print(" ")
@@ -1296,7 +1330,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
 
                         # 1.3.1   add failed info if return a code != 0 to run
                         run.analyze_results.append(tools.red("h5diff failed. (Exception="+str(ex)+")"))
-                        run.analyze_results.append(tools.red("Maybe h5diff is not found automatically. Find it with \"locate -b '\h5diff'\" and add the correspoding path, e.g., \"export PATH=/opt/hdf5/1.X/bin/:$PATH\""))
+                        run.analyze_results.append(tools.red("Maybe h5diff is not found automatically. Find it with \"locate -b '\h5diff'\" and add the corresponding path, e.g., \"export PATH=/opt/hdf5/1.X/bin/:$PATH\""))
 
                         # 1.3.2   set analyzes to fail if return a code != 0
                         run.analyze_successful=False
@@ -1614,6 +1648,7 @@ class Analyze_integrate_line(Analyze) :
         1.3.2   check column numbers
         1.3.3   get header information for integrated columns
         1.3.4   split the data array and set the two column vector x and y for integration
+        1.3.5   Check the number of data points: Integration can only be performed if at least two points exist
         1.4   integrate values numerically
         '''
 
@@ -1680,6 +1715,15 @@ class Analyze_integrate_line(Analyze) :
             x = data[self.dim1]
             y = data[self.dim2]
 
+            # 1.3.5   Check the number of data points: Integration can only be performed if at least two points exist
+            if max_lines-header < 2:
+                s="cannot perform analyze Analyze_integrate_line, because there are not enough lines of data to perform the integral calculation. Number of lines = %s" % (max_lines-header)
+                print(tools.red(s))
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                return
+
             # 1.4 integrate the values numerically
             Q=0.0
             for i in range(max_lines-header-1) :
@@ -1691,8 +1735,7 @@ class Analyze_integrate_line(Analyze) :
                     dQ = dx * (y[i+1]+y[i])/2.0
                 Q += dQ
             Q = Q*self.multiplier
-            print("integrated value (trapezoid rule) Q = %s (reference value is %s)" % (Q,self.integral_value))
-
+            print("Integration (trapezoid rule) over %s points gives an integrated value of Q = %s (reference value is %s)" % (max_lines-header,Q,self.integral_value))
             # 1.5   calculate difference and determine compare with tolerance
             success = tools.diff_value(Q, self.integral_value, self.tolerance_value, self.tolerance_type)
             if not success :
@@ -1705,4 +1748,161 @@ class Analyze_integrate_line(Analyze) :
 
     def __str__(self) :
         return "integrate column data over line (e.g. from .csv file): file=[%s] and integrate columns %s over %s (the first column starts at 0)" % (self.file, self.dim2, self.dim1)
+
+#==================================================================================================
+
+class Analyze_compare_column(Analyze) :
+    def __init__(self, compare_column_file, compare_column_reference_file, compare_column_delimiter, compare_column_index,  compare_column_tolerance_value, compare_column_tolerance_type, compare_column_multiplier) :
+        self.file                = compare_column_file
+        self.ref                 = compare_column_reference_file
+        self.delimiter           = compare_column_delimiter
+        self.dim                 = int(compare_column_index)
+        self.tolerance_value     = float(compare_column_tolerance_value)
+        self.tolerance_type      = compare_column_tolerance_type
+        self.multiplier          = float(compare_column_multiplier)
+
+    def perform(self,runs) :
+
+        '''
+        General workflow:
+        1.  iterate over all runs
+        1.2   Check existence of the file and reference
+        1.3.1   read data file
+        1.3.2   read reference file
+        1.3.3   check column number
+        1.3.4   get header information for integrated columns
+        1.3.5   split the data array and set the two column vector x and y for integration
+        1.3.6   Check the number of data points: Integration can only be performed if at least two points exist
+        1.4   integrate values numerically
+        '''
+
+        # 1.  iterate over all runs
+        for run in runs :
+            # 1.2   Check existence of the file and reference
+            path     = os.path.join(run.target_directory,self.file)
+            if not os.path.exists(path) :
+                s=tools.red("Analyze_compare_column: cannot find file=[%s] " % (self.file))
+                print(s)
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                return
+
+            path_ref  = os.path.join(run.target_directory,self.ref)
+            if not os.path.exists(path_ref) :
+                s=tools.red("Analyze_compare_column: cannot find file=[%s] " % (self.ref))
+                print(s)
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                return
+            
+            # 1.3.1   read data file
+            data = np.array([])
+            with open(path, 'r') as csvfile:
+                line_str = csv.reader(csvfile, delimiter=self.delimiter, quotechar='!')
+                max_lines=0
+                header=0
+                for row in line_str:
+                    try : # try reading a line from the data file and converting it into a numpy array
+                        line = np.array([float(x) for x in row])
+                        failed = False
+                    except : # 
+                        header+=1
+                        header_line = row
+                        failed = True
+                    if not failed :
+                        data = np.append(data, line)
+                    max_lines+=1
+
+            if failed :
+                s="Analyze_compare_column: reading of the data file [%s] has failed.\nNo float type data could be read. Check the file content." %path
+                print(tools.red(s))
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                return
+
+            # 1.3.2   read reference file
+            data_ref = np.array([])
+            with open(path_ref, 'r') as csvfile_ref:
+                line_str = csv.reader(csvfile_ref, delimiter=self.delimiter, quotechar='!')
+                max_lines_ref=0
+                header_ref=0
+                for row in line_str:
+                    try : # try reading a line from the data file and converting it into a numpy array
+                        line_ref = np.array([float(x) for x in row])
+                        failed = False
+                    except : # 
+                        header_ref+=1
+                        header_line_ref = row
+                        failed = True
+                    if not failed :
+                        data_ref = np.append(data_ref, line_ref)
+                    max_lines_ref+=1
+
+            if failed :
+                s="Analyze_compare_column: reading of the data reference file [%s] has failed.\nNo float type data could be read. Check the file content." %path_ref
+                print(tools.red(s))
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                return
+
+            # 1.3.3 check column number in file and reference file
+            line_len = len(line) - 1
+            if line_len < self.dim :
+                s="cannot perform analyze Analyze_compare_column, because the supplied column (%s) in %s exceeds the number of columns (%s) in the data file (the first column must start at 0)" % (self.dim, path, line_len)
+                print(tools.red(s))
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                return
+
+            line_len_ref = len(line_ref) - 1
+            if line_len_ref < 0 :
+                s="cannot perform analyze Analyze_compare_column, because the supplied column (%s) in %s exceeds the number of columns (%s) in the data file (the first column must start at 0)" % (self.dim, path_ref, 0)
+                print(tools.red(s))
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                return
+
+            # 1.3.4   get header information for integrated columns
+            if header > 0 :
+                for i in range(line_len+1) :
+                    header_line[i] = header_line[i].replace(" ", "")
+                    #print header_line[i]
+                s1 = header_line[self.dim]
+                print(tools.indent(tools.blue("Comparing the column [%s]: " % (s1)),2), end=' ') # skip linebreak
+            
+            # 1.3.5   split the data array and set the two column vector x and y for integration
+            data = np.reshape(data, (-1, line_len +1))
+            data =  np.transpose(data)
+            x = data[self.dim]
+
+            # 1.3.6   Check the number of data points: Comparison can only be performed if at least one point exists
+            if max_lines-header < 1 or max_lines_ref-header_ref < 1 or max_lines-header != max_lines_ref-header_ref:
+                s="cannot perform analyze Analyze_compare_column, because there are not enough lines of data or different numbers of data points to perform the comparison. Number of lines = %s (file) and %s (reference file), which must be equal and at least one." % (max_lines-header,max_lines_ref-header_ref)
+                print(tools.red(s))
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                return
+
+            # 1.3.4   calculate difference and determine compare with tolerance
+            success = tools.diff_lists(x, data_ref, self.tolerance_value, self.tolerance_type)
+            NbrOfDifferences = success.count(False)
+
+            if NbrOfDifferences > 0 :
+                s = tools.red("Found %s differences.\n" % NbrOfDifferences)
+                s = s+tools.red("Mismatch in column: %s" % header_line[self.dim])
+                print(s)
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+
+
+    def __str__(self) :
+        return "compare column data with a reference (e.g. from .csv file): file=[%s] and comparison for column %s (the first column starts at 0)" % (self.file, self.dim)
 

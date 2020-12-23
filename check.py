@@ -142,7 +142,7 @@ class Example(OutputDirectory) :
         OutputDirectory.__init__(self, build, os.path.join("examples",os.path.basename(self.source_directory)))
 
     def __str__(self) :
-        s = "EXAMPLE in: " + self.source_directory
+        s = tools.yellow("EXAMPLE in: " + self.source_directory)
         return tools.indent(s,1)
 
 def getExamples(path, build, log) :
@@ -433,7 +433,13 @@ class Run(OutputDirectory, ExternalCommand) :
               if not os.path.basename(src) == 'output_dir' : # do not copy the output_dir recursively into itself! (infinite loop)
                   shutil.copytree(src, dst) # copy tree
           else :
-              shutil.copyfile(src, dst) # copy file
+              # Check for symbolic links
+              if os.path.islink(src):
+                  # Do not copy broken symbolic links
+                  if os.path.exists(src):
+                      shutil.copyfile(src, dst) # copy symbolic link
+              else:
+                  shutil.copyfile(src, dst) # copy file
     def rename_failed(self) :
         """Rename failed run directories in order to repeat the run when the regression check is repeated.
         This routine is called if either the execution fails or an analysis."""
@@ -616,17 +622,17 @@ def PerformCheck(start,builds,args,log) :
            (1.1):   get the path and the parameterfiles to the i'th external
            (2):   loop over all parameterfiles available for the i'th external
            (2.1):   consider combinations     
-           (3):   loop over all combinations and parameterfiles for the i'th external
+           (3):   loop over all combinations and parameter files for the i'th external
            (3.1):   run the external binary
     4.2    execute the binary file for one combination of parameters
-    (post) perform a postprocessing step: e.g. run posti, ...
+    (post) perform a post processing step: e.g. run posti, ...
            (1):   loop over all externals available in external.ini    
            (1.1):   get the path and the parameterfiles to the i'th external
            (2):   loop over all parameterfiles available for the i'th external
            (2.1):   consider combinations     
-           (3):   loop over all combinations and parameterfiles for the i'th external
+           (3):   loop over all combinations and parameter files for the i'th external
            (3.1):   run the external binary
-    4.3    remove unwanted files: run analysis directly after each run (as oposed to the normal analysis which is used for analyzing the created output)
+    4.3    remove unwanted files: run analysis directly after each run (as opposed to the normal analysis which is used for analyzing the created output)
     5.   loop over all successfully executed binary results and perform analyze tests
     6.   rename all run directories for which the analyze step has failed for at least one test
     """
@@ -686,7 +692,7 @@ def PerformCheck(start,builds,args,log) :
                         log.info(str(run))
                            
                         # 4.1 read the external options in 'externals.ini' within each example directory (e.g. eos, hopr, posti)
-                        #     distinguish between pre- and postprocessing
+                        #     distinguish between pre- and post processing
                         run.externals_pre, run.externals_post = \
                                 getExternals(os.path.join(run.source_directory,'externals.ini'), run, build)
 

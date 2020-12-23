@@ -101,7 +101,7 @@ def find_basedir(basedir) :
 
 
 def remove_folder(path) :
-    print(yellow("[remove_folder]: deleting folder '%s'" % path))
+    print("deleting folder '%s'" % path)
     shutil.rmtree(path,ignore_errors=True)
     #shutil.rmtree(path)
 

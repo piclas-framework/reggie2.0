@@ -58,7 +58,7 @@ In Python 2
 ```
 j = (i / option.base) % len(option.values)
 ```
-returns an integer, however, in Python 3 a float is retured. Use
+returns an integer, however, in Python 3 a float is returned. Use
 ```
 j = int((i / option.base) % len(option.values))
 ```
@@ -127,12 +127,13 @@ gitlab-ci.py
 1. [h5 array bounds check](#h5-array-bounds-check)
 1. [Data file line comparison](#data-file-line-comparison)
 1. [integrate data columns](#integrate-data-columns)
+1. [compare data columns](#compare-data-column)
 1. [Clean-up files after each run](#clean-up-files)
 
 
-The parameters used in `analyze.ini` and example arguments are given in the following table. Note that if you intend to use whitespaces in variable names they must be supplied in form of `\s` in the variable name. 
-Example: `"Initial Timestep"` becomes `"Initial\sTimestep"` (or `"Initial\s Timestep"`) because all whitespaces are removed from the variable name automatically. 
-The intention of a whitespace must be stated explcitly. 
+The parameters used in `analyze.ini` and example arguments are given in the following table. Note that if you intend to use white spaces in variable names they must be supplied in form of `\s` in the variable name. 
+Example: `"Initial Timestep"` becomes `"Initial\sTimestep"` (or `"Initial\s Timestep"`) because all white spaces are removed from the variable name automatically. 
+The intention of a white space must be stated explicitly. 
 
 | **analyze**                | **options**                               | **values (examples)**                                   | **Default values**                 | **Description**
 | :------------------------: | :-------------------------------------    | :------------------------------------------------------ | :--------------------------------- | :---------------------------------------------------------------------------------------------------------------------------                                                                                                             |
@@ -181,6 +182,13 @@ The intention of a whitespace must be stated explcitly.
 |                            | integrate\_line\_option                   | DivideByTimeStep                                        | None                               | special option, e.g., calculating a rate by dividing the integrated values by the timestep which is used in the values 'x'                                                                                                               |
 |                            | integrate\_line\_multiplier               | 1                                                       | 1                                  | factor for multiplying the result (in order to acquire a physically meaning value for comparison)                                                                                                                                        |
 |                            | integrate\_line\_multiplier               | 1                                                       | 1                                  | factor for multiplying the result (in order to acquire a physically meaning value for comparison)                                                                                                                                        |
+| compare data column        | compare\_column\_file                     | PartAnalyze.csv                                         | None                               | name of calculated output file (e.g. .csv file)                                                                                                                                                                                          |
+|                            | compare\_column\_reference\_file          | Refernece.csv                                           | None                               | name of of the reference file
+|                            | compare\_column\_delimiter                | :                                                       | ,                                  | delimiter symbol, default is comma ',' (note that a comma cannot be supplied in this file as it is a delimiter itself)                                                                                                                   |
+|                            | compare\_column\_index                    | 0                                                       | None                               | column index for comparison (Note that the index of the column start at 0)                                                                                                                                                               |
+|                            | compare\_column\_tolerance_value          | 0.8e-2                                                  | None                               | tolerance that is used in comparison                                                                                                                                                                                                     |
+|                            | compare\_column\_tolerance_type           | relative                                                | None                               | type of tolerance, either 'absolute' or 'relative'                                                                                                                                                                                       |
+|                            | compare\_column\_multiplier               | 1                                                       | 1                                  | factor for multiplying the result (in order to acquire a physically meaning value for comparison)                                                                                                                                        |
 | clean-up files after run   | clean\_up\_files                          | *_State_*                                               | None                               | remove all unwated files directly after the run is completed. The wildcard character is "*"                                                                                                                                              |
 
 # L2 error file
@@ -394,12 +402,30 @@ integrate_line_file            = Database.csv          ! data file name
 integrate_line_columns         = 0:5                   ! columns x:y
 integrate_line_integral_value  = 44.00                 ! Ampere
 integrate_line_tolerance_value = 0.8e-2                ! tolerance
-integrate_line_tolerance_type  = relative              ! special option
+integrate_line_tolerance_type  = relative              ! absolute or relative comparison
 integrate_line_option          = DivideByTimeStep      ! the first column in Database.csv is used for this option
 integrate_line_multiplier      = 5.340588433333334e-03 ! = MPF*q/tend = 1e6*1.60217653E-19/3E-11
 ```
 
 Note that a comma is the default delimiter symbol for reading the data from the supplied file. The varaible "integrate\_line\_delimiter" cannot be set as custom delimiter symbol "," because the comma is used for splitting the keywords in analyze.ini. However, other symbols can be supplied using "integrate\_line\_delimiter" instead of a comma.
+
+# compare data column
+* compares the data in a column with a reference file
+* The data is delimited by a comma on default but can be changed by setting "compare\_column\_delimiter = :" (when, e.g., ":" is to be used as the delimiter)
+
+Template for copying to **analyze.ini**
+
+```
+! compare columns in a data file
+compare_column_file            = PartAnalyze.csv ! data file name
+compare_column_reference_file  = reference.csv   ! reference data file name
+compare_column_index           = 0               ! columns index (starts at 0)
+compare_column_tolerance_value = 0.8e-2          ! tolerance
+compare_column_tolerance_type  = relative        ! absolute or relative comparison
+compare_column_multiplier      = 5e-3            ! fixed factor
+```
+
+Note that a comma is the default delimiter symbol for reading the data from the supplied file. The varaible "comapre\_column\_delimiter" cannot be set as custom delimiter symbol "," because the comma is used for splitting the keywords in analyze.ini. However, other symbols can be supplied using "compare\_column\_delimiter" instead of a comma.
 
 ## Clean-up files
 * remove all unwated files directly after the run is completed. The wildcard character is "*"

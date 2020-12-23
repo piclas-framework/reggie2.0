@@ -28,15 +28,16 @@ class ExternalCommand() :
         self.result = ""
         self.walltime = 0
 
-    def execute_cmd(self, cmd, target_directory, name="std", string_info = None, environment = None):
+    def execute_cmd(self, cmd, target_directory, name="std", string_info = None, environment = None, displayOnFailure = True):
         """Execute an external program specified by 'cmd'. The working directory of this program is set to target_directory.
         Returns the return_code of the external program.
 
-        cmd                    : command given as list of strings (the command is split at every white space occurrence)
-        target_directory       : path to directory where the cmd command is to be executed
-        name (optional)        : [name].std and [name].err files are created for storing the std and err output of the job
-        string_info (optional) : Print info regarding the command that is executed before execution
-        environment (optional) : run cmd command with environment variables as given by environment=os.environ (and possibly modified)
+        cmd                                       : command given as list of strings (the command is split at every white space occurrence)
+        target_directory                          : path to directory where the cmd command is to be executed
+        name (optional, default="std")            : [name].std and [name].err files are created for storing the std and err output of the job
+        string_info (optional, default=None)      : Print info regarding the command that is executed before execution
+        environment (optional, default=None)      : run cmd command with environment variables as given by environment=os.environ (and possibly modified)
+        displayOnFailure (optional, default=True) : Display error information if the code has failed to run: the last 15 lines of std.out and the last 15 lines of std.err
         """
         # Display string_info
         if string_info is not None:
@@ -93,7 +94,7 @@ class ExternalCommand() :
                 # Read up to a 1 KB chunk of data
                 out_s = os.read(pipeErr_r, 1024)
                 if not isinstance(out_s, str):
-                    out_s = out_s.decode("utf-8")
+                    out_s = out_s.decode("utf-8", 'ignore')
                 bufErr = bufErr + out_s
                 tmp = bufErr.split('\n') 
                 for line in tmp[:-1] :
@@ -135,6 +136,14 @@ class ExternalCommand() :
             print("\033[F\033[%sG " % ncols +str(self.result)+" [%.2f sec]" % self.walltime)
         else :
             print(self.result+" [%.2f sec]" % self.walltime)
+
+        # Display error information if the code has failed to run: the last 15 lines of std.out and the last 15 lines of std.err
+        if log.getEffectiveLevel() != logging.DEBUG and displayOnFailure:
+            if self.return_code != 0 :
+                for line in self.stdout[-15:] :
+                    print(tools.red("%s" % line.strip()))
+                for line in self.stderr[-15:]:
+                    print(tools.red("%s" % line.strip()))
 
         return self.return_code
     
