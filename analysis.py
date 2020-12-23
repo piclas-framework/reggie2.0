@@ -1129,7 +1129,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
         # 1.  iterate over all runs
         for iRun, run in enumerate(runs) :
 
-            # Check whether the list of diffs is to be used one-at-a-time, i.e., a list of diffs for a list of runs (each run only observes one diff, not all of them)
+            # Check whether the list of diffs is to be used one-at-a-time, i.e., a list of diffs for a list of runs (each run only performs one diff, not all of them)
             if self.one_diff_per_run :
                 # One comparison for each run
                 compares = [iRun]
@@ -1523,10 +1523,13 @@ class Analyze_compare_data_file(Analyze) :
         # 1.  iterate over all runs
         for iRun, run in enumerate(runs) :
 
-            # Check whether the list of diffs is to be used one-at-a-time, i.e., a list of diffs for a list of runs (each run only observes one diff, not all of them)
+            # Check whether the list of diffs is to be used one-at-a-time, i.e., a list of diffs for a list of runs (each run only performs one diff, not all of them)
             if self.one_diff_per_run :
-                # One comparison for each run
-                compares = [iRun]
+                if self.nCompares > 1:
+                    # One comparison for each run
+                    compares = [iRun]
+                else:
+                    compares = [0]
             else :
                 # All comparisons for every run
                 compares = range(self.nCompares)
@@ -1620,6 +1623,11 @@ class Analyze_compare_data_file(Analyze) :
                     else :
                         s2 = tools.red(", but %s differences are allowed (given by compare_data_file_max_differences). This analysis is therefore marked as passed." % max_differences_loc)
                         print(s+s2)
+
+                else:
+                    NbrOfMatches=success.count(True)
+                    s = tools.blue(tools.indent("Compared %s with %s and got %s matches" % (file_loc, reference_file_loc,NbrOfMatches),2))
+                    print(s)
 
     def __str__(self) :
         return "compare line in data file (e.g. .csv file): file=[%s] and reference file=[%s]" % (self.prms["file"], self.prms["reference_file"])
