@@ -269,7 +269,8 @@ def getAnalyzes(path, example, args) :
     #             compare_data_file_tolerance_type = "relative"
     #         else :
     #             raise Exception(tools.red("initialization of compare data file failed. h5diff_tolerance_type '%s' not accepted." % h5diff_tolerance_type))
-    analyze.append(Analyze_compare_data_file(compare_data_file_one_diff_per_run, compare_data_file_name, compare_data_file_reference, compare_data_file_tolerance, compare_data_file_line, compare_data_file_delimiter, compare_data_file_max_differences, compare_data_file_tolerance_type, args.referencescopy))
+    if compare_data_file_name and compare_data_file_reference and compare_data_file_tolerance:
+        analyze.append(Analyze_compare_data_file(compare_data_file_one_diff_per_run, compare_data_file_name, compare_data_file_reference, compare_data_file_tolerance, compare_data_file_line, compare_data_file_delimiter, compare_data_file_max_differences, compare_data_file_tolerance_type, args.referencescopy))
 
     # 2.8   integrate data file column
     integrate_line_file            = options.get('integrate_line_file',None)                 # file name (path) which is analyzed
