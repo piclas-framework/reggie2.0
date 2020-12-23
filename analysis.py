@@ -1561,7 +1561,7 @@ class Analyze_compare_data_file(Analyze) :
                     continue
 
                 if not os.path.exists(path) or not os.path.exists(path_ref_target) :
-                    s=tools.red("Analyze_compare_data_file: cannot find both file=[%s] and reference file=[%s]" % (file_loc, reference_file_loc))
+                    s=tools.red("Analyze_compare_data_file: cannot find both file=[%s] and reference file=[%s]" % (path, reference_file_loc))
                     print(s)
                     run.analyze_results.append(s)
                     run.analyze_successful=False
@@ -1600,7 +1600,7 @@ class Analyze_compare_data_file(Analyze) :
 
                 # 1.3.3   check length of vectors
                 if line_len != line_ref_len :
-                    s=tools.red("Analyze_compare_data_file: length of lines in file [%s] and reference file [%s] are not of the same length" % (file_loc, reference_file_loc))
+                    s=tools.red("Analyze_compare_data_file: length of lines in file [%s] and reference file [%s] are not of the same length" % (path, reference_file_loc))
                     print(s)
                     run.analyze_results.append(s)
                     run.analyze_successful=False
@@ -1626,7 +1626,7 @@ class Analyze_compare_data_file(Analyze) :
 
                 else:
                     NbrOfMatches=success.count(True)
-                    s = tools.blue(tools.indent("Compared %s with %s and got %s matches" % (file_loc, reference_file_loc,NbrOfMatches),2))
+                    s = tools.blue(tools.indent("Compared %s with %s and got %s matches" % (path, reference_file_loc,NbrOfMatches),2))
                     print(s)
 
     def __str__(self) :
