@@ -28,7 +28,7 @@ def splitValues(s) :
     # This is done with a regular expression. Explanation:
     #   ,       : matches comma ','
     #   \s*     : match 0 or more whitespaces (actually not necessary, since we already removed all whitespaces)
-    #   (?!...) : matches if ... doesn't match next. 
+    #   (?!...) : matches if ... doesn't match next.
     #   [^()]*  : matches all characters, except '(' or ')', 0 or more times
     #   \)      : matches closing bracket ')', the backslash is the escape-character
     return re.split(r',\s*(?![^()]*\))', s)
@@ -47,9 +47,9 @@ def isSubset(a, b) :
     """Check if the dictionary 'a' is a subset of the dictionary 'b'"""
     try :
         # build list of booleans, that contains for every key in 'a', if a[key] == b[key]
-        tmp = [ a[key] == b[key] for key in a.keys() ] 
+        tmp = [ a[key] == b[key] for key in a.keys() ]
     except KeyError : # if a key of 'a' is not in 'b'
-        return False 
+        return False
     return all(tmp) # return True if all elements of tmp are True
 
 def anyIsSubset(alist, b) :
@@ -74,9 +74,9 @@ def readValueFromFile(filename,key) :
             line = re.sub(r"\s+", "", line)        # remove all whitespaces ("\s" is the whitespac symbol)
             line = re.sub(r"\\s", " ", line)       # add new whitespaces for all occurrances of "\s" in the string ("\s" is NOT the whitespace symbol here)
             if line.startswith('!') : continue     # skip lines starting with a comment
-            line = line.split('!')[0]              # remove comments 
+            line = line.split('!')[0]              # remove comments
 
-            # 1.1 read an exclusion 
+            # 1.1 read an exclusion
             if line.lower().startswith('exclude:') :
                 continue                           # ignore exclusion
 
@@ -84,9 +84,9 @@ def readValueFromFile(filename,key) :
             if line.lower().startswith('nocrosscombination:') :
                 continue                           # ignore noCrossCombination
 
-            # 1.3 read a option and its possible values 
+            # 1.3 read a option and its possible values
             if '=' in line :
-                (currentKey,currentValue) = line.split('=',1)  # split line at '=' 
+                (currentKey,currentValue) = line.split('=',1)  # split line at '='
                 if key.lower() == currentKey.lower():          # check if the key matches the one passed to the routine
                     break                                      # if so, break from the for loop
                 else:
@@ -116,14 +116,14 @@ def readKeyValueFile(filename) :
             line = re.sub(r"\s+", "", line)        # remove all whitespaces ("\s" is the whitespac symbol)
             line = re.sub(r"\\s", " ", line)       # add new whitespaces for all occurrances of "\s" in the string ("\s" is NOT the whitespace symbol here)
             if line.startswith('!') : continue     # skip lines starting with a comment
-            line = line.split('!')[0]              # remove comments 
+            line = line.split('!')[0]              # remove comments
 
-            # 1.1 read an exclusion 
+            # 1.1 read an exclusion
             if line.lower().startswith('exclude:') :
                 line = line.split(':', 1)[1]       # remove everything before ':''
                 ex = {}                            # new dictionary for the exclusion
-                for key_value in splitValues(line):# split at ',' (but not inside brackets) and iterate over key-value-pairs 
-                    (key,value) = key_value.split('=') 
+                for key_value in splitValues(line):# split at ',' (but not inside brackets) and iterate over key-value-pairs
+                    (key,value) = key_value.split('=')
                     ex[key] = value                # save key and its value in the exclusion-dictionary
 
                 exclusions.append(ex)              # append exclusion to the list of all exclusions
@@ -137,11 +137,11 @@ def readKeyValueFile(filename) :
                 continue                                       # reading of noCrossCombination finished -> go on with next line
 
 
-            # 1.3 read a option and its possible values 
+            # 1.3 read a option and its possible values
             if '=' in line :
-                (key,values) = line.split('=',1)         # split line at '=' 
+                (key,values) = line.split('=',1)         # split line at '='
                 option = Option(key,splitValues(values)) # generate new Option with a list of values (splitted at ',' but not inside brackets)
-                options.append(option)                   # append option to options list, where 
+                options.append(option)                   # append option to options list, where
                 continue                                 # reading of option finished -> go on with next line
 
     options.sort(key=lambda option: len(option.values), reverse=True) # sort list in order to have the most varying option at the beginning
@@ -169,7 +169,7 @@ def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None
             raise Exception(tools.red("Trying to set %s = [%s], but %s was not found in the list." % (OverrideOptionKey,OverrideOptionValue,OverrideOptionKey) ))
 
         options.sort(key=lambda option: len(option.values), reverse=True) # sort list in order to have the most varying option at the beginning
-    
+
     # 2.  Compute combinations:
     # 2.1   count total number of all combinations
     # 2.2   build only the valid combinations (that do NOT match any exclusion)
@@ -194,15 +194,15 @@ def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None
         # build i-th combination by adding all options with their name and a certain value
         for option in options :
             # compute index in the list of values of the option
-            # Explanation with Example: 
+            # Explanation with Example:
             #   Assume you are reading the following file:
             #       opt1 = black,white
             #       opt2 = a,b,c
             #       opt3 = cat,dog,bird,snake
             #       opt4 = car,train
             #   Then you get 2*3*4*2 = 48 combinations in total. Let us imagine the options (opt1, opt2, ...)
-            #   as digits in a crazy number system, where opt1 is the digit with the lowest value and 
-            #   opt4 with the highest value. Since we have different number of values for every digit, the base 
+            #   as digits in a crazy number system, where opt1 is the digit with the lowest value and
+            #   opt4 with the highest value. Since we have different number of values for every digit, the base
             #   of each digit is not as in a standard number system like the decimal a series of powers 10^0, 10^1, 10^2, ...
             #   In our example we get the following bases for the options:
             #       base of opt1 = 1   (first digit has base 1 in every number system)
@@ -215,7 +215,7 @@ def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None
             j = (i / option.base) % len(option.values)
             digits[option.name] = int(j)
 
-        for option in options : 
+        for option in options :
             if CheckForMultipleKeys :
                 # check if the same parameter name (e.g. 'BoundaryName') occurs more than once in the list and
                 # move multiple occurances to a separate key/value where the value is a list of all occurances
@@ -233,20 +233,28 @@ def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None
                 combination[option.name] = option.values[digits[option.name]]
 
         # check if the combination is valid (does not match any exclusion)
-        if anyIsSubset(exclusions, combination) : 
+        if anyIsSubset(exclusions, combination) :
             continue # if any exclusion matches the combination, the combination is invalid => cycle and do not add to list of valid combinations
 
         # check if option is marked with "noCrossCombinations", these are not to be permutated
         skip = False
         for noCrossCombination in noCrossCombinations :
+            # Check if the parameter exists in the list
+            if digits.get(noCrossCombination[0],None) is None:
+                print(tools.red("nocrosscombination [%s] not found in list of parameters given in [%s].\nOnly parameters that are read can be considered for nocrosscombination." % (noCrossCombination[0], filename)))
+                exit(1)
+
+            # Check all noCrossCombinations and skip them is they already were added to the list
             if not all([digits[key] == digits[noCrossCombination[0]] for key in noCrossCombination]) :
                 skip = True
                 break
+
+        # Don't add combination if it was marked skip=True
         if skip : continue
-                
 
 
-        # add valid combination 
+
+        # add valid combination
         combinations.append(combination)
 
     logging.getLogger('logger').debug("  Number of valid combinations = %d" % len(combinations))
