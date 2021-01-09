@@ -117,6 +117,64 @@ class Standalone(Build) :
         s+= "              target_directory= " + self.target_directory
         return s
 
+def StandaloneAutomaticMPIDetection(binary_path) :
+    '''Try and find CMake option specifying if the executable was built with MPI=ON or without any MPI libs'''
+    # Default (per definition)
+    MPIifOFF = False
+
+    # Use try/except here, but don't terminate the program when try fails
+    try:
+        # Check if userblock exists and read it
+        userblock = os.path.join(os.path.dirname(os.path.abspath(binary_path)),'userblock.txt')
+        checkLine = False
+        if os.path.exists(userblock):
+            with open(userblock) as f :
+                for line in f.readlines() :   # iterate over all lines of the file
+                    line = line.rstrip('\n')
+
+                    # Only check lines within the "CMAKE" block
+                    if checkLine:
+                        #print(line)
+                        Parentheses = re.search(r'\((.+)\)', line)
+                        if Parentheses:
+                            text = Parentheses.group(0) # get text
+                            text = text[1:-1]           # remove opening and closing parentheses
+                            text = re.sub(r'".*"', '', text) # remove double quotes and their content
+                            parameters = text.split()
+                            MPI_built_flags = [os.path.basename(binary_path).upper()+"_MPI", 'LIBS_USE_MPI']
+                            if any(parameters[0] == flag for flag in MPI_built_flags):
+                                value=parameters[len(parameters)-1]
+                                if value.lower() == 'off':
+                                    MPIifOFF = True
+                                    print(tools.yellow("Automatically determined that the executable was compiled with MPI=OFF\n  File: %s\n  Line: %s" % (userblock,line)))
+                                    break
+                                elif value.lower() == 'on':
+                                    MPIifOFF = False
+                                    print(tools.yellow("Automatically determined that the executable was compiled with MPI=ON\n  File: %s\n  Line: %s" % (userblock,line)))
+                                    break
+
+                    # Check which block is being passed and extract the "CMAKE" block
+                    Braces = re.search(r'\{(.+)\}', line)
+                    if Braces:
+                        mytext = Braces.group(0)
+                        SquareBrackets = re.search(r'\[(.+)\]', mytext)
+                        if SquareBrackets:
+                            mytext = SquareBrackets.group(0)
+                            Parentheses = re.search(r'\((.+)\)', mytext)
+                            if Parentheses:
+                                parameter = Parentheses.group(0) # get text
+                                parameter = parameter[1:-1]      # remove opening and closing parentheses
+                                parameter = parameter.strip()    # remove leading and trailing white spaces
+                                if parameter.lower() == 'cmake':
+                                    checkLine = True
+                                else:
+                                    checkLine = False
+
+    except Exception as e:
+        print(tools.red("Error in StandaloneAutomaticMPIDetection(binary_path):\n%s\nThis program, however, will not be terminated!" % e))
+
+    return MPIifOFF
+
 def getBuilds(basedir, source_directory, CMAKE_BUILD_TYPE) :
     builds = []
     i = 1
@@ -192,7 +250,7 @@ def getCommand_Lines(args, path, example) :
     i = 1
 
     # If single execution is to be performed, remove "MPI =! 1" from command line list
-    if args.noMPI :
+    if args.noMPI or args.noMPIautomatic :
         combis, digits = combinations.getCombinations(path,OverrideOptionKey='MPI', OverrideOptionValue='1')
     else :
         combis, digits = combinations.getCombinations(path)
@@ -207,9 +265,11 @@ def getCommand_Lines(args, path, example) :
 def SetMPIrun(build, args, MPIthreads) :
     ''' check MPI built binary (only possible for reggie-compiled binaries) '''
 
+    # Check for variable MPI_built_flag=PICLAS_MPI (or FLEXI_MPI, depending on the executable name)
     MPI_built_flag=os.path.basename(build.binary_path).upper()+"_MPI"
     MPIbuilt = build.configuration.get(MPI_built_flag,'ON')
 
+    # If not explicitly set to OFF, check again for 2nd variable 'LIBS_USE_MPI'
     if MPIbuilt == "ON" :
         MPIbuilt = build.configuration.get('LIBS_USE_MPI','ON')
 
@@ -217,6 +277,9 @@ def SetMPIrun(build, args, MPIthreads) :
         # Check if single execution is wanted (independent of the compiled executable)
         if args.noMPI :
             print(tools.indent(tools.yellow("noMPI=%s, running case in single (without 'mpirun -np')" % (args.noMPI)),2))
+            cmd = []
+        elif args.noMPIautomatic :
+            print(tools.indent(tools.yellow("noMPIautomatic=%s, running case in single (without 'mpirun -np')" % (args.noMPIautomatic)),2))
             cmd = []
         else :
             # Check whether the compiled executable was created with MPI=ON
@@ -893,7 +956,7 @@ def SummaryOfErrors(builds, args) :
                         # Print options with .ljust
                         if key == "options" :
                             print(tools.yellow(run.output_strings[key].ljust(value)), end=' ') # skip linebreak
-                        elif key == "MPI" and args.noMPI:
+                        elif key == "MPI" and any([args.noMPI, args.noMPIautomatic]) :
                             print(tools.yellow("1"), end=' ') # skip linebreak
                         else :
                             print(run.output_strings[key].ljust(value), end=' ') # skip linebreak

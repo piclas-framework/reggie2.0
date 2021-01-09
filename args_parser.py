@@ -52,6 +52,10 @@ def getArgsAndBuilds() :
     # get reggie command line arguments
     args = parser.parse_args()
 
+    # Set default values
+    args.noMPIautomatic = False
+
+    # Check OS
     if re.search('^linux',platform) :
         hostname=socket.gethostname()
         print("platform: %s, hostname: %s" % (platform,hostname))
@@ -76,7 +80,7 @@ def getArgsAndBuilds() :
         # Setup basedir (containing CMakeLists.txt) by searching upward from current working directory 
         if args.basedir is None : args.basedir = os.getcwd() # start with current working directory
         try :
-            if args.exe is None : # only get basedir if no executbale is supplied
+            if args.exe is None : # only get basedir if no executable is supplied
                 args.basedir = tools.find_basedir(args.basedir)
         except Exception :
             print(tools.red("Basedir (containing 'CMakeLists.txt') not found!\nEither specify the basedir on the command line or execute reggie within a project with a 'CMakeLists.txt'."))
@@ -100,6 +104,7 @@ def getArgsAndBuilds() :
             exit(1)
         else :
             builds = [check.Standalone(args.exe,args.check)] # set builds list to contain only the supplied executable
+            args.noMPIautomatic = check.StandaloneAutomaticMPIDetection(args.exe) # Check possibly existing userblock.txt to find out if the executable was compiled with MPI=ON or MPI=OFF
             args.run = True      # set 'run-mode' do not compile the code
             args.basedir = None  # since code will not be compiled, the basedir is not required
     
