@@ -73,7 +73,7 @@ class ExternalCommand() :
         bufOut = ""
         bufErr = ""
         while self.process.poll() is None:
-            # Loop long as the selct mechanism indicates there
+            # Loop as long as the select mechanism indicates there
             # is data to be read from the buffer
 
             # 1.   std.out

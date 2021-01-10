@@ -21,6 +21,7 @@ from externalcommand import ExternalCommand
 import tools
 from analysis import Analyze, getAnalyzes, Clean_up_files
 import collections
+import subprocess
 # import h5 I/O routines
 try :
     import h5py
@@ -121,13 +122,15 @@ def StandaloneAutomaticMPIDetection(binary_path) :
     '''Try and find CMake option specifying if the executable was built with MPI=ON or without any MPI libs'''
     # Default (per definition)
     MPIifOFF = False
+    userblockChecked = False
 
+    # 1st Test
     # Use try/except here, but don't terminate the program when try fails
     try:
-        # Check if userblock exists and read it
+        # Check if userblock exists and read it, otherwise don't do anything and continue
         userblock = os.path.join(os.path.dirname(os.path.abspath(binary_path)),'userblock.txt')
-        checkLine = False
         if os.path.exists(userblock):
+            checkLine = False
             with open(userblock) as f :
                 for line in f.readlines() :   # iterate over all lines of the file
                     line = line.rstrip('\n')
@@ -146,10 +149,12 @@ def StandaloneAutomaticMPIDetection(binary_path) :
                                 value=parameters[len(parameters)-1]
                                 if value.lower() == 'off':
                                     MPIifOFF = True
+                                    userblockChecked = True
                                     print(tools.yellow("Automatically determined that the executable was compiled with MPI=OFF\n  File: %s\n  Line: %s" % (userblock,line)))
                                     break
                                 elif value.lower() == 'on':
                                     MPIifOFF = False
+                                    userblockChecked = True
                                     print(tools.yellow("Automatically determined that the executable was compiled with MPI=ON\n  File: %s\n  Line: %s" % (userblock,line)))
                                     break
 
@@ -171,7 +176,33 @@ def StandaloneAutomaticMPIDetection(binary_path) :
                                     checkLine = False
 
     except Exception as e:
-        print(tools.red("Error in StandaloneAutomaticMPIDetection(binary_path):\n%s\nThis program, however, will not be terminated!" % e))
+        print(tools.red("Error in StandaloneAutomaticMPIDetection() in check.py:\n%s\nThis program, however, will not be terminated!" % e))
+
+    # 2nd Test
+    # If the userblock test did not result in MPIifOFF=True, check the shared object dependencies of the executable and search for MPI related libs
+    if not MPIifOFF and not userblockChecked:
+        # Use try/except here, but don't terminate the program when try fails
+        try :
+            cmd=['ldd',binary_path,'|','grep','-i','"libmpi\.\|\<libmpi_"']
+            a=' '.join(cmd)
+            p = subprocess.Popen(a, stdout=subprocess.PIPE, shell=True)
+            (output, err) = p.communicate()
+
+            if not isinstance(output, str):
+                # convert byte output to string
+                output = output.decode("utf-8", 'ignore')
+
+            print("output = %s" % (output))
+            # Check if the grep result is not empty
+            if output:
+                MPIifOFF = False
+                print(tools.yellow("Automatically determined that the executable was compiled with MPI libs\n  File: %s\n  Test: %s" % (binary_path,a)))
+            else:
+                MPIifOFF = True
+                print(tools.yellow("Automatically determined that the executable was compiled without MPI libs\n  File: %s\n  Test: %s" % (binary_path,a)))
+
+        except Exception as e: # this fails, if the supplied command line is corrupted
+            print(tools.red("Error in StandaloneAutomaticMPIDetection() in check.py:\n%s\nThis program, however, will not be terminated!" % e))
 
     return MPIifOFF
 
