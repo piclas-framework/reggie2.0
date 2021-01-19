@@ -15,6 +15,7 @@ import logging
 import tools
 import check
 import args_parser
+import summary
 """
 General workflow:
 1.  get the command line arguments 'args' and all valid build combinations in the check directory from 'builds.ini'
@@ -54,7 +55,7 @@ log = logging.getLogger('logger')
 check.PerformCheck(start,builds,args,log)
 
 # 4.  display the summary table with information for each build, run and analysis step
-check.SummaryOfErrors(builds, args)
+summary.SummaryOfErrors(builds, args)
 
 # 5.  display if regression check was successful or not and return the corresponding error code
-tools.finalize(start, 0, check.Run.total_errors, check.ExternalRun.total_errors, check.Analyze.total_errors, check.Analyze.total_infos)
+summary.finalize(start, 0, check.Run.total_errors, check.ExternalRun.total_errors, check.Analyze.total_errors, check.Analyze.total_infos)
