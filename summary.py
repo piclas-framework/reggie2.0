@@ -52,9 +52,11 @@ def SummaryOfErrors(builds, args) :
                     run.restart_file_used = False
                     if list(run.digits.items())[0][1] > 0 :
                         run.output_strings['options'] += "%s=%s"%(list(run.parameters.items())[0]) # print parameter and value as [parameter]=[value]
-                    elif restart_file: # if no parameter is varied, check if the restart file is used
+                    elif restart_file : # if no parameter is varied, check if the restart file is used
                         run.restart_file_used = True
-                        run.output_strings['options'] += "%s=%s"%('restart_file',restart_file) # print parameter and value as [parameter]=[value]
+                        if restart_file != restart_file_old: # only display once
+                            run.output_strings['options'] += "%s=%s"%('restart_file',restart_file) # print parameter and value as [parameter]=[value]
+                            restart_file_old = restart_file
 
                     run.output_strings['path']    = os.path.relpath(run.target_directory,OutputDirectory.output_dir)
                     run.output_strings['MPI']     = command_line.parameters.get('MPI', '-')
@@ -78,7 +80,7 @@ def SummaryOfErrors(builds, args) :
         print('-'*132)
         if isinstance(build, check.Standalone) :
             print("Binary supplied externally under ",build.binary_path)
-        elif isinstance(build, Build) :
+        elif isinstance(build, check.Build) :
             print("Build %d of %d (%s) compiled with in [%.2f sec]:" % (build.number, len(builds), build.result, build.walltime))
             print(" ".join(build.cmake_cmd_color))
             if build.return_code != 0 : break # stop output as soon as a failed build in encountered
