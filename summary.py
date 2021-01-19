@@ -34,8 +34,9 @@ def SummaryOfErrors(builds, args) :
     3.2.4  print the analyze results line by line
     """
 
-    param_str_old = ""
-    str_MPI_old   = "-"
+    param_str_old    = ""
+    str_MPI_old      = "-"
+    restart_file_old = "-"
 
     # 1. loop over all runs and set output strings
     max_lens = collections.OrderedDict([ ("#run",4) , ("options",7) , ("path",4) , ("MPI",3), ("time",4) , ("Info",4) ])
@@ -47,8 +48,14 @@ def SummaryOfErrors(builds, args) :
                     run.output_strings['#run']    = str(run.globalnumber)
                     run.output_strings['options'] = ""
                     # Check number of variations in parameter list(run.digits.items())[0][1]
+                    restart_file = command_line.parameters.get('restart_file', None)
+                    run.restart_file_used = False
                     if list(run.digits.items())[0][1] > 0 :
                         run.output_strings['options'] += "%s=%s"%(list(run.parameters.items())[0]) # print parameter and value as [parameter]=[value]
+                    elif restart_file: # if no parameter is varied, check if the restart file is used
+                        run.restart_file_used = True
+                        run.output_strings['options'] += "%s=%s"%('restart_file',restart_file) # print parameter and value as [parameter]=[value]
+
                     run.output_strings['path']    = os.path.relpath(run.target_directory,OutputDirectory.output_dir)
                     run.output_strings['MPI']     = command_line.parameters.get('MPI', '-')
                     run.output_strings['time']    = "%2.1f" % run.walltime
@@ -84,13 +91,19 @@ def SummaryOfErrors(builds, args) :
                     if run.output_strings["MPI"] != str_MPI_old :
                         print("")
                         str_MPI_old = run.output_strings["MPI"]
-
                     # 3.2.2 print the run parameters, except the inner most (this one is displayed in # 3.2.3)
                     paramsWithMultipleValues = [item for item in list(run.parameters.items())[1:] if run.digits[item[0]]>0 ]
                     param_str =", ".join(["%s=%s"%item for item in paramsWithMultipleValues]) # skip first index
-                    if param_str  != param_str_old : # only print when the parameter set changes
-                        print("".ljust(max_lens["#run"]), spacing*' ', tools.yellow(param_str))
-                    param_str_old=param_str
+                    restart_file = command_line.parameters.get('restart_file', None)
+                    if not param_str_old.startswith(param_str) or len(param_str_old) == 0: # Only print when the parameter set changes
+                        if restart_file and not run.restart_file_used and restart_file != restart_file_old: # Add restart file once
+                            if len(param_str) > 0: param_str += ", "
+                            param_str += "%s=%s" % ('restart_file',restart_file)
+                            restart_file_old = restart_file
+                        if len(param_str) > 0:
+                            print("".ljust(max_lens["#run"]), spacing*' ', tools.yellow(param_str))
+
+                    param_str_old = param_str
 
                     # 3.2.3 print all output_strings
                     for key,value in list(max_lens.items()) :
