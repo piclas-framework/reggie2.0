@@ -364,15 +364,19 @@ class Externals(OutputDirectory) :
 def getExternals(path, example, build) :
     externals_pre = []
     externals_post = []
+    externals_errors = []
+
     if not os.path.exists(path) :
-        return externals_pre, externals_post
+        return externals_pre, externals_post, externals_errors
     combis, digits = combinations.getCombinations(path)
 
     for combi in combis :
         # Check directory
         externaldirectory = combi.get('externaldirectory','')
         if not externaldirectory or not os.path.exists(os.path.join(example.source_directory, externaldirectory)) : # string is or empty and path does not exist
-            print(tools.red('getExternals: "externaldirectory" is empty or the path %s does not exist' % os.path.join(example.source_directory,externaldirectory)))
+            s = tools.red('getExternals: "externaldirectory" is empty or the path %s does not exist' % os.path.join(example.source_directory,externaldirectory))
+            externals_errors.append(s)
+            print(s)
             ExternalRun.total_errors+=1 # add error if externalrun fails
             continue
 
@@ -387,7 +391,9 @@ def getExternals(path, example, build) :
         combi['binary_path'] = binary_path
 
         if not externalbinary or not os.path.exists(binary_path) : # string is or empty and path does not exist
-            print(tools.red('getExternals: "externalbinary" is empty or the path %s does not exist' % binary_path))
+            s = tools.red('getExternals: "externalbinary" is empty or the path %s does not exist' % binary_path)
+            externals_errors.append(s)
+            print(s)
             ExternalRun.total_errors+=1 # add error if externalrun fails
             continue
         else :
@@ -396,11 +402,13 @@ def getExternals(path, example, build) :
             elif combi.get('externalruntime','') == 'post' :
                 externals_post.append(Externals(combi, example, -1))
             else :
-                print(tools.red('External tools is neither "pre" nor "post".'))
+                s = tools.red('External tools is neither "pre" nor "post".')
+                externals_errors.append(s)
+                print(s)
                 ExternalRun.total_errors+=1 # add error if externalrun fails
                 continue
 
-    return externals_pre, externals_post
+    return externals_pre, externals_post, externals_errors
 
 
 #==================================================================================================
@@ -791,7 +799,7 @@ def PerformCheck(start,builds,args,log) :
 
                         # 4.1 read the external options in 'externals.ini' within each example directory (e.g. eos, hopr, posti)
                         #     distinguish between pre- and post processing
-                        run.externals_pre, run.externals_post = \
+                        run.externals_pre, run.externals_post, run.externals_errors = \
                                 getExternals(os.path.join(run.source_directory,'externals.ini'), run, build)
 
                         # (pre) externals (1): loop over all externals available in external.ini
@@ -819,6 +827,8 @@ def PerformCheck(start,builds,args,log) :
                                     # (pre) externals (3.1): run the external binary
                                     externalrun.execute(build,external,args)
                                     if not externalrun.successful :
+                                        s = tools.red('Execution (pre) external failed')
+                                        run.externals_errors.append(s)
                                         ExternalRun.total_errors+=1 # add error if externalrun fails
 
                             print(tools.green('Preprocessing: External \"' + external.parameters.get("externalbinary") + '\" finished!'))
@@ -855,6 +865,9 @@ def PerformCheck(start,builds,args,log) :
                                     # (post) externals (3.1): run the external binary
                                     externalrun.execute(build,external,args)
                                     if not externalrun.successful :
+                                        #print(externalrun.return_code)
+                                        s = tools.red('Execution (pre) external failed')
+                                        run.externals_errors.append(s)
                                         ExternalRun.total_errors+=1 # add error if externalrun fails
 
                             print(tools.green('Postprocessing: External \"' + external.parameters.get("externalbinary") + '\" finished!'))
@@ -876,6 +889,10 @@ def PerformCheck(start,builds,args,log) :
                     else : # don't delete build folder after all examples/runs
                         remove_build_when_successful = False
 
+
+                    print("run.externals_pre = %s" % (run.externals_pre))
+                    print("run.externals_post = %s" % (run.externals_post))
+
                     # 6.   rename all run directories for which the analyze step has failed for at least one test
                     for run in runs_successful :         # all successful runs (failed runs are already renamed)
                         if not run.analyze_successful :  # if 1 of N analyzes fails: rename
@@ -883,10 +900,15 @@ def PerformCheck(start,builds,args,log) :
 
                     # Don't remove when run fails
                     if not any([run.analyze_successful for run in runs_successful]) : remove_build_when_successful = False # don't delete build folder after all examples/runs
+
                     # Don't remove when (pre) external fails
-                    if not any([externalrun.successful for externalrun in external.runs for external in run.externals_pre]) : remove_build_when_successful = False # don't delete build folder after all examples/runs
+                    for external in run.externals_pre :
+                        if not any([externalrun.successful for externalrun in external.runs]) : remove_build_when_successful = False # don't delete build folder after all examples/runs
+
                     # Don't remove when (post) external fails
-                    if not any([externalrun.successful for externalrun in external.runs for external in run.externals_post]) : remove_build_when_successful = False # don't delete build folder after all examples/runs
+                    for external in run.externals_post :
+                        if not any([externalrun.successful for externalrun in external.runs]) : remove_build_when_successful = False # don't delete build folder after all examples/runs
+
 
             if remove_build_when_successful and not args.save :
                 tools.remove_folder(build.target_directory)

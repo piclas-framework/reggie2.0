@@ -108,8 +108,12 @@ def SummaryOfErrors(builds, args) :
                     for result in run.analyze_results :
                         print(tools.red(result).rjust(150))
 
+                    # 3.2.5  print the external results line by line
+                    for error in run.externals_errors :
+                        print(tools.red(error).rjust(150))
+
                     # print an empty line after all errors were displayed
-                    if len(run.analyze_results) > 0:
+                    if len(run.analyze_results) > 0 or len(run.externals_errors):
                         print("")
 
 
