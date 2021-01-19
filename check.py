@@ -22,6 +22,7 @@ import tools
 from analysis import Analyze, getAnalyzes, Clean_up_files
 import collections
 import subprocess
+import summary
 # import h5 I/O routines
 try :
     import h5py
@@ -879,7 +880,13 @@ def PerformCheck(start,builds,args,log) :
                     for run in runs_successful :         # all successful runs (failed runs are already renamed)
                         if not run.analyze_successful :  # if 1 of N analyzes fails: rename
                             run.rename_failed()
+
+                    # Don't remove when run fails
                     if not any([run.analyze_successful for run in runs_successful]) : remove_build_when_successful = False # don't delete build folder after all examples/runs
+                    # Don't remove when (pre) external fails
+                    if not any([externalrun.successful for externalrun in external.runs for external in run.externals_pre]) : remove_build_when_successful = False # don't delete build folder after all examples/runs
+                    # Don't remove when (post) external fails
+                    if not any([externalrun.successful for externalrun in external.runs for external in run.externals_post]) : remove_build_when_successful = False # don't delete build folder after all examples/runs
 
             if remove_build_when_successful and not args.save :
                 tools.remove_folder(build.target_directory)
@@ -888,7 +895,7 @@ def PerformCheck(start,builds,args,log) :
     # catch exception if bulding fails
     except BuildFailedException as ex:
         # print table with summary of errors
-        SummaryOfErrors(builds, args)
+        summary.SummaryOfErrors(builds, args)
 
         # display error message
         print(tools.red(str(ex))) # display error msg
@@ -908,92 +915,3 @@ def PerformCheck(start,builds,args,log) :
         exit(1)
 
 
-def SummaryOfErrors(builds, args) :
-    """
-    General workflow:
-    1. loop over all builds, examples, command_lines, runs and for every run set the output strings
-       and get the maximal lengths of those strings
-    2. print header
-    3. loop over all builds
-    3.1  print some information of the build
-    3.2  within each build loop over all examples, command_lines, runs and for every run print some information:
-    3.2.1  print an empty separation line if number of MPI threads changes
-    3.2.2  print (only if changes) a line with all run parameters except the inner most, which is printed in 3.2.3
-    3.2.3  print a line with following information:
-             run.globalnumber, run.parameters[0] (the one not printed in 3.2.2), run.target_directory, MPI, run.walltime, run.result
-    3.2.4  print the analyze results line by line
-    """
-
-    param_str_old = ""
-    str_MPI_old   = "-"
-
-    # 1. loop over all runs and set output strings
-    max_lens = collections.OrderedDict([ ("#run",4) , ("options",7) , ("path",4) , ("MPI",3), ("time",4) , ("Info",4) ])
-    for build in builds :
-        for example in build.examples :
-            for command_line in example.command_lines :
-                for run in command_line.runs :
-                    run.output_strings = {}
-                    run.output_strings['#run']    = str(run.globalnumber)
-                    run.output_strings['options'] = ""
-                    # Check number of variations in parameter list(run.digits.items())[0][1]
-                    if list(run.digits.items())[0][1] > 0 :
-                        run.output_strings['options'] += "%s=%s"%(list(run.parameters.items())[0]) # print parameter and value as [parameter]=[value]
-                    run.output_strings['path']    = os.path.relpath(run.target_directory,OutputDirectory.output_dir)
-                    run.output_strings['MPI']     = command_line.parameters.get('MPI', '-')
-                    run.output_strings['time']    = "%2.1f" % run.walltime
-                    run.output_strings['Info']    = run.result
-                    for key in run.output_strings.keys() :
-                        max_lens[key] = max(max_lens[key], len(run.output_strings[key])) # set max column widths for summary table
-
-    # 2. print header
-    print(132*"=")
-    print(" Summary of Errors"+"\n")
-    spacing = 1
-    for key, value in list(max_lens.items()) :
-        print(key.ljust(value),spacing*' ', end=' ') # skip linebreak
-    print("")
-
-    # 3. loop over alls builds
-    for build in builds :
-
-        # 3.1 print cmake flags if no external binary was used for execution
-        print('-'*132)
-        if isinstance(build, Standalone) :
-            print("Binary supplied externally under ",build.binary_path)
-        elif isinstance(build, Build) :
-            print("Build %d of %d (%s) compiled with in [%.2f sec]:" % (build.number, len(builds), build.result, build.walltime))
-            print(" ".join(build.cmake_cmd_color))
-            if build.return_code != 0 : break # stop output as soon as a failed build in encountered
-
-        # 3.2 loop over all examples, command_lines and runs
-        for example in build.examples :
-            for command_line in example.command_lines :
-                for run in command_line.runs :
-                    # 3.2.1 print separation line only if MPI threads change
-                    if run.output_strings["MPI"] != str_MPI_old :
-                        print("")
-                        str_MPI_old = run.output_strings["MPI"]
-
-                    # 3.2.2 print the run parameters, execpt the inner most (this one is displayed in # 3.2.3)
-                    paramsWithMultipleValues = [item for item in list(run.parameters.items())[1:] if run.digits[item[0]]>0 ]
-                    param_str =", ".join(["%s=%s"%item for item in paramsWithMultipleValues]) # skip first index
-                    if param_str  != param_str_old : # only print when the parameter set changes
-                        print("".ljust(max_lens["#run"]), spacing*' ', tools.yellow(param_str))
-                    param_str_old=param_str
-
-                    # 3.2.3 print all output_strings
-                    for key,value in list(max_lens.items()) :
-                        # Print options with .ljust
-                        if key == "options" :
-                            print(tools.yellow(run.output_strings[key].ljust(value)), end=' ') # skip linebreak
-                        elif key == "MPI" and any([args.noMPI, args.noMPIautomatic]) :
-                            print(tools.yellow("1"), end=' ') # skip linebreak
-                        else :
-                            print(run.output_strings[key].ljust(value), end=' ') # skip linebreak
-                        print(spacing*' ', end=' ') # skip linebreak
-                    print("")
-
-                    # 3.2.4  print the analyze results line by line
-                    for result in run.analyze_results :
-                        print(tools.red(result).rjust(150))
