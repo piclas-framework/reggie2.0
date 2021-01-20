@@ -889,10 +889,6 @@ def PerformCheck(start,builds,args,log) :
                     else : # don't delete build folder after all examples/runs
                         remove_build_when_successful = False
 
-
-                    print("run.externals_pre = %s" % (run.externals_pre))
-                    print("run.externals_post = %s" % (run.externals_post))
-
                     # 6.   rename all run directories for which the analyze step has failed for at least one test
                     for run in runs_successful :         # all successful runs (failed runs are already renamed)
                         if not run.analyze_successful :  # if 1 of N analyzes fails: rename
