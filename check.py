@@ -895,16 +895,15 @@ def PerformCheck(start,builds,args,log) :
                             run.rename_failed()
 
                     # Don't remove when run fails
-                    if not any([run.analyze_successful for run in runs_successful]) : remove_build_when_successful = False # don't delete build folder after all examples/runs
+                    if not all([run.analyze_successful for run in runs_successful]) : remove_build_when_successful = False # don't delete build folder after all examples/runs
 
                     # Don't remove when (pre) external fails
                     for external in run.externals_pre :
-                        if not any([externalrun.successful for externalrun in external.runs]) : remove_build_when_successful = False # don't delete build folder after all examples/runs
+                        if not all([externalrun.successful for externalrun in external.runs]) : remove_build_when_successful = False # don't delete build folder after all examples/runs
 
                     # Don't remove when (post) external fails
                     for external in run.externals_post :
-                        if not any([externalrun.successful for externalrun in external.runs]) : remove_build_when_successful = False # don't delete build folder after all examples/runs
-
+                        if not all([externalrun.successful for externalrun in external.runs]) : remove_build_when_successful = False # don't delete build folder after all examples/runs
 
             if remove_build_when_successful and not args.save :
                 tools.remove_folder(build.target_directory)
