@@ -513,7 +513,7 @@ class Analyze_L2(Analyze) :
                 Analyze.total_errors+=1
 
     def __str__(self) :
-        return "perform L2 error comparison with a pre-defined tolerance=%s for $%s" % (self.L2_tolerance,self.error_name)
+        return "perform L2 error comparison with a pre-defined tolerance=%s for %s" % (self.L2_tolerance,self.error_name)
 
 #==================================================================================================
 
