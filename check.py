@@ -372,7 +372,7 @@ def getExternals(path, example, build) :
 
     for combi in combis :
         # Check directory
-        externaldirectory = combi.get('externaldirectory','')
+        externaldirectory = combi.get('externaldirectory',None)
         if not externaldirectory or not os.path.exists(os.path.join(example.source_directory, externaldirectory)) : # string is or empty and path does not exist
             s = tools.red('getExternals: "externaldirectory" is empty or the path %s does not exist' % os.path.join(example.source_directory,externaldirectory))
             externals_errors.append(s)
@@ -381,7 +381,7 @@ def getExternals(path, example, build) :
             continue
 
         # Check binary
-        externalbinary=combi.get('externalbinary','')
+        externalbinary=combi.get('externalbinary',None)
 
         if isinstance(build, Standalone) :
             head, tail       = os.path.split(externalbinary)
@@ -391,12 +391,22 @@ def getExternals(path, example, build) :
         combi['binary_path'] = binary_path
 
         if not externalbinary or not os.path.exists(binary_path) : # string is or empty and path does not exist
-            s = tools.red('getExternals: "externalbinary" is empty or the path %s does not exist' % binary_path)
-            externals_errors.append(s)
-            print(s)
-            ExternalRun.total_errors+=1 # add error if externalrun fails
-            continue
+            # If the binary is not within the ./bin/ directory, check if the path points to a binary directly
+            if os.path.exists(externalbinary):
+                binary_found = True
+                binary_path          = os.path.abspath(externalbinary)
+                combi['binary_path'] = binary_path
+            else:
+                binary_found = False
+                s = tools.red('getExternals: "externalbinary" is empty or the path %s does not exist' % binary_path)
+                externals_errors.append(s)
+                print(s)
+                ExternalRun.total_errors+=1 # add error if externalrun fails
+                continue
         else :
+            binary_found = True
+
+        if binary_found:
             if combi.get('externalruntime','') == 'pre' :
                 externals_pre.append(Externals(combi, example, -1))
             elif combi.get('externalruntime','') == 'post' :
