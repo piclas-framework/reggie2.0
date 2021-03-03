@@ -1782,8 +1782,10 @@ class Analyze_compare_column(Analyze) :
         1.3.3   check column number
         1.3.4   get header information for integrated columns
         1.3.5   split the data array and set the two column vector x and y for integration
-        1.3.6   Check the number of data points: Integration can only be performed if at least two points exist
-        1.4   integrate values numerically
+        1.3.6   split the data_ref array and set the two column vector x and y for integration
+        1.3.7   Check dimensions of the arrays
+        1.3.8   Check the number of data points: Comparison can only be performed if at least one point exists
+        1.3.9   calculate difference and determine compare with tolerance
         '''
 
         # 1.  iterate over all runs
@@ -1888,10 +1890,24 @@ class Analyze_compare_column(Analyze) :
             
             # 1.3.5   split the data array and set the two column vector x and y for integration
             data = np.reshape(data, (-1, line_len +1))
-            data =  np.transpose(data)
-            x = data[self.dim]
+            data = np.transpose(data)
+            x     = data[self.dim]
 
-            # 1.3.6   Check the number of data points: Comparison can only be performed if at least one point exists
+            # 1.3.6   split the data_ref array and set the two column vector x and y for integration
+            data_ref = np.reshape(data_ref, (-1, line_len +1))
+            data_ref = np.transpose(data_ref)
+            x_ref    = data_ref[self.dim]
+
+            # 1.3.7   Check dimensions of the arrays
+            if x.shape != x_ref.shape:
+                s="cannot perform analyze Analyze_compare_column, because the shape of the data in file=[%s] is %s and that of the reference=[%s] is %s. They cannot be different!" % (self.file,x.shape,self.ref,x_ref.shape)
+                print(tools.red(s))
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                return
+
+            # 1.3.8   Check the number of data points: Comparison can only be performed if at least one point exists
             if max_lines-header < 1 or max_lines_ref-header_ref < 1 or max_lines-header != max_lines_ref-header_ref:
                 s="cannot perform analyze Analyze_compare_column, because there are not enough lines of data or different numbers of data points to perform the comparison. Number of lines = %s (file) and %s (reference file), which must be equal and at least one." % (max_lines-header,max_lines_ref-header_ref)
                 print(tools.red(s))
@@ -1900,8 +1916,8 @@ class Analyze_compare_column(Analyze) :
                 Analyze.total_errors+=1
                 return
 
-            # 1.3.4   calculate difference and determine compare with tolerance
-            success = tools.diff_lists(x, data_ref, self.tolerance_value, self.tolerance_type)
+            # 1.3.9   calculate difference and determine compare with tolerance
+            success = tools.diff_lists(x, x_ref, self.tolerance_value, self.tolerance_type)
             NbrOfDifferences = success.count(False)
 
             if NbrOfDifferences > 0 :
@@ -1914,5 +1930,5 @@ class Analyze_compare_column(Analyze) :
 
 
     def __str__(self) :
-        return "compare column data with a reference (e.g. from .csv file): file=[%s] and comparison for column %s (the first column starts at 0)" % (self.file, self.dim)
+        return "compare column data with a reference (e.g. from .csv file): file=[%s] and reference=[%s] and comparison for column %s (the first column starts at 0)" % (self.file, self.ref, self.dim)
 
