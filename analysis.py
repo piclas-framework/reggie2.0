@@ -1782,7 +1782,9 @@ class Analyze_compare_column(Analyze) :
         1.3.3   check column number
         1.3.4   get header information for integrated columns
         1.3.5   split the data array and set the two column vector x and y for integration
-        1.3.6   split the data_ref array and set the two column vector x and y for integration
+        1.3.6   Check if data_ref consists of
+                  a) only the reference column data OR
+                  b) the complete data table, i.e., the same data structure as the comparison data (if so, also split the data_ref array and set the two column vector x and y for integration)
         1.3.7   Check dimensions of the arrays
         1.3.8   Check the number of data points: Comparison can only be performed if at least one point exists
         1.3.9   calculate difference and determine compare with tolerance
@@ -1893,10 +1895,17 @@ class Analyze_compare_column(Analyze) :
             data = np.transpose(data)
             x     = data[self.dim]
 
-            # 1.3.6   split the data_ref array and set the two column vector x and y for integration
-            data_ref = np.reshape(data_ref, (-1, line_len +1))
-            data_ref = np.transpose(data_ref)
-            x_ref    = data_ref[self.dim]
+            # 1.3.6   Check if data_ref consists of
+            #           a) only the reference column data OR
+            #           b) the complete data table, i.e., the same data structure as the comparison data (if so, also split the data_ref array and set the two column vector x and y for integration)
+            if x.shape == data_ref.shape:
+                # Copy the data_ref data to x_ref for comparing that with x
+                x_ref = data_ref
+            else:
+                # split the data_ref array and set the two column vector x and y for integration
+                data_ref = np.reshape(data_ref, (-1, line_len +1))
+                data_ref = np.transpose(data_ref)
+                x_ref    = data_ref[self.dim]
 
             # 1.3.7   Check dimensions of the arrays
             if x.shape != x_ref.shape:
