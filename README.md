@@ -323,7 +323,7 @@ h5diff_sort_dim         = 1
 h5diff_sort_var         = 0
 ```
 
-### Multile dataset names
+### Multiple dataset names
 When the datasets in the file and reference differ, simply supply both names. Instead of
 ```
 h5diff_data_set        = DG_Solution
