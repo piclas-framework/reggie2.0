@@ -1101,7 +1101,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
 
     def perform(self,runs) :
         global h5py_module_loaded
-        # check if this analysis can be performed: h5py must be imported
+        # Check if this analysis can be performed: h5py must be imported
         if not h5py_module_loaded : # this boolean is set when importing h5py
             print(tools.red('Could not import h5py module. This is required for "Analyze_h5diff". Aborting.'))
             Analyze.total_errors+=1
@@ -1126,7 +1126,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
         if self.one_diff_per_run and ( self.nCompares != len(runs)) :
             raise Exception(tools.red("Number of h5diffs [=%s] and runs [=%s] is inconsistent. Please ensure all options have the same length or set h5diff_one_diff_per_run=F." % (self.nCompares, len(runs))))
 
-        # 1.  iterate over all runs
+        # 1.  Iterate over all runs
         for iRun, run in enumerate(runs) :
 
             # Check whether the list of diffs is to be used one-at-a-time, i.e., a list of diffs for a list of runs (each run only performs one diff, not all of them)
@@ -1137,8 +1137,10 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                 # All comparisons for every run
                 compares = range(self.nCompares)
 
+            n=0
             # Iterate over all comparisons for h5diff
             for compare in compares :
+                n+=1
                 reference_file_loc   = self.prms["reference_file"][compare]
                 file_loc             = self.prms["file"][compare]
                 data_set_loc         = self.prms["data_set"][compare]
@@ -1203,20 +1205,31 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                 # -------------------
 
                 # 1.1.1   Read the datasets from the hdf5 file
+                # Check if the container in the file and the ref. have the same name
+                data_set_loc = data_set_loc.split()
+                if len(data_set_loc) > 1:
+                    data_set_loc_file = data_set_loc[0] # first dataset name for result
+                    data_set_loc_ref  = data_set_loc[1] # second dataset name for reference
+                else:
+                    data_set_loc_file = data_set_loc[0]
+                    data_set_loc_ref  = data_set_loc[0]
+
+                # Read the file
                 try:
-                    b1 = f1[data_set_loc][:]
+                    b1 = f1[data_set_loc_file][:]
                 except Exception as e:
-                    s = tools.red("Analyze_h5diff: Could not open .h5 dataset [%s] under in file [%s]. Error message [%s]" % (data_set_loc,path,e))
+                    s = tools.red("Analyze_h5diff: Could not open .h5 dataset [%s] under in file [%s]. Error message [%s]" % (data_set_loc_file,path,e))
                     print(s)
                     run.analyze_results.append(s)
                     run.analyze_successful=False
                     Analyze.total_errors+=1
                     continue
 
+                # Read the reference
                 try:
-                    b2 = f2[data_set_loc][:]
+                    b2 = f2[data_set_loc_ref][:]
                 except Exception as e:
-                    s = tools.red("Analyze_h5diff: Could not open .h5 dataset [%s] under in file [%s]. Error message [%s]" % (data_set_loc,path_ref_target,e))
+                    s = tools.red("Analyze_h5diff: Could not open .h5 dataset [%s] under in file [%s]. Error message [%s]" % (data_set_loc_ref,path_ref_target,e))
                     print(s)
                     run.analyze_results.append(s)
                     run.analyze_successful=False
@@ -1226,7 +1239,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
 
                 # 1.1.2 compare shape of the dataset of both files, throw error if they do not coincide
                 if b1.shape != b2.shape : # e.g.: b1.shape = (48, 1, 1, 32)
-                    self.result=tools.red(tools.red("h5diff failed because datasets for [%s] are not comparable due to different shapes: Files [%s] and [%s] have shapes [%s] and [%s]" % (data_set_loc,f1,f2,b1.shape,b2.shape)))
+                    self.result=tools.red(tools.red("h5diff failed because datasets for [%s,%s] are not comparable due to different shapes: Files [%s] and [%s] have shapes [%s] and [%s]" % (data_set_loc_file,data_set_loc_ref,f1,f2,b1.shape,b2.shape)))
                     print(" "+self.result)
 
                     # 1.1.3   add failed info if return a code != 0 to run
@@ -1256,29 +1269,33 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                             Analyze.total_errors+=1
                             continue
 
-                        data_set_new=data_set_loc+"_sorted"
-                        # file: Create new dataset
-                        dset = f1.create_dataset(data_set_new, shape=b1.shape, dtype=np.float64)
-                        # write as C-continuous array via np.ascontiguousarray()
+                        data_set_loc_file_new = data_set_loc_file+"_sorted"
+                        data_set_loc_ref_new  = data_set_loc_ref+"_sorted"
+                        # File: Create new dataset
+                        dset = f1.create_dataset(data_set_loc_file_new, shape=b1.shape, dtype=np.float64)
+                        # Write as C-continuous array via np.ascontiguousarray()
                         dset.write_direct(np.ascontiguousarray(b1_sorted))
                         f1.close()
 
-                        # refernece file: Create new dataset
-                        dset = f2.create_dataset(data_set_new, shape=b2.shape, dtype=np.float64)
-                        # write as C-continuous array via np.ascontiguousarray()
+                        # Reference file: Create new dataset
+                        dset = f2.create_dataset(data_set_loc_ref_new, shape=b2.shape, dtype=np.float64)
+                        # Write as C-continuous array via np.ascontiguousarray()
                         dset.write_direct(np.ascontiguousarray(b2_sorted))
                         f2.close()
 
                         # In the following, compare the two sorted arrays instead of the original ones
-                        print("    %s: Sorting dim=%s by variable=%s (note that variables begin at 0). Now comparing: '%s' instead of '%s')" % (data_set_loc,sort_dim_loc,sort_var_loc,data_set_new,data_set_loc))
-                        data_set_loc = data_set_new
+                        str_1 = "'%s' (instead of '%s') from %s" % (data_set_loc_file_new , data_set_loc_file , file_loc)
+                        str_2 = "'%s' (instead of '%s') from %s" % (data_set_loc_ref_new  , data_set_loc_ref  , reference_file_loc)
+                        print(tools.yellow("    Sorting dim=%s by variable=%s (variable indexing begins at 0). Now comparing: %s with %s" % (sort_dim_loc , sort_var_loc , str_1, str_2)))
+                        data_set_loc_file = data_set_loc_file_new
+                        data_set_loc_ref  = data_set_loc_ref_new
 
 
-                    # 1.2.1   execute the command 'cmd' = 'h5diff -r [--type] [value] [ref_file] [file] [DataSetName]'
-                    cmd = ["h5diff","-r",tolerance_type_loc,str(tolerance_value_loc),str(reference_file_loc),str(file_loc),str(data_set_loc)]
+                    # 1.2.1   Execute the command 'cmd' = 'h5diff -r [--type] [value] [.h5 file] [.h5 reference] [DataSetName_file] [DataSetName_reference]'
+                    cmd = ["h5diff","-r",tolerance_type_loc,str(tolerance_value_loc),str(file_loc),str(reference_file_loc),str(data_set_loc_file),str(data_set_loc_ref)]
                     try :
-                        s="Running [%s] ..." % (" ".join(cmd))
-                        self.execute_cmd(cmd, run.target_directory,name="h5diff", string_info = tools.indent(s, 2), displayOnFailure = False) # run the code
+                        s="Running [%s] ..." % ("  ".join(cmd))
+                        self.execute_cmd(cmd, run.target_directory,name="h5diff"+str(n), string_info = tools.indent(s, 2), displayOnFailure = False) # run the code
 
                         # 1.2.2   Check maximum number of differences if user has selected h5diff_max_differences > 0
                         try :
@@ -1291,54 +1308,61 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                                         if NbrOfDifferences <= max_differences_loc :
                                             print(tools.indent("%s, but %s differences are allowed (given by h5diff_max_differences). The h5diff is therefore marked as passed." % (str(lastline),max_differences_loc), 2))
                                             self.return_code = 0
-                        # if this try fails, just ignore it
+                        # If this try fails, just ignore it
                         except :
                             pass
 
 
-                        # 1.3   if the comman 'cmd' return a code != 0, set failed
+                        # 1.3   If the command 'cmd' returns a code != 0, set failed
                         if self.return_code != 0 :
-                            print(tools.indent("tolerance_type  : "+tolerance_type_loc, 2))
-                            print(tools.indent("tolerance_value : "+str(tolerance_value_loc), 2))
-                            print(tools.indent("reference       : "+str(reference_file_loc), 2))
-                            print(tools.indent("file            : "+str(file_loc), 2))
-                            print(tools.indent("data_set        : "+str(data_set_loc), 2))
-                            run.analyze_results.append("h5diff failed (self.return_code != 0) for [%s] in [%s] vs. [%s]" % (str(data_set_loc),str(file_loc),str(reference_file_loc)))
+                            print(tools.indent("tolerance_type       : "+tolerance_type_loc, 2))
+                            print(tools.indent("tolerance_value      : "+str(tolerance_value_loc), 2))
+                            print(tools.indent("file                 : "+str(file_loc), 2))
+                            print(tools.indent("reference            : "+str(reference_file_loc), 2))
+                            print(tools.indent("dataset in file      : "+str(data_set_loc_file), 2))
+                            print(tools.indent("dataset in reference : "+str(data_set_loc_ref), 2))
+                            #run.analyze_results.append("h5diff failed (self.return_code != 0) for [%s] vs. [%s] in [%s] vs. [%s]" % (str(data_set_loc_ref),str(data_set_loc_file),str(reference_file_loc),str(file_loc)))
+                            run.analyze_results.append("h5diff failed (self.return_code != 0) for [%s] vs. [%s] in [%s] vs. [%s]" % (data_set_loc_file, data_set_loc_ref, file_loc, reference_file_loc))
 
-                            # 1.3.1   add failed info if return a code != 0 to run
+                            # 1.3.1   Add failed info if return a code != 0 to run
                             print(" ")
+                            #print(tools.indent(10*" // h5diff // ",2))
+                            print(tools.indent(132*"–",2))
+                            print(tools.indent("| ",2)+tools.yellow("Note: First column corresponds to %s and second column to %s" % (file_loc, reference_file_loc)))
                             if len(self.stdout) > 20 :
                                 for line in self.stdout[:10] : # print first 10 lines
-                                    print(" "+line, end=' ') # skip linebreak
-                                print(" ... leaving out intermediate lines")
+                                    print(tools.indent('| '+line.rstrip(),2))
+                                print(tools.indent("| ... leaving out intermediate lines",2))
                                 for line in self.stdout[-10:] : # print last 10 lines
-                                    print(" "+line, end=' ') # skip linebreak
+                                    print(tools.indent('| '+line.rstrip(),2))
                             else :
                                 for line in self.stdout : # print all lines
-                                    print(" "+line, end=' ') # skip linebreak
+                                    print(tools.indent('| '+line.rstrip(),2))
                                 if len(self.stdout) == 1 :
                                     run.analyze_results.append(str(self.stdout))
+                            #print(tools.indent(10*" // h5diff // ",2))
+                            print(tools.indent(132*"–",2))
                             print(" ")
 
-                            # 1.3.2   set analyzes to fail if return a code != 0
+                            # 1.3.2   Set analyzes to fail if return a code != 0
                             run.analyze_successful=False
                             Analyze.total_errors+=1
 
-                    # h5diff could not be executed
+                    # The tool h5diff could not be executed
                     except Exception as ex :
                         self.result=tools.red("h5diff failed. (Exception="+str(ex)+")") # print result here, because it was not added in "execute_cmd"
                         print(" "+self.result)
 
-                        # 1.3.1   add failed info if return a code != 0 to run
+                        # 1.3.1   Add failed info if return a code != 0 to run
                         run.analyze_results.append(tools.red("h5diff failed. (Exception="+str(ex)+")"))
                         run.analyze_results.append(tools.red("Maybe h5diff is not found automatically. Find it with \"locate -b '\h5diff'\" and add the corresponding path, e.g., \"export PATH=/opt/hdf5/1.X/bin/:$PATH\""))
 
-                        # 1.3.2   set analyzes to fail if return a code != 0
+                        # 1.3.2   Set analyzes to fail if return a code != 0
                         run.analyze_successful=False
                         Analyze.total_errors+=1
 
     def __str__(self) :
-        return "perform h5diff between two files, e.g.: ["+str(self.prms["file"][0])+"] + reference ["+str(self.prms["reference_file"][0])+"]"
+        return "perform h5diff between two files: ["+str(self.prms["file"][0])+"] + reference ["+str(self.prms["reference_file"][0])+"]"
 
 #==================================================================================================
 
