@@ -332,7 +332,7 @@ simply add the second name and add the "\s" delimiter, because white spaces are 
 ```
 h5diff_data_set        = DG_Solution\sField1
 ```
-where "DG\_Solution" corresponds to the dataset name in the file and "Field1" to the dataset in the reference.
+where "DG\_Solution" corresponds to the dataset name in *h5diff_file* and "Field1" to the dataset in *h5diff_reference_file*.
 
 
 # h5 array bounds check
