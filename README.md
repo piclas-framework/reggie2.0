@@ -295,17 +295,6 @@ h5diff_data_set        = DG_Solution                                            
 h5diff_tolerance_value = 1.0e-2                                                    , 1.0e-2                                                    , 1.0e-2                                                    , 1.0e-2
 h5diff_tolerance_type  = relative                                                  , relative                                                  , relative                                                  , relative
 ```
-### Multile dataset
-When the datasets in the file and reference differ, simply supply both names. Instead of
-```
-h5diff_data_set        = DG_Solution
-```
-simply add the second name and add the "\\s" delimiter, because white spaces are always removed by default
-```
-h5diff_data_set        = DG_Solution\\sField1
-```
-where "DG\_Solution" corresponds to the dataset name in the file and "Field1" to the dataset in the reference.
-
 ## h5diff (additional options)
 
 ### Dataset Sorting
@@ -332,6 +321,18 @@ h5diff_sort             = T
 h5diff_sort_dim         = 1
 h5diff_sort_var         = 0
 ```
+
+### Multile dataset names
+When the datasets in the file and reference differ, simply supply both names. Instead of
+```
+h5diff_data_set        = DG_Solution
+```
+simply add the second name and add the "\\s" delimiter, because white spaces are always removed by default
+```
+h5diff_data_set        = DG_Solution\\sField1
+```
+where "DG\_Solution" corresponds to the dataset name in the file and "Field1" to the dataset in the reference.
+
 
 # h5 array bounds check
 * Check if all elements of a h5 array are within a supplied interval
