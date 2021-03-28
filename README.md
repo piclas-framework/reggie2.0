@@ -124,6 +124,7 @@ gitlab-ci.py
         1. [Example with h5diff_one_diff_per_run = T](#example-with-h5diff_one_diff_per_run-t)
     1. [h5diff (additional options)](#h5diff-additional-options)
         1. [Dataset Sorting](#dataset-sorting)
+        1. [Multiple dataset names](#multiple-dataset-names)
 1. [h5 array bounds check](#h5-array-bounds-check)
 1. [Data file line comparison](#data-file-line-comparison)
 1. [integrate data columns](#integrate-data-columns)
