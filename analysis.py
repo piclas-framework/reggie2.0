@@ -10,6 +10,7 @@
 #
 # You should have received a copy of the GNU General Public License along with reggie2.0. If not, see <http://www.gnu.org/licenses/>.
 #==================================================================================================================================
+# -*- coding: utf-8 -*-
 from __future__ import print_function # required for print() function with line break via "end=' '"
 import os
 import numpy as np
