@@ -152,7 +152,7 @@ The intention of a white space must be stated explicitly.
 |                            | analyze\_Convtest\_p\_error\_name         | L\_2\_ERROR                                             | L\_2                               | string name of the L2 error in the std.out file                                                                                                                                                                                          |
 | h5diff                     | h5diff\_file                              | single-particle\_State\_000.00000000000000000.h5        | None                               | name of calculated .h5 file (output from current run)                                                                                                                                                                                    |
 |                            | h5diff\_reference\_file                   | single-particle\_State\_000.00000000000000000.h5\_ref   | None                               | reference .h5 file (must be placed in repository) for comparing with the calculated one                                                                                                                                                  |
-|                            | h5diff\_data\_set                         | DG\_Solution                                            | None                               | name of data set for comparing (e.g. DG\_Solution)                                                                                                                                                                                       |
+|                            | h5diff\_data\_set                         | DG\_Solution or DG\_Solution\\sField1                   | None                               | name of dataset for comparing (e.g. DG\_Solution or DG\_Solution vs. Field1 when the datasets in the two files have different names)                                                                                                     |
 |                            | h5diff\_tolerance\_value                  | 1.0e-2                                                  | 1e-5                               | relative/absolute deviation between two elements in a .h5 array                                                                                                                                                                          |
 |                            | h5diff\_tolerance\_type                   | relative                                                | absolute                           | relative or absolute comparison                                                                                                                                                                                                          |
 |                            | h5diff\_one\_diff\_per\_run               | True                                                    | False                              | if multiple reference files are supplied, these can either be used in every run or one each run                                                                                                                                          |
@@ -183,7 +183,7 @@ The intention of a white space must be stated explicitly.
 |                            | integrate\_line\_multiplier               | 1                                                       | 1                                  | factor for multiplying the result (in order to acquire a physically meaning value for comparison)                                                                                                                                        |
 |                            | integrate\_line\_multiplier               | 1                                                       | 1                                  | factor for multiplying the result (in order to acquire a physically meaning value for comparison)                                                                                                                                        |
 | compare data column        | compare\_column\_file                     | PartAnalyze.csv                                         | None                               | name of calculated output file (e.g. .csv file)                                                                                                                                                                                          |
-|                            | compare\_column\_reference\_file          | Refernece.csv                                           | None                               | name of of the reference file
+|                            | compare\_column\_reference\_file          | Refernece.csv                                           | None                               | name of of the reference file                                                                                                                                                                                                            |
 |                            | compare\_column\_delimiter                | :                                                       | ,                                  | delimiter symbol, default is comma ',' (note that a comma cannot be supplied in this file as it is a delimiter itself)                                                                                                                   |
 |                            | compare\_column\_index                    | 0                                                       | None                               | column index for comparison (Note that the index of the column start at 0)                                                                                                                                                               |
 |                            | compare\_column\_tolerance_value          | 0.8e-2                                                  | None                               | tolerance that is used in comparison                                                                                                                                                                                                     |
@@ -275,11 +275,11 @@ Template for copying to **analyze.ini**
 
 ```
 ! hdf5 diff
-h5diff_mult_file            = sharpSOD_State_0000000.100000000.h5,sharpSOD_QDS_0000000.100000000.h5       
-h5diff_mult_reference_file  = reggie_sharpSOD_State_0000000.100000000.h5,reggie_sharpSOD_QDS_0000000.100000000.h5
-h5diff_mult_data_set        = DG_Solution,FieldData                                
-h5diff_mult_tolerance_value = 1.0e-12,1.0e-12                                   
-h5diff_mult_tolerance_type  = absolute,absolute 
+h5diff_mult_file            = sharpSOD_State_0000000.100000000.h5        , sharpSOD_QDS_0000000.100000000.h5
+h5diff_mult_reference_file  = reggie_sharpSOD_State_0000000.100000000.h5 , reggie_sharpSOD_QDS_0000000.100000000.h5
+h5diff_mult_data_set        = DG_Solution                                , FieldData
+h5diff_mult_tolerance_value = 1.0e-12                                    , 1.0e-12
+h5diff_mult_tolerance_type  = absolute                                   , absolute
 ```
 
 ### Example with `h5diff_one_diff_per_run = T`
@@ -289,12 +289,23 @@ Template for copying to **analyze.ini**
 ```
 ! hdf5 diff
 h5diff_one_diff_per_run= T
-h5diff_file            = hdg_slab_DielectricGlobal_000.00000000000000000.h5       ,hdg_slab_DielectricGlobal_000.00000000000000000.h5       ,hdg_slab_DielectricGlobal_000.00000000000000000.h5       ,hdg_slab_DielectricGlobal_000.00000000000000000.h5
-h5diff_reference_file  = hdg_slab_DielectricGlobal_000.00000000000000000_ref_N3.h5,hdg_slab_DielectricGlobal_000.00000000000000000_ref_N5.h5,hdg_slab_DielectricGlobal_000.00000000000000000_ref_N7.h5,hdg_slab_DielectricGlobal_000.00000000000000000_ref_N9.h5
-h5diff_data_set        = DG_Solution,DG_Solution,DG_Solution,DG_Solution
-h5diff_tolerance_value = 1.0e-2,1.0e-2,1.0e-2,1.0e-2
-h5diff_tolerance_type  = relative,relative,relative,relative
+h5diff_file            = hdg_slab_DielectricGlobal_000.00000000000000000.h5        , hdg_slab_DielectricGlobal_000.00000000000000000.h5        , hdg_slab_DielectricGlobal_000.00000000000000000.h5        , hdg_slab_DielectricGlobal_000.00000000000000000.h5
+h5diff_reference_file  = hdg_slab_DielectricGlobal_000.00000000000000000_ref_N3.h5 , hdg_slab_DielectricGlobal_000.00000000000000000_ref_N5.h5 , hdg_slab_DielectricGlobal_000.00000000000000000_ref_N7.h5 , hdg_slab_DielectricGlobal_000.00000000000000000_ref_N9.h5
+h5diff_data_set        = DG_Solution                                               , DG_Solution                                               , DG_Solution                                               , DG_Solution
+h5diff_tolerance_value = 1.0e-2                                                    , 1.0e-2                                                    , 1.0e-2                                                    , 1.0e-2
+h5diff_tolerance_type  = relative                                                  , relative                                                  , relative                                                  , relative
 ```
+### Multile dataset
+When the datasets in the file and reference differ, simply supply both names. Instead of
+```
+h5diff_data_set        = DG_Solution
+```
+simply add the second name and add the "\\s" delimiter, because white spaces are always removed by default
+```
+h5diff_data_set        = DG_Solution\\sField1
+```
+where "DG\_Solution" corresponds to the dataset name in the file and "Field1" to the dataset in the reference.
+
 ## h5diff (additional options)
 
 ### Dataset Sorting
