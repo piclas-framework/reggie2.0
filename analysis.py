@@ -1591,7 +1591,8 @@ class Analyze_compare_data_file(Analyze) :
                     run.analyze_results.append(s)
                     run.analyze_successful=False
                     Analyze.total_errors+=1
-                    return # skip the following analysis tests
+                    # do not skip the following analysis tests to see what other files might be missing
+                    continue
 
                 # 1.3.1   read data file
                 line = []
