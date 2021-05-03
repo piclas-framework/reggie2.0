@@ -255,7 +255,7 @@ def getAnalyzes(path, example, args) :
         analyze.append(Analyze_check_hdf5(check_hdf5_file, check_hdf5_data_set, check_hdf5_span, check_hdf5_dimension, check_hdf5_limits))
 
     # 2.7   check data file row
-    compare_data_file_one_diff_per_run = options.get('h5diff_one_diff_per_run',True)
+    compare_data_file_one_diff_per_run = options.get('compare_data_file_one_diff_per_run',True)
     compare_data_file_name            = options.get('compare_data_file_name',None)
     compare_data_file_reference       = options.get('compare_data_file_reference',None)
     compare_data_file_tolerance       = options.get('compare_data_file_tolerance',None)
