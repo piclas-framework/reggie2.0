@@ -276,11 +276,11 @@ Template for copying to **analyze.ini**
 
 ```
 ! hdf5 diff
-h5diff_mult_file            = sharpSOD_State_0000000.100000000.h5        , sharpSOD_QDS_0000000.100000000.h5
-h5diff_mult_reference_file  = reggie_sharpSOD_State_0000000.100000000.h5 , reggie_sharpSOD_QDS_0000000.100000000.h5
-h5diff_mult_data_set        = DG_Solution                                , FieldData
-h5diff_mult_tolerance_value = 1.0e-12                                    , 1.0e-12
-h5diff_mult_tolerance_type  = absolute                                   , absolute
+h5diff_file            = sharpSOD_State_0000000.100000000.h5        , sharpSOD_QDS_0000000.100000000.h5
+h5diff_reference_file  = reggie_sharpSOD_State_0000000.100000000.h5 , reggie_sharpSOD_QDS_0000000.100000000.h5
+h5diff_data_set        = DG_Solution                                , FieldData
+h5diff_tolerance_value = 1.0e-12                                    , 1.0e-12
+h5diff_tolerance_type  = absolute                                   , absolute
 ```
 
 ### Example with `h5diff_one_diff_per_run = T`
