@@ -160,6 +160,9 @@ The intention of a white space must be stated explicitly.
 |                            | h5diff\_sort                              | True                                                    | False                              | Sort h5 arrays before comparing them, which circumvents problems when comparing arrays that are written in arbitrary order due to multiple MPI processes writing the dataset (currently only 2-dimensional m x n arrays are implemented) |
 |                            | h5diff\_sort\_dim                         | 1                                                       | -1                                 | Sorting dimension of a 2-dimensional m x n array (1: sort array by rows, 2: sort array by columns)                                                                                                                                       |
 |                            | h5diff\_sort\_var                         | 0                                                       | -1                                 | Sorting variable of the specified dimension. The array will be sorted for this variable in ascending order (note that variables start at 0)                                                                                              |
+|                            | h5diff\_reshape                           | True                                                    | False                              | Re-shape h5 arrays before comparing them, effectively removing rows or columns (for example). This is currently only implemented for 2-dimensional m x n arrays.                                                                         |
+|                            | h5diff\_reshape\_dim                      | 1                                                       | -1                                 | Select the dimension, which is to be changed (decreased, note that variables start at 0)                                                                                                                                                 |
+|                            | h5diff\_reshape\_value                    | 11                                                      | -1                                 | Value to which the selected dimension is to be changed (decreased)                                                                                                                                                                       |
 |                            | h5diff\_max\_differences                  | 15                                                      | 0                                  | Maximum number of allowed differences that are detected by h5diff for the test to pass without failure                                                                                                                                   |
 | h5 array bounds check      | check\_hdf5\_file                         | tildbox_State_001.00000000000000000.h5                  | None                               | name of calculated .h5 file (output from current run)                                                                                                                                                                                    |
 |                            | check\_hdf5\_data\_set                    | PartData                                                | None                               | name of data set for comparing (e.g. DG\_Solution)                                                                                                                                                                                       |
@@ -184,13 +187,13 @@ The intention of a white space must be stated explicitly.
 |                            | integrate\_line\_multiplier               | 1                                                       | 1                                  | factor for multiplying the result (in order to acquire a physically meaning value for comparison)                                                                                                                                        |
 |                            | integrate\_line\_multiplier               | 1                                                       | 1                                  | factor for multiplying the result (in order to acquire a physically meaning value for comparison)                                                                                                                                        |
 | compare data column        | compare\_column\_file                     | PartAnalyze.csv                                         | None                               | name of calculated output file (e.g. .csv file)                                                                                                                                                                                          |
-|                            | compare\_column\_reference\_file          | Refernece.csv                                           | None                               | name of of the reference file                                                                                                                                                                                                            |
+|                            | compare\_column\_reference\_file          | Reference.csv                                           | None                               | name of of the reference file                                                                                                                                                                                                            |
 |                            | compare\_column\_delimiter                | :                                                       | ,                                  | delimiter symbol, default is comma ',' (note that a comma cannot be supplied in this file as it is a delimiter itself)                                                                                                                   |
 |                            | compare\_column\_index                    | 0                                                       | None                               | column index for comparison (Note that the index of the column start at 0)                                                                                                                                                               |
 |                            | compare\_column\_tolerance_value          | 0.8e-2                                                  | None                               | tolerance that is used in comparison                                                                                                                                                                                                     |
 |                            | compare\_column\_tolerance_type           | relative                                                | None                               | type of tolerance, either 'absolute' or 'relative'                                                                                                                                                                                       |
 |                            | compare\_column\_multiplier               | 1                                                       | 1                                  | factor for multiplying the result (in order to acquire a physically meaning value for comparison)                                                                                                                                        |
-| clean-up files after run   | clean\_up\_files                          | *_State_*                                               | None                               | remove all unwated files directly after the run is completed. The wildcard character is "*"                                                                                                                                              |
+| clean-up files after run   | clean\_up\_files                          | *_State_*                                               | None                               | remove all unwanted files directly after the run is completed. The wild card character is "*"                                                                                                                                            |
 
 # L2 error file
 * Compare all L2 errors calculated for all nVar against supplied values in a data file
@@ -249,7 +252,7 @@ analyze_Convtest_p_percentage=0.75
 * Compares two arrays from two .h5 files element-by-element either with an absolute or relative difference (when comparing with zero, h5diff automatically uses an absolute comparison).  
 * Requires h5diff, which is compiled within the HDF5 package (set the corresponding environment variable).
 
-      export PATH=/opt/hdf5/X.X.XX/bin/:$PATH
+      `export PATH=/opt/hdf5/X.X.XX/bin/:$PATH`
 * Requires h5py for checking if the datasets which are to be compared by h5diff are of the same dimensions.
 
   [http://docs.h5py.org/en/2.5.0/build.html](http://docs.h5py.org/en/2.5.0/build.html)
@@ -284,7 +287,7 @@ h5diff_tolerance_type  = absolute                                   , absolute
 ```
 
 ### Example with `h5diff_one_diff_per_run = T`
-This setup considers 4 runs (the polynomial degree is varied) and in ervery run only one file is comapred with a reference file. In the next run, a different reference file is used.
+This setup considers 4 runs (the polynomial degree is varied) and in every run only one file is compared with a reference file. In the next run, a different reference file is used.
 
 Template for copying to **analyze.ini**
 ```
@@ -321,6 +324,25 @@ h5diff_tolerance_type   = relative
 h5diff_sort             = T
 h5diff_sort_dim         = 1
 h5diff_sort_var         = 0
+```
+
+### Dataset Re-Shaping
+- datasets may be reshaped prior to comparison, e.g., made smaller by decreasing a dimension
+
+The following example considers an 14497 x 12 array *PartData*, which is to be re-shaped to an 14497 x 11 array, effectively
+removing the 12th column.
+
+Template for copying to **analyze.ini**
+```
+! hdf5 diff
+h5diff_file             = sphere_PartStateBoundary_000.00000010000000000.h5
+h5diff_reference_file   = sphere_PartStateBoundary_000.00000010000000000_ref.h5
+h5diff_data_set         = PartData
+h5diff_tolerance_value  = 1.0e-2
+h5diff_tolerance_type   = relative
+h5diff_reshape          = T
+h5diff_reshape_dim      = 0
+h5diff_reshape_value    = 11
 ```
 
 ### Multiple dataset names
@@ -365,7 +387,7 @@ compare_data_file_tolerance = 2.0
 compare_data_file_tolerance_type = relative
 ```
 
-Note that a comma is the default delimiter symbol for reading the data from the supplied file. The varaible "compare\_data\_file\_delimiter" cannot be set as custom delimiter symbol "," because the comma is used for splitting the keywords in analyze.ini. However, other symbols can be supplied using "compare\_data\_file\_delimiter" instead of a comma.
+Note that a comma is the default delimiter symbol for reading the data from the supplied file. The variable "compare\_data\_file\_delimiter" cannot be set as custom delimiter symbol "," because the comma is used for splitting the keywords in analyze.ini. However, other symbols can be supplied using "compare\_data\_file\_delimiter" instead of a comma.
 
 
 ### Example 2 of 4
@@ -434,7 +456,7 @@ integrate_line_option          = DivideByTimeStep      ! the first column in Dat
 integrate_line_multiplier      = 5.340588433333334e-03 ! = MPF*q/tend = 1e6*1.60217653E-19/3E-11
 ```
 
-Note that a comma is the default delimiter symbol for reading the data from the supplied file. The varaible "integrate\_line\_delimiter" cannot be set as custom delimiter symbol "," because the comma is used for splitting the keywords in analyze.ini. However, other symbols can be supplied using "integrate\_line\_delimiter" instead of a comma.
+Note that a comma is the default delimiter symbol for reading the data from the supplied file. The variable "integrate\_line\_delimiter" cannot be set as custom delimiter symbol "," because the comma is used for splitting the keywords in analyze.ini. However, other symbols can be supplied using "integrate\_line\_delimiter" instead of a comma.
 
 # compare data column
 * compares the data in a column with a reference file
@@ -452,10 +474,10 @@ compare_column_tolerance_type  = relative        ! absolute or relative comparis
 compare_column_multiplier      = 5e-3            ! fixed factor
 ```
 
-Note that a comma is the default delimiter symbol for reading the data from the supplied file. The varaible "comapre\_column\_delimiter" cannot be set as custom delimiter symbol "," because the comma is used for splitting the keywords in analyze.ini. However, other symbols can be supplied using "compare\_column\_delimiter" instead of a comma.
+Note that a comma is the default delimiter symbol for reading the data from the supplied file. The variable "compare\_column\_delimiter" cannot be set as custom delimiter symbol "," because the comma is used for splitting the keywords in analyze.ini. However, other symbols can be supplied using "compare\_column\_delimiter" instead of a comma.
 
 ## Clean-up files
-* remove all unwated files directly after the run is completed. The wildcard character is "*"
+* remove all unwanted files directly after the run is completed. The wild card character is "*"
 
 Template for copying to **analyze.ini**
 
@@ -482,7 +504,7 @@ parameters used in `command_line.ini` and example arguments
 |:------------------------:|:-------------------------------------|:------------------------------------------------------|:---------------------------------|:---------------------------------------------------------------------------------------------------------------------------|
 |mpirun                    | MPI                                  | 1,2,4,8                                               | None                             | number of MPI threads with which the runs are repeated                                                                     |
 |additional info           | cmd\_suffix                          | DSMC.ini                                              | None                             | additional information that is appended to the command line argument that is used for running a program                    |
-|restart from file         | restart\_file                        | My_State_000.0000005123.h5                            | None                             | supply the name of a state file from wich all simulations are to be re-started                                             |
+|restart from file         | restart\_file                        | My_State_000.0000005123.h5                            | None                             | supply the name of a state file from which all simulations are to be re-started                                             |
 
 
 # Example
@@ -511,8 +533,8 @@ parameters used in `externals.ini`
 
 # Example
 * supply two external binaries: hopr and posti
-* supply two directories with paramterfiles for each external tool
-* different runtimes for hopr and posti
+* supply two directories with parameter files for each external tool
+* different run times for hopr and posti
 * (optional: run different MPI threads with hopr and posti, see above)
 
 Template for copying to `command\_line.ini`
@@ -556,9 +578,9 @@ Part-Species1-TempVib=2000,3000
 EXCLUDE:Part-Species1-MWTemperatureIC=1000,Part-Species1-TempVib=3000
 ```
 
-## Use the same paramete list for multiple parameters in parameter.ini
+## Use the same parameter list for multiple parameters in parameter.ini
 
-In order to exclude runs see the following example in which 10 runs are performed, but the parameters are exchanged parallelly. Modify the `parameter.ini` file.
+In order to exclude runs see the following example in which 10 runs are performed, but the parameters are exchanged parallely. Modify the `parameter.ini` file.
 ```
 ! =============================================================================== !
 ! Species1 - CH4

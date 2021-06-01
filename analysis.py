@@ -240,10 +240,16 @@ def getAnalyzes(path, example, args) :
     h5diff_sort             = options.get('h5diff_sort',False)
     h5diff_sort_dim         = options.get('h5diff_sort_dim',-1)
     h5diff_sort_var         = options.get('h5diff_sort_var',-1)
+    h5diff_reshape          = options.get('h5diff_reshape',False)
+    h5diff_reshape_dim      = options.get('h5diff_reshape_dim',-1)
+    h5diff_reshape_value    = options.get('h5diff_reshape_value',-1)
     h5diff_max_differences  = options.get('h5diff_max_differences',0)
     # only do h5diff test if all variables are defined
     if h5diff_reference_file and h5diff_file and h5diff_data_set :
-        analyze.append(Analyze_h5diff(h5diff_one_diff_per_run,h5diff_reference_file, h5diff_file,h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type, args.referencescopy, h5diff_sort, h5diff_sort_dim, h5diff_sort_var, h5diff_max_differences))
+        analyze.append(Analyze_h5diff(h5diff_one_diff_per_run,h5diff_reference_file, h5diff_file,h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type, args.referencescopy,\
+                h5diff_sort, h5diff_sort_dim, h5diff_sort_var,\
+                h5diff_reshape, h5diff_reshape_dim, h5diff_reshape_value,\
+                h5diff_max_differences))
 
     # 2.6   check array bounds in hdf5 file
     check_hdf5_file      = options.get('check_hdf5_file',None)
@@ -1065,12 +1071,19 @@ class Analyze_Convtest_p(Analyze) :
 #==================================================================================================
 
 class Analyze_h5diff(Analyze,ExternalCommand) :
-    def __init__(self, h5diff_one_diff_per_run, h5diff_reference_file, h5diff_file, h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type, referencescopy, h5diff_sort, h5diff_sort_dim, h5diff_sort_var, h5diff_max_differences) :
+    def __init__(self, h5diff_one_diff_per_run, h5diff_reference_file, h5diff_file, h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type, referencescopy, \
+                       h5diff_sort, h5diff_sort_dim, h5diff_sort_var,\
+                       h5diff_reshape, h5diff_reshape_dim, h5diff_reshape_value,\
+                       h5diff_max_differences) :
         # Set number of diffs per run [True/False]
         self.one_diff_per_run = (h5diff_one_diff_per_run in ('True', 'true', 't', 'T'))
 
         # Create dictionary for all keys/parameters and insert a list for every value/options
-        self.prms = { "reference_file" : h5diff_reference_file, "file" : h5diff_file, "data_set" : h5diff_data_set, "tolerance_value" : h5diff_tolerance_value, "tolerance_type" : h5diff_tolerance_type, "sort" : h5diff_sort, "sort_dim" : h5diff_sort_dim, "sort_var" : h5diff_sort_var, "max_differences" : h5diff_max_differences }
+        self.prms = { "reference_file" : h5diff_reference_file, "file" : h5diff_file, "data_set" : h5diff_data_set,\
+                     "tolerance_value" : h5diff_tolerance_value, "tolerance_type" : h5diff_tolerance_type,\
+                     "sort" : h5diff_sort, "sort_dim" : h5diff_sort_dim, "sort_var" : h5diff_sort_var,\
+                     "reshape" : h5diff_reshape, "reshape_dim" : h5diff_reshape_dim, "reshape_value" : h5diff_reshape_value,\
+                     "max_differences" : h5diff_max_differences }
         for key, prm in self.prms.items() :
            # Check if prm is not of type 'list'
            if type(prm) != type([]) :
@@ -1114,6 +1127,16 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
             else :
                 raise Exception(tools.red("initialization of h5diff failed. h5diff_sort '%s' not accepted." % sort_loc))
 
+        # Check dataset reshaping
+        for compare in range(self.nCompares) :
+            reshape_loc = self.prms["reshape"][compare]
+            if reshape_loc in ('True', 'true', 't', 'T', True) :
+                self.prms["reshape"][compare] = True
+            elif reshape_loc in ('False', 'false', 'f', 'F', False) :
+                self.prms["reshape"][compare] = False
+            else :
+                raise Exception(tools.red("initialization of h5diff failed. h5diff_reshape '%s' not accepted." % reshape_loc))
+
         # set logical for creating new reference files and copying them to the example source directory
         self.referencescopy = referencescopy
 
@@ -1129,8 +1152,8 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
         General workflow:
         1.  iterate over all runs
         1.1.0   Read the hdf5 file
-        1.1.1   Read the dataset from the hdf5 file
-        1.1.1   Read the dataset from the hdf5 file
+        1.1.1.0   Read the dataset from the hdf5 file
+        1.1.1.1   Reshape the dataset if required
         1.1.2   compare shape of the dataset of both files, throw error if they do not coincide
         1.1.3   add failed info if return a code != 0 to run
         1.1.4   set analyzes to fail if return a code != 0
@@ -1167,6 +1190,9 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                 sort_loc             = self.prms["sort"][compare]
                 sort_dim_loc         = int(self.prms["sort_dim"][compare])
                 sort_var_loc         = int(self.prms["sort_var"][compare])
+                reshape_loc          = self.prms["reshape"][compare]
+                reshape_dim_loc      = int(self.prms["reshape_dim"][compare])
+                reshape_value_loc    = int(self.prms["reshape_value"][compare])
                 max_differences_loc  = int(self.prms["max_differences"][compare])
 
                 # 1.1.0   Read the hdf5 file
@@ -1208,8 +1234,8 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                 #     w- or x : Create file, fail if exists
                 #     a       : Read/write if exists, create otherwise (default
                 # --------------------------------------------
-                # When sorting is used, the sorted array is written to the original .h5 file with a new name
-                if sort_loc :
+                # When sorting is used, the sorted array is written to the original .h5 file with a new name. The same happens when using dataset reshaping.
+                if sort_loc or reshape_loc:
                     f1 = h5py.File(path,'r+')
                     f2 = h5py.File(path_ref_target,'r+')
                 else :
@@ -1222,7 +1248,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                 # first key in list: a_group_key = list(f1.keys())[0]      # yields 'DG_Solution'
                 # -------------------
 
-                # 1.1.1   Read the datasets from the hdf5 file
+                # 1.1.1.0   Read the datasets from the hdf5 file
                 # Check if the container in the file and the ref. have the same name
                 data_set_loc = data_set_loc.split()
                 if len(data_set_loc) > 1:
@@ -1235,6 +1261,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                 # Read the file
                 try:
                     b1 = f1[data_set_loc_file][:]
+                    shape1 = b1.shape
                 except Exception as e:
                     s = tools.red("Analyze_h5diff: Could not open .h5 dataset [%s] under in file [%s]. Error message [%s]" % (data_set_loc_file,path,e))
                     print(s)
@@ -1246,6 +1273,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                 # Read the reference
                 try:
                     b2 = f2[data_set_loc_ref][:]
+                    shape2 = b2.shape
                 except Exception as e:
                     s = tools.red("Analyze_h5diff: Could not open .h5 dataset [%s] under in file [%s]. Error message [%s]" % (data_set_loc_ref,path_ref_target,e))
                     print(s)
@@ -1255,8 +1283,61 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                     continue
 
 
+                # 1.1.1.1   Reshape the dataset if required
+                if reshape_loc:
+                    # Create new re-shaped array for storing to .h5
+                    old_shape = shape1
+                    newShape = list(shape1)
+                    old_value = newShape[reshape_dim_loc]
+                    newShape[reshape_dim_loc] = reshape_value_loc
+                    newShape = tuple(newShape)
+                    # Check if shape is being increased
+                    if reshape_value_loc > old_value:
+                        s = tools.red("Analyze_h5diff: Reshaping is currently only implemented with the purpose to reduce array sizes. You are trying to increase the array shape from %s to %s" % (old_shape,newShape) )
+                        print(s)
+                        run.analyze_results.append(s)
+                        run.analyze_successful=False
+                        Analyze.total_errors+=1
+                        continue
+                    # Check if row or column is changed
+                    if reshape_dim_loc == 0:
+                        b1_reshaped = b1[:reshape_value_loc , :]
+                    elif reshape_dim_loc == 1:
+                        b1_reshaped = b1[:                  , :reshape_value_loc]
+                    else:
+                        s = tools.red("Analyze_h5diff: Reshaping is currently only implemented for 2D arrays. Use h5diff_reshape_dim=1 or 2)")
+                        print(s)
+                        run.analyze_results.append(s)
+                        run.analyze_successful=False
+                        Analyze.total_errors+=1
+                        continue
+
+                    shape1 = b1_reshaped.shape
+
+                    # Set name of new array
+                    data_set_loc_file_new = data_set_loc_file+"_reshaped"
+
+                    # File: Create new dataset
+                    dset = f1.create_dataset(data_set_loc_file_new, shape=shape1, dtype=np.float64)
+
+                    # Write as C-continuous array via np.ascontiguousarray()
+                    dset.write_direct(np.ascontiguousarray(b1_reshaped))
+
+                    # Close .h5 file
+                    #f1.close()
+
+                    # Replace original data and update the shape info for b1
+                    b1 = b1_reshaped
+
+                    # In the following, compare the reshaped array instead of the original one
+                    str_1 = "'%s' (instead of '%s') from %s" % (data_set_loc_file_new , data_set_loc_file , file_loc)
+                    print(tools.yellow("    Reshaping dim=%s to value=%s (the old value was %s).\n    Now using: %s, which has a changed shape from %s to %s" % (reshape_dim_loc , reshape_value_loc , old_value, str_1, old_shape, newShape)))
+
+                    data_set_loc_file = data_set_loc_file_new
+
+
                 # 1.1.2 compare shape of the dataset of both files, throw error if they do not coincide
-                if b1.shape != b2.shape : # e.g.: b1.shape = (48, 1, 1, 32)
+                if shape1 != shape2 : # e.g.: b1.shape = (48, 1, 1, 32)
                     self.result=tools.red(tools.red("h5diff failed because datasets for [%s,%s] are not comparable due to different shapes: Files [%s] and [%s] have shapes [%s] and [%s]" % (data_set_loc_file,data_set_loc_ref,f1,f2,b1.shape,b2.shape)))
                     print(" "+self.result)
 
@@ -1272,11 +1353,11 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
 
                         # Sort by X
                         if sort_dim_loc == 1 : # Sort by row
-                            # Note that sort_var_loc begins at 0 as python starts by 0
+                            # Note that sort_var_loc begins at 0 as python starts at 0
                             b1_sorted = b1[:,b1[sort_var_loc,:].argsort()]
                             b2_sorted = b2[:,b2[sort_var_loc,:].argsort()]
                         elif sort_dim_loc == 2 : # Sort by column
-                            # Note that sort_var_loc begins at 0 as python starts by 0
+                            # Note that sort_var_loc begins at 0 as python starts at 0
                             b1_sorted = b1[b1[:,sort_var_loc].argsort()]
                             b2_sorted = b2[b2[:,sort_var_loc].argsort()]
                         else :
@@ -1290,13 +1371,13 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                         data_set_loc_file_new = data_set_loc_file+"_sorted"
                         data_set_loc_ref_new  = data_set_loc_ref+"_sorted"
                         # File: Create new dataset
-                        dset = f1.create_dataset(data_set_loc_file_new, shape=b1.shape, dtype=np.float64)
+                        dset = f1.create_dataset(data_set_loc_file_new, shape=shape1, dtype=np.float64)
                         # Write as C-continuous array via np.ascontiguousarray()
                         dset.write_direct(np.ascontiguousarray(b1_sorted))
                         f1.close()
 
                         # Reference file: Create new dataset
-                        dset = f2.create_dataset(data_set_loc_ref_new, shape=b2.shape, dtype=np.float64)
+                        dset = f2.create_dataset(data_set_loc_ref_new, shape=shape2, dtype=np.float64)
                         # Write as C-continuous array via np.ascontiguousarray()
                         dset.write_direct(np.ascontiguousarray(b2_sorted))
                         f2.close()
