@@ -101,8 +101,8 @@ gitlab-ci.py
     └───flexi
     |   parameter_flexi.ini
     |   ...
-    └───boltzplatz
-    │   parameter_boltzplatz.ini
+    └───piclas
+    │   parameter_piclas.ini
     │   ...
     └───hopr
         parameter_hopr.ini
