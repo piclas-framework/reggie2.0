@@ -160,6 +160,9 @@ The intention of a white space must be stated explicitly.
 |                            | h5diff\_sort                              | True                                                    | False                              | Sort h5 arrays before comparing them, which circumvents problems when comparing arrays that are written in arbitrary order due to multiple MPI processes writing the dataset (currently only 2-dimensional m x n arrays are implemented) |
 |                            | h5diff\_sort\_dim                         | 1                                                       | -1                                 | Sorting dimension of a 2-dimensional m x n array (1: sort array by rows, 2: sort array by columns)                                                                                                                                       |
 |                            | h5diff\_sort\_var                         | 0                                                       | -1                                 | Sorting variable of the specified dimension. The array will be sorted for this variable in ascending order (note that variables start at 0)                                                                                              |
+|                            | h5diff\_reshape                           | True                                                    | False                              | Re-shape h5 arrays before comparing them, effectively removing rows or columns (for example). This is currently only implemented for 2-dimensional m x n arrays.                                                                         |
+|                            | h5diff\_reshape\_dim                      | 1                                                       | -1                                 | Select the dimension, which is to be changed (decreased, note that variables start at 0)                                                                                                                                                 |
+|                            | h5diff\_reshape\_value                    | 11                                                      | -1                                 | Value to which the selected dimension is to be changed (decreased)                                                                                                                                                                       |
 |                            | h5diff\_max\_differences                  | 15                                                      | 0                                  | Maximum number of allowed differences that are detected by h5diff for the test to pass without failure                                                                                                                                   |
 | h5 array bounds check      | check\_hdf5\_file                         | tildbox_State_001.00000000000000000.h5                  | None                               | name of calculated .h5 file (output from current run)                                                                                                                                                                                    |
 |                            | check\_hdf5\_data\_set                    | PartData                                                | None                               | name of data set for comparing (e.g. DG\_Solution)                                                                                                                                                                                       |
@@ -321,6 +324,25 @@ h5diff_tolerance_type   = relative
 h5diff_sort             = T
 h5diff_sort_dim         = 1
 h5diff_sort_var         = 0
+```
+
+### Dataset Re-Shaping
+- datasets may be reshaped prior to comparisonm, e.g., made smaller by decrasing a dimension
+
+The following example considers an 14497 x 12 array *PartData*, which is to be re-shaped to an 14497 x 11 array, effectively
+removing the 12th column.
+
+Template for copying to **analyze.ini**
+```
+! hdf5 diff
+h5diff_file             = sphere_PartStateBoundary_000.00000010000000000.h5
+h5diff_reference_file   = sphere_PartStateBoundary_000.00000010000000000_ref.h5
+h5diff_data_set         = PartData
+h5diff_tolerance_value  = 1.0e-2
+h5diff_tolerance_type   = relative
+h5diff_reshape          = T
+h5diff_reshape_dim      = 0
+h5diff_reshape_value    = 11
 ```
 
 ### Multiple dataset names
