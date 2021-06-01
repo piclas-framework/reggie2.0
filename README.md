@@ -1,4 +1,4 @@
-supply external two e# Reggie2.0 toolbox
+# Reggie2.0 toolbox
 ```mermaid
 graph TD;
   gitlab_ci.py["gitlab_ci.py"]-->|call|A[reggie.py];
