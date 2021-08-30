@@ -367,6 +367,7 @@ Template for copying to **analyze.ini**
 ! check if particles are outside of domain at tEnd
 check_hdf5_file        = tildbox_State_001.00000000000000000.h5
 check_hdf5_data_set    = PartData
+check_hdf5_span        = 2 ! 1: check array elements by rows, 2: check array elements by columns
 check_hdf5_dimension   = 0:2
 check_hdf5_limits      = -10.0:10.0
 ```
