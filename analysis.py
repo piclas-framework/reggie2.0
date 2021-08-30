@@ -1470,7 +1470,9 @@ class Analyze_check_hdf5(Analyze) :
         General workflow:
         1.  iterate over all runs
         1.2   Read the hdf5 file
+        1.2.1   Check if dataset exists
         1.3   Read the dataset from the hdf5 file
+        1.3.0   Check if data set is empty
         1.3.1   loop over each dimension supplied
         1.3.2   Check either rows or columns
         1.3.3   Check if all values are within the supplied interval
@@ -1493,8 +1495,26 @@ class Analyze_check_hdf5(Analyze) :
             # available keys   : print("Keys: %s" % f.keys())
             # first key in list: a_group_key = list(f.keys())[0]
 
+            # 1.2.1   Check if dataset exists
+            if self.data_set not in f.keys():
+                s = tools.red("Analyze_check_hdf5: [%s] not found in file=[%s]" % (self.data_set,path) )
+                print(s)
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                continue
+
             # 1.3   Read the dataset from the hdf5 file
             b = f[self.data_set][:]
+
+            #1.3.0   Check if data set is empty
+            if min(b.shape) == 0:
+                s = tools.red("Analyze_check_hdf5: [%s] has at least one empty dimension, shape=%s" % (self.data_set,b.shape) )
+                print(s)
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                continue
 
             # 1.3.1   loop over each dimension supplied
             for i in range(self.dim1, self.dim2+1) :
