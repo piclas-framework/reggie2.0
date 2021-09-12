@@ -1644,7 +1644,9 @@ class Analyze_compare_data_file(Analyze) :
         '''
 
         if self.one_diff_per_run and ( self.nCompares != len(runs) ) and self.nCompares > 1 :
-            raise Exception(tools.red("Number of compare_data_file tests and runs is inconsistent. Please ensure all options have the same length or set compare_data_file_one_diff_per_run=F."))
+            s=tools.red("Number of compare_data_file tests and runs is inconsistent."+ \
+                    "Please ensure all options have the same length or set compare_data_file_one_diff_per_run=F. Nbr. of comparisons: %s, Nbr. of runs: %s" % (self.nCompares, len(runs)) )
+            raise Exception(s)
 
         # 1.  iterate over all runs
         for iRun, run in enumerate(runs) :
