@@ -25,7 +25,9 @@ python gitlab-ci.py --help
 ```
 
 ## Python version compatibility
-Reggie2.0 is desinged to be executed with Python 2, however, compatibility with Python 3 is desired. For this purpose, the following remarks should be considered when changing the source code.
+Reggie2.0 was originally desinged to be executed with Python 2, however, Python 3 is now mandated.
+For the sake of backward-compatibility, the following remarks should be considered.
+
 ### print() function
 In Python 3, print() is a function and if the line break is to be omitted, simply add `, end='')` to the `print()` call. In order for this command to work with Python 2, the following line must be added as the very first line of code in the file
 ```
