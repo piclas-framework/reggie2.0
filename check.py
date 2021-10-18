@@ -19,7 +19,7 @@ import combinations
 from outputdirectory import OutputDirectory
 from externalcommand import ExternalCommand
 import tools
-from analysis import Analyze, getAnalyzes, Clean_up_files
+from analysis import Analyze, getAnalyzes, Clean_up_files, Analyze_compare_across_commands
 import collections
 import subprocess
 import summary
@@ -751,6 +751,7 @@ def PerformCheck(start,builds,args,log) :
     4.3    remove unwanted files: run analysis directly after each run (as opposed to the normal analysis which is used for analyzing the created output)
     5.   loop over all successfully executed binary results and perform analyze tests
     6.   rename all run directories for which the analyze step has failed for at least one test
+    7.   perform analyze tests comparing corresponding runs from different commands
     """
 
     build_number=0
@@ -892,7 +893,8 @@ def PerformCheck(start,builds,args,log) :
                     runs_successful = [run for run in command_line.runs if run.successful]
                     if runs_successful : # do analyzes only if runs_successful is not emtpy
                         for analyze in example.analyzes :
-                            if isinstance(analyze,Clean_up_files) : # skip because already called in the "run" loop under 4.2
+                            if isinstance(analyze,Clean_up_files) or isinstance(analyze,Analyze_compare_across_commands) :
+                                # skip because either already called in the "run" loop under 4.2 or called later under cross-command comparisons in 7.
                                 continue
                             print(tools.indent(tools.blue(str(analyze)),2))
                             analyze.perform(runs_successful)
@@ -914,6 +916,16 @@ def PerformCheck(start,builds,args,log) :
                     # Don't remove when (post) external fails
                     for external in run.externals_post :
                         if not all([externalrun.successful for externalrun in external.runs]) : remove_build_when_successful = False # don't delete build folder after all examples/runs
+
+                # 7.    perform analyze tests comparing corresponding runs from different commands
+                for iRun in range( len( example.command_lines[0].runs ) ):  # loop over runs of first command
+                    # collect corresponding runs from different commands, i.e. cmd_*/run_0001, cmd_*/run_0002, ...
+                    runs_corresponding = [ command_line.runs[iRun] for command_line in example.command_lines ]
+                    for analyze in example.analyzes :
+                        # perform only cross-command comparisons
+                        if isinstance(analyze,Analyze_compare_across_commands) :
+                            print(tools.indent(tools.blue(str(analyze)),2))
+                            analyze.perform(runs_corresponding)
 
             if remove_build_when_successful and not args.save :
                 tools.remove_folder(build.target_directory)

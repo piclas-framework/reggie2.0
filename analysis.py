@@ -311,8 +311,25 @@ def getAnalyzes(path, example, args) :
         elif compare_column_tolerance_type in ('relative', "--relative") :
             compare_column_tolerance_type = "relative"
         else :
-            raise Exception(tools.red("initialization of compare line failed. compare_column_tolerance_type '%s' not accepted." % compare_column_tolerance_type))
+            raise Exception(tools.red("initialization of compare column failed. compare_column_tolerance_type '%s' not accepted." % compare_column_tolerance_type))
         analyze.append(Analyze_compare_column(compare_column_file, compare_column_reference_file, compare_column_delimiter, compare_column_index,  compare_column_tolerance_value, compare_column_tolerance_type, compare_column_multiplier))
+
+    # 2.10   compare corresponding files from different commands
+    compare_across_commands_file            = options.get('compare_across_commands_file',None)                 # file name (path) which is analyzed
+    compare_across_commands_column_delimiter= options.get('compare_across_commands_column_delimiter',',')             # delimiter symbol if not comma-separated
+    compare_across_commands_column_index    = options.get('compare_across_commands_column_index',None)                # index of the column that is to be compared
+    compare_across_commands_line_number     = options.get('compare_across_commands_line_number','last')
+    compare_across_commands_tolerance_value = options.get('compare_across_commands_tolerance_value',1e-5)      # tolerance that is used in comparison
+    compare_across_commands_tolerance_type  = options.get('compare_across_commands_tolerance_type','absolute') # type of tolerance, either 'absolute' or 'relative'
+    compare_across_commands_reference       = options.get('compare_across_commands_reference',0)
+    if all([compare_across_commands_file, compare_across_commands_column_delimiter, compare_across_commands_column_index, compare_across_commands_line_number, compare_across_commands_reference ]) :
+        if compare_column_tolerance_type in ('absolute', 'delta', '--delta') :
+            compare_column_tolerance_type = "absolute"
+        elif compare_column_tolerance_type in ('relative', "--relative") :
+            compare_column_tolerance_type = "relative"
+        else :
+            raise Exception(tools.red("initialization of compare across commands failed. compare_across_commands_tolerance_type '%s' not accepted." % compare_across_commands_tolerance_type))
+        analyze.append(Analyze_compare_across_commands(compare_across_commands_file, compare_across_commands_column_delimiter, compare_across_commands_column_index, compare_across_commands_line_number, compare_across_commands_tolerance_value, compare_across_commands_tolerance_type, compare_across_commands_reference))
 
     return analyze
 
@@ -1716,6 +1733,7 @@ class Analyze_compare_data_file(Analyze) :
                     line_len = len(line)
 
                 # 1.3.2   read reference file
+                # TODO: this always extracts the last line from the reference file - you probably want to compare against same line as in data file, i.e. 'line_loc'?
                 line_ref = []
                 with open(path_ref_target, 'r') as csvfile:
                     line_str = csv.reader(csvfile, delimiter=delimiter_loc, quotechar='!')
@@ -2070,3 +2088,138 @@ class Analyze_compare_column(Analyze) :
     def __str__(self) :
         return "compare column data with a reference (e.g. from .csv file): file=[%s] and reference=[%s] and comparison for column %s (the first column starts at 0)" % (self.file, self.ref, self.dim)
 
+#==================================================================================================
+
+class Analyze_compare_across_commands(Analyze) :
+    def __init__(self, compare_across_commands_file, compare_across_commands_column_delimiter, compare_across_commands_column_index, compare_across_commands_line_number, compare_across_commands_tolerance_value, compare_across_commands_tolerance_type, compare_across_commands_reference) :
+        self.file                = compare_across_commands_file
+        self.delimiter           = compare_across_commands_column_delimiter
+        self.column_index        = int(compare_across_commands_column_index)
+        self.tolerance_value     = float(compare_across_commands_tolerance_value)
+        self.tolerance_type      = compare_across_commands_tolerance_type
+        self.reference           = int(compare_across_commands_reference)
+
+        if compare_across_commands_line_number == 'last':
+            self.line_number = -1   # set to dummy value (and not to numeric infinity) for sanity check in 1.3
+        else :
+            self.line_number = int(compare_across_commands_line_number) # take actual line number
+
+    def perform(self,runs) :
+
+        '''
+        General workflow:
+        1. iterate over all runs
+        1.1   check existence of the data file
+        1.2   read data file
+        1.3   check number of lines in data file
+        1.4  check number of columns in data file
+        1.5   get header information of considered column
+        1.6   extract value in considered column
+        2. compare results of runs among eachother
+        2.1   check index of reference command (1-based indexing, in accordance with directory name pattern 'cmd_0001, cmd_0002, ...'), index 0 means average of all commands
+        2.2   compute reference value based extracted results
+        2.3   calculate deviation of each extracted value from average and compare with tolerance
+        '''
+
+        # 1.  iterate over all runs
+        x_run = []  # list collecting extracted result of each run
+        for run in runs :
+
+            # 1.1   check existence of the data file
+            path     = os.path.join(run.target_directory,self.file)
+            if not os.path.exists(path) :
+                s=tools.red("Analyze_compare_across_commands: cannot find compare file=[%s] " % (self.file))
+                print(s)
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                return
+
+            # 1.2   read data file
+            data = np.array([])
+            with open(path, 'r') as csvfile:
+                line_str = csv.reader(csvfile, delimiter=self.delimiter, quotechar='!')
+                i=0
+                header=0
+                for row in line_str:
+                    try : # try reading a line from the data file and converting it into a numpy array
+                        line = np.array([float(x) for x in row])
+                        failed = False
+                    except : # count as header line
+                        header+=1
+                        header_line = row
+                        failed = True
+                    i+=1
+                    if i == self.line_number :  # if line number set to 'last', this condition is never met and last stored line is taken
+                        print(tools.yellow(str(i)),end=' ') # skip line break
+                        break
+
+            if failed : # only header lines (or non-convertable data) found
+                s="Analyze_compare_across_commands: reading of the data file [%s] has failed.\nNo float type data could be read. Check the file content." %path
+                print(tools.red(s))
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                return
+
+            # 1.3   check number of lines in data file
+            selected_line = i
+            if selected_line < self.line_number :
+                s="cannot perform analyze Analyze_compare_across_commands, because the supplied line number [%s] in [%s] exceeds the number of lines [%s] in the data file (the first line has number 1)" % (self.line_number, path, selected_line)
+                print(tools.red(s))
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                return
+
+            # 1.4  check number of columns in data file
+            line_len = len(line) - 1
+            if line_len < self.column_index :
+                s="cannot perform analyze Analyze_compare_across_commands, because the supplied column [%s] in [%s] exceeds the number of columns [%s] in the data file (the first column must start at 0)" % (self.column_index, path, line_len)
+                print(tools.red(s))
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+                return
+
+            # 1.5   get header information of considered column
+            if header > 0 :
+                for i in range(line_len+1) :
+                    header_line[i] = header_line[i].replace(" ", "")
+                    #print header_line[i]
+
+            # 1.6   extract value in considered column
+            x_run.append( line[self.column_index] )
+
+        # 2. compare results of runs among eachother
+        # 2.1   check index of reference command (1-based indexing, in accordance with directory name pattern 'cmd_0001, cmd_0002, ...'), index 0 means average of all commands
+        if (self.reference > len(runs)) or (self.reference < 0) :
+            s="cannot perform analyze Analyze_compare_across_commands, because index of reference command [%s] exceeds number of executed commands [%s] (indexing starts at 1, use 0 for average of all commands)" % (self.reference, len(runs))
+            print(tools.red(s))
+            run.analyze_results.append(s)
+            run.analyze_successful=False
+            Analyze.total_errors+=1
+            return
+
+        # 2.2   compute reference value based extracted results and replicate to form reference array
+        if self.reference == 0: # take average of extracted results as reference value
+            reference_value = np.mean(x_run)
+        else :  # take result of specific command as reference, e.g. to evaluate parallel efficiency take first command 'MPI=1'
+            reference_value = x_run[self.reference-1]
+        x_ref = np.full( len(x_run), reference_value )
+
+        # 2.3   calculate deviation of each extracted value from average and compare with tolerance
+        success = tools.diff_lists(x_run, x_ref, self.tolerance_value, self.tolerance_type)
+        NbrOfDifferences = success.count(False)
+
+        if NbrOfDifferences > 0 :
+            s = tools.red("Found %s differences.\n" % NbrOfDifferences)
+            s = s+tools.red("Mismatch in line %s of column %s" % (selected_line,header_line[self.column_index] if header>0 else self.column_index) )
+            print(s)
+            run.analyze_results.append(s)
+            run.analyze_successful=False
+            Analyze.total_errors+=1
+
+
+    def __str__(self) :
+        return "compare results of corresponding runs from different commands: file [%s] and comparison of value in line [%s] (first line = 1, last line = -1) and column [%s] (first column = 0)" % (self.file, self.line_number, self.column_index)
