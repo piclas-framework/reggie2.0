@@ -303,7 +303,14 @@ def SetMPIrun(build, args, MPIthreads) :
 
     # If not explicitly set to OFF, check again for 2nd variable 'LIBS_USE_MPI'
     if MPIbuilt == "ON" :
-        MPIbuilt = build.configuration.get('LIBS_USE_MPI','ON')
+        try:
+            MPIbuilt       = build.configuration.get('LIBS_USE_MPI','NOT FOUND')
+            if MPIbuilt == "NOT FOUND":
+                MPIbuilt = "ON" # fall back and assume MPI=ON (this fill break if the executable is actually built MPI=OFF)
+            else:
+                MPI_built_flag = 'LIBS_USE_MPI'
+        except Exception as e:
+            pass
 
     if MPIthreads :
         # Check if single execution is wanted (independent of the compiled executable)
