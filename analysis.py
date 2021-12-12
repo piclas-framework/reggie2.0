@@ -524,9 +524,10 @@ class Analyze_L2(Analyze) :
                 Analyze.total_errors+=1
                 continue
 
+            L2_errors_str = "["+", ".join(str(x) for x in L2_errors)+"]"
             # 1.2   if one L2 errors is larger than the tolerance -> fail
             if (L2_errors > self.L2_tolerance).any() :
-                s = tools.red("analysis failed. L2 error: L2_errors > "+str(self.L2_tolerance))
+                s = tools.red("analysis failed. L2 error: L2_errors > "+str(self.L2_tolerance)+" "+L2_errors_str)
                 print(s)
 
                 # 1.3   append info for summary of errors
@@ -535,6 +536,9 @@ class Analyze_L2(Analyze) :
                 # 1.4   set analyzes to fail
                 run.analyze_successful=False
                 Analyze.total_errors+=1
+            else:
+                print(tools.indent(tools.blue(L2_errors_str),2))
+
 
     def __str__(self) :
         return "perform L2 error comparison with a pre-defined tolerance=%s for %s" % (self.L2_tolerance,self.error_name)
