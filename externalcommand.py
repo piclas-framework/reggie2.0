@@ -17,6 +17,7 @@ import tools
 import select
 from timeit import default_timer as timer
 import sys
+import time
 
 class ExternalCommand() :
     def __init__(self) :
@@ -57,24 +58,31 @@ class ExternalCommand() :
         start = timer()
         (pipeOut_r, pipeOut_w) = os.pipe()
         (pipeErr_r, pipeErr_w) = os.pipe()
-        if environment is None :
-            self.process = subprocess.Popen(cmd, stdout=pipeOut_w, \
-                                            stderr=pipeErr_w, \
-                                            universal_newlines=True, cwd=workingDir)
-        else :
-            self.process = subprocess.Popen(cmd, stdout=pipeOut_w, \
-                                            stderr=pipeErr_w, \
-                                            universal_newlines=True, cwd=workingDir, \
-                                            env = environment)
+
 
         self.stdout = []
         self.stderr = []
 
         bufOut = ""
         bufErr = ""
+
+        if environment is None :
+            self.process = subprocess.Popen(cmd, \
+                                            stdout             = pipeOut_w, \
+                                            stderr             = pipeErr_w, \
+                                            universal_newlines = True, \
+                                            cwd                = workingDir)
+        else :
+            self.process = subprocess.Popen(cmd, \
+                                            stdout             = pipeOut_w, \
+                                            stderr             = pipeErr_w, \
+                                            universal_newlines = True, \
+                                            cwd                = workingDir, \
+                                            env                = environment)
+
+        # .poll() is None means that the child is still running
         while self.process.poll() is None:
-            # Loop as long as the select mechanism indicates there
-            # is data to be read from the buffer
+            # Loop as long as the select mechanism indicates there is data to be read from the buffer
 
             # 1.   std.out
             while len(select.select([pipeOut_r], [], [], 0)[0]) == 1:

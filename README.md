@@ -26,6 +26,19 @@ python gitlab-ci.py --help
 
 ## Python version compatibility
 Reggie2.0 was originally desinged to be executed with Python 2, however, Python 3 is now mandated.
+The following two versions of Python 2 and 3 are recommended
+
+| **Version** |
+| :---------: |
+|    2.7.18   |
+|    3.9.7    |
+
+The following versions are known to cause problems
+
+| **Version** |                   **Problem**                  |
+| :---------: | :--------------------------------------------: |
+|    3.8.10   | subprocess.Popen cannot run *mpirun* correctly |
+
 For the sake of backward-compatibility, the following remarks should be considered.
 
 ### print() function
