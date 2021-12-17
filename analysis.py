@@ -1409,7 +1409,9 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                                     if idx >= 0 :
                                         NbrOfDifferences=int(lastline[:idx]) # get the number of differences that where identified by h5diff
                                         if NbrOfDifferences <= max_differences_loc :
-                                            print(tools.indent("%s, but %s differences are allowed (given by h5diff_max_differences). The h5diff is therefore marked as passed." % (str(lastline),max_differences_loc), 2))
+                                            s = tools.indent("%s, but %s differences are allowed (given by h5diff_max_differences). The h5diff is therefore marked as passed." % (str(lastline),max_differences_loc), 2)
+                                            s = tools.purple(s)
+                                            print(s)
                                             self.return_code = 0
                         # If this try fails, just ignore it
                         except :
@@ -1764,17 +1766,20 @@ class Analyze_compare_data_file(Analyze) :
 
                 #if not all(success) :
                 if NbrOfDifferences > 0 :
-                    s = tools.red("Comparison failed for %s with %s\n" % (path, reference_file_loc))
-                    s = s+tools.red("Found %s differences.\n" % NbrOfDifferences)
-                    s = s+tools.red("Mismatch in columns: "+", ".join([str(header_line[i]).strip() for i in range(len(success)) if not success[i]]))
+                    s = "Comparison failed for %s with %s\n" % (path, reference_file_loc)
+                    s = s+"Found %s differences.\n" % NbrOfDifferences
+                    s = s+"Mismatch in columns: "+", ".join([str(header_line[i]).strip() for i in range(len(success)) if not success[i]])
                     if NbrOfDifferences > max_differences_loc :
+                        s = tools.red(s)
                         print(s)
                         run.analyze_results.append(s)
                         run.analyze_successful=False
                         Analyze.total_errors+=1
                     else :
-                        s2 = tools.red(", but %s differences are allowed (given by compare_data_file_max_differences). This analysis is therefore marked as passed." % max_differences_loc)
-                        print(s+s2)
+                        s2 = ", but %s difference(s) are allowed (given by compare_data_file_max_differences). This analysis is therefore marked as passed." % max_differences_loc
+                        s2 = tools.pink(s+s2)
+                        run.analyze_results.append(s2)
+                        print(s2)
 
                 else:
                     NbrOfMatches=success.count(True)
