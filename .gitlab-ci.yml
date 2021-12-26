@@ -22,8 +22,8 @@ checkin:
   tags:
     - withmodules-concurrent
   script:
-    - if [ -x "$(command -v python2)" ]; then; echo "Testing python 2"; python2 ./reggie.py -h; fi
-    - if [ -x "$(command -v python3)" ]; then; echo "Testing python 3"; python3 ./reggie.py -h; fi
+    - if [ -x "$(command -v python2)" ]; then echo "Testing python 2"; python2 ./reggie.py -h; fi
+    - if [ -x "$(command -v python3)" ]; then echo "Testing python r"; python3 ./reggie.py -h; fi
   rules:
     - if: '$DO_CHECKIN'
     - if: '$CI_PIPELINE_SOURCE == "push"'
