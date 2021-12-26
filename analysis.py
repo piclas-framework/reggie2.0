@@ -312,7 +312,7 @@ def getAnalyzes(path, example, args) :
             compare_column_tolerance_type = "relative"
         else :
             raise Exception(tools.red("initialization of compare column failed. compare_column_tolerance_type '%s' not accepted." % compare_column_tolerance_type))
-        analyze.append(Analyze_compare_column(compare_column_file, compare_column_reference_file, compare_column_delimiter, compare_column_index,  compare_column_tolerance_value, compare_column_tolerance_type, compare_column_multiplier))
+        analyze.append(Analyze_compare_column(compare_column_file, compare_column_reference_file, compare_column_delimiter, compare_column_index,  compare_column_tolerance_value, compare_column_tolerance_type, compare_column_multiplier, args.referencescopy))
 
     # 2.10   compare corresponding files from different commands
     compare_across_commands_file            = options.get('compare_across_commands_file',None)                 # file name (path) which is analyzed
@@ -1918,7 +1918,7 @@ class Analyze_integrate_line(Analyze) :
 #==================================================================================================
 
 class Analyze_compare_column(Analyze) :
-    def __init__(self, compare_column_file, compare_column_reference_file, compare_column_delimiter, compare_column_index,  compare_column_tolerance_value, compare_column_tolerance_type, compare_column_multiplier) :
+    def __init__(self, compare_column_file, compare_column_reference_file, compare_column_delimiter, compare_column_index,  compare_column_tolerance_value, compare_column_tolerance_type, compare_column_multiplier, referencescopy) :
         self.file                = compare_column_file
         self.ref                 = compare_column_reference_file
         self.delimiter           = compare_column_delimiter
@@ -1926,6 +1926,9 @@ class Analyze_compare_column(Analyze) :
         self.tolerance_value     = float(compare_column_tolerance_value)
         self.tolerance_type      = compare_column_tolerance_type
         self.multiplier          = float(compare_column_multiplier)
+
+        # set logical for creating new reference files and copying them to the example source directory
+        self.referencescopy = referencescopy
 
     def perform(self,runs) :
 
@@ -1948,8 +1951,22 @@ class Analyze_compare_column(Analyze) :
 
         # 1.  iterate over all runs
         for run in runs :
-            # 1.2   Check existence of the file and reference
-            path     = os.path.join(run.target_directory,self.file)
+            # 1.2   Check existence of the file and reference (copy the ref. file when self.referencescopy = True )
+            path             = os.path.join(run.target_directory,self.file)
+            path_ref_target  = os.path.join(run.target_directory,self.ref)
+            path_ref_source  = os.path.join(run.source_directory,self.ref)
+
+            # Copy new reference file: This is completely independent of the outcome of the current compare data file
+            if self.referencescopy :
+                run = copyReferenceFile(run,path,path_ref_source)
+                s=tools.yellow("Analyze_compare_column: performed reference copy")
+                print(s)
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_infos+=1
+                # do not skip the following analysis tests, because reference file will be created -> continue
+                continue
+
             if not os.path.exists(path) :
                 s=tools.red("Analyze_compare_column: cannot find file=[%s] " % (self.file))
                 print(s)
@@ -1958,8 +1975,7 @@ class Analyze_compare_column(Analyze) :
                 Analyze.total_errors+=1
                 return
 
-            path_ref  = os.path.join(run.target_directory,self.ref)
-            if not os.path.exists(path_ref) :
+            if not os.path.exists(path_ref_target) :
                 s=tools.red("Analyze_compare_column: cannot find file=[%s] " % (self.ref))
                 print(s)
                 run.analyze_results.append(s)
@@ -1995,7 +2011,7 @@ class Analyze_compare_column(Analyze) :
 
             # 1.3.2   read reference file
             data_ref = np.array([])
-            with open(path_ref, 'r') as csvfile_ref:
+            with open(path_ref_target, 'r') as csvfile_ref:
                 line_str = csv.reader(csvfile_ref, delimiter=self.delimiter, quotechar='!')
                 max_lines_ref=0
                 header_ref=0
