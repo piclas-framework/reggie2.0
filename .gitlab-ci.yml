@@ -20,3 +20,5 @@ github:
     - git push --force --follow-tags piclas-framework master ;
     - git remote add reggie-framework git@github.com:reggie-framework/reggie2.0.git ;
     - git push --force --follow-tags reggie-framework master ;
+  rules:
+    - if: '$DO_DEPLOY'
