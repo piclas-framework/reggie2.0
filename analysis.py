@@ -23,6 +23,7 @@ import re
 import logging
 import glob
 import shutil
+import types
 
 # import h5 I/O routines
 try :
@@ -44,6 +45,21 @@ except ImportError :
     #raise ImportError('Could not import matplotlib.pyplot module. This is required for anaylze functions.')
     print(tools.red('Could not import matplotlib.pyplot module. This is required for anaylze functions.'))
     pyplot_module_loaded = False
+
+# Check if types.SimpleNamespace is available
+try:
+    SimpleNamespace = types.SimpleNamespace   # Python 3.3+
+except AttributeError:
+    # For older python versions than Python 3.3, the class can be implemented as follows (in Python 3.3 the implementation is in C)
+    class SimpleNamespace (object):
+        def __init__ (self, **kwargs):
+            self.__dict__.update(kwargs)
+        def __repr__ (self):
+            keys = sorted(self.__dict__)
+            items = ("{}={!r}".format(k, self.__dict__[k]) for k in keys)
+            return "{}({})".format(type(self).__name__, ", ".join(items))
+        def __eq__ (self, other):
+            return self.__dict__ == other.__dict__
 
 def displayTable(mylist,nVar,nRuns) :
     # mylist = [ [1 2 3] [1 2 3] [1 2 3] [1 2 3] ] example with 4 nVar and 3 nRuns
@@ -136,7 +152,7 @@ def getAnalyzes(path, example, args) :
         if use_matplot_lib in ('True', 'true', 't', 'T') :
             pyplot_module_loaded = True
         else :
-            pyplot_module_loaded = False 
+            pyplot_module_loaded = False
 
     # 1.3 Get the names of the files (incl. wildcards) which are to be deleted in the anaylsis stage
     clean_up_files = options.get('clean_up_files',None)
@@ -144,192 +160,223 @@ def getAnalyzes(path, example, args) :
         analyze.append(Clean_up_files(clean_up_files))
 
     # 2.0   L2 error from file
-    L2_file                =       options.get('analyze_l2_file',None)
-    L2_file_tolerance      = float(options.get('analyze_l2_file_tolerance',1.0e-5))
-    L2_file_tolerance_type =       options.get('analyze_l2_file_tolerance_type','absolute')
-    L2_file_error_name     =       options.get('L2_file_error_name','L_2')
-    if L2_file :
-        if L2_file_tolerance_type in ('absolute', 'delta', '--delta') :
-            L2_file_tolerance_type = "absolute"
-        elif L2_file_tolerance_type in ('relative', "--relative") :
-            L2_file_tolerance_type = "relative"
+    L2ErrorFile = SimpleNamespace( \
+                  file           =       options.get('analyze_l2_file',None), \
+                  tolerance      = float(options.get('analyze_l2_file_tolerance',1.0e-5)), \
+                  tolerance_type =       options.get('analyze_l2_file_tolerance_type','absolute'), \
+                  error_name     =       options.get('L2_file_error_name','L_2') )
+    if L2ErrorFile.file :
+        if L2ErrorFile.tolerance_type in ('absolute', 'delta', '--delta') :
+            L2ErrorFile.tolerance_type = "absolute"
+        elif L2ErrorFile.tolerance_type in ('relative', "--relative") :
+            L2ErrorFile.tolerance_type = "relative"
         else :
-            raise Exception(tools.red("initialization of L2 error from file failed. [L2_file_tolerance_type = %s] not accepted." % L2_file_tolerance_type))
-        analyze.append(Analyze_L2_file(L2_file_error_name, L2_file, L2_file_tolerance, L2_file_tolerance_type))
+            raise Exception(tools.red("initialization of L2 error from file failed. [L2_file_tolerance_type = %s] not accepted." % L2ErrorFile.tolerance_type))
+        analyze.append(Analyze_L2_file(L2ErrorFile))
 
     # 2.1   L2 error upper limit
-    L2_tolerance  = float(options.get('analyze_l2',-1.))
-    L2_error_name =       options.get('L2_error_name','L_2')
-    if L2_tolerance > 0 :
-        analyze.append(Analyze_L2(L2_error_name,L2_tolerance))
+    L2Error = SimpleNamespace( \
+              tolerance  = float(options.get('analyze_l2',-1.)), \
+              error_name =       options.get('L2_error_name','L_2'))
+    if L2Error.tolerance > 0 :
+        analyze.append(Analyze_L2(L2Error))
 
     # 2.2   h-convergence test
-    convtest_h_cells      = [float(cell) for cell in options.get('analyze_convtest_h_cells',['-1.'])]
-    convtest_h_tolerance  = float(options.get('analyze_convtest_h_tolerance',1e-2))
-    convtest_h_rate       = float(options.get('analyze_convtest_h_rate',1))
-    convtest_h_error_name =       options.get('analyze_convtest_h_error_name','L_2')
+    ConvtestH = SimpleNamespace( \
+                cells      = [float(cell) for cell in options.get('analyze_convtest_h_cells',['-1.'])], \
+                tolerance  = float(options.get('analyze_convtest_h_tolerance',1e-2)), \
+                rate       = float(options.get('analyze_convtest_h_rate',1)), \
+                error_name =       options.get('analyze_convtest_h_error_name','L_2') )
     # only do convergence test if supplied cells count > 0
-    if min(convtest_h_cells) > 0 and convtest_h_tolerance > 0 and 0.0 <= convtest_h_rate <= 1.0:
-        analyze.append(Analyze_Convtest_h(convtest_h_error_name, convtest_h_cells, convtest_h_tolerance, convtest_h_rate))
+    if min(ConvtestH.cells) > 0 and ConvtestH.tolerance > 0 and 0.0 <= ConvtestH.rate <= 1.0:
+        analyze.append(Analyze_Convtest_h(ConvtestH))
 
     # 2.3   p-convergence test
-    #convtest_p_tolerance = float(options.get('analyze_convtest_p_tolerance',1e-2))
-    convtest_p_rate       = float(options.get('analyze_convtest_p_rate',-1))
-    convtest_p_percentage = float(options.get('analyze_convtest_p_percentage',0.75))
-    convtest_p_error_name = options.get('analyze_convtest_p_error_name','L_2')
+    ConvtestP = SimpleNamespace( \
+                rate       = float(options.get('analyze_convtest_p_rate',-1)), \
+                percentage = float(options.get('analyze_convtest_p_percentage',0.75)), \
+                error_name = options.get('analyze_convtest_p_error_name','L_2') )
     # only do convergence test if convergence rate and tolerance >0
-    if 0.0 <= convtest_p_rate <= 1.0:
-        analyze.append(Analyze_Convtest_p(convtest_p_error_name,convtest_p_rate, convtest_p_percentage))
+    if 0.0 <= ConvtestP.rate <= 1.0:
+        analyze.append(Analyze_Convtest_p(ConvtestP))
 
     # 2.4   t-convergence test
     # One of the four following methods can be used. The sequence is of selection is fixed
-
-    # set default values
-    convtest_t_initial_timestep = None
-    convtest_t_timestep_factor  = [-1.]
-    convtest_t_total_timesteps  = None
-    convtest_t_timesteps       = [-1.]
+    #   initial_timestep = None
+    #   timestep_factor  = [-1.]
+    #   total_timesteps  = None
+    #   timesteps        = [-1.]
 
     # 2.4.1   must have the following form: "Initial Timestep  :    1.8503722E-01"
-    convtest_t_initial_timestep = options.get('analyze_convtest_t_initial_timestep',None)
+    ConvtestTime = SimpleNamespace( \
+                   initial_timestep = options.get('analyze_convtest_t_initial_timestep',None), \
+                   tolerance        = float(options.get('analyze_convtest_t_tolerance',1e-2)), \
+                   rate             = float(options.get('analyze_convtest_t_rate',1)), \
+                   error_name       = options.get('analyze_convtest_t_error_name','L_2'), \
+                   order            = float(options.get('analyze_convtest_t_order',-1000)), \
+                   timestep_factor  = [-1.], \
+                   total_timesteps  = None, \
+                   timesteps        = [-1.], \
+                   )
 
-    if convtest_t_initial_timestep is None :
+    if ConvtestTime.initial_timestep is None :
         # 2.4.2   supply the timestep_factor externally
-        convtest_t_timestep_factor         = [float(timestep) for timestep in options.get('analyze_convtest_t_timestep_factor',['-1.'])]
+        ConvtestTime.timestep_factor         = [float(timestep) for timestep in options.get('analyze_convtest_t_timestep_factor',['-1.'])]
 
-        if min(convtest_t_timestep_factor) <= 0.0 :
+        if min(ConvtestTime.timestep_factor) <= 0.0 :
             # 2.4.3   automatically get the total number of timesteps must have the following form: "#Timesteps :    1.6600000E+02"
-            convtest_t_total_timesteps   = options.get('analyze_convtest_t_total_timesteps',None)
+            ConvtestTime.total_timesteps   = options.get('analyze_convtest_t_total_timesteps',None)
 
-            if convtest_t_total_timesteps is None :
+            if ConvtestTime.total_timesteps is None :
                 # 2.4.4   supply the timesteps externally
-                convtest_t_timesteps       = [float(timesteps) for timesteps in options.get('analyze_convtest_t_timesteps',['-1.'])]
-                if min(convtest_t_timesteps) <= 0.0 :
-                    convtest_t_method = 0
-                    convtest_t_name = None
+                ConvtestTime.timesteps       = [float(timesteps) for timesteps in options.get('analyze_convtest_t_timesteps',['-1.'])]
+                if min(ConvtestTime.timesteps) <= 0.0 :
+                    ConvtestTime.method      = 0
+                    ConvtestTime.method_name = None
                 else :
-                    convtest_t_method = 4
-                    convtest_t_name   = 'timesteps from analyze.ini'
+                    ConvtestTime.method      = 4
+                    ConvtestTime.method_name = 'timesteps from analyze.ini'
             else :
-                convtest_t_method = 3
-                convtest_t_name   = 'total number of timesteps ['+convtest_t_total_timesteps+']'
+                ConvtestTime.method      = 3
+                ConvtestTime.method_name = 'total number of timesteps ['+ConvtestTime.total_timesteps+']'
         else :
-            convtest_t_method = 2
-            convtest_t_name   = 'timestep_factor from analyze.ini'
+            ConvtestTime.method      = 2
+            ConvtestTime.method_name = 'timestep_factor from analyze.ini'
     else :
-        convtest_t_method = 1
-        convtest_t_name   = 'initial_timestep ['+convtest_t_initial_timestep+']'
+        ConvtestTime.method      = 1
+        ConvtestTime.method_name = 'initial_timestep ['+ConvtestTime.initial_timestep+']'
 
-    convtest_t_tolerance  = float(options.get('analyze_convtest_t_tolerance',1e-2))
-    convtest_t_rate       = float(options.get('analyze_convtest_t_rate',1))
-    convtest_t_error_name =       options.get('analyze_convtest_t_error_name','L_2')
-    convtest_t_order      = float(options.get('analyze_convtest_t_order',-1000))
     # only do convergence test if supplied cells count > 0
-    if convtest_t_tolerance > 0 and 0.0 <= convtest_t_rate <= 1.0 and convtest_t_name and convtest_t_order > -1000:
-        logging.getLogger('logger').info("t-convergence test: Choosing "+convtest_t_name+" (method = "+str(convtest_t_method)+")")
-        analyze.append(Analyze_Convtest_t(convtest_t_order, convtest_t_error_name, convtest_t_tolerance, convtest_t_rate, convtest_t_method, convtest_t_name, convtest_t_initial_timestep, convtest_t_timestep_factor, convtest_t_total_timesteps, convtest_t_timesteps))
+    if ConvtestTime.tolerance > 0 and 0.0 <= ConvtestTime.rate <= 1.0 and ConvtestTime.method_name and ConvtestTime.order > -1000:
+        logging.getLogger('logger').info("t-convergence test: Choosing "+ConvtestTime.method_name+" (method = "+str(ConvtestTime.method)+")")
+        analyze.append(Analyze_Convtest_t(ConvtestTime))
+
+        #analyze.append(Analyze_Convtest_t(convtest_t_order , convtest_t_error_name , convtest_t_tolerance , convtest_t_rate , convtest_t_method , convtest_t_name , convtest_t_initial_timestep , convtest_t_timestep_factor , convtest_t_total_timesteps , convtest_t_timesteps))
+        #def __init__(                                order , name                  , tolerance            , rate            , method            , method_name     , ini_timestep                , timestep_factor            , total_iter                 , iters) :
 
     # 2.5   h5diff (relative or absolute HDF5-file comparison of an output file with a reference file)
     # options can be read in multiple times to realize multiple compares for each run
-    h5diff_one_diff_per_run = options.get('h5diff_one_diff_per_run',False)
-    h5diff_reference_file   = options.get('h5diff_reference_file',None)
-    h5diff_file             = options.get('h5diff_file',None)
-    h5diff_data_set         = options.get('h5diff_data_set',None)
-    h5diff_tolerance_value  = options.get('h5diff_tolerance_value',1.0e-5)
-    h5diff_tolerance_type   = options.get('h5diff_tolerance_type','absolute')
-    h5diff_sort             = options.get('h5diff_sort',False)
-    h5diff_sort_dim         = options.get('h5diff_sort_dim',-1)
-    h5diff_sort_var         = options.get('h5diff_sort_var',-1)
-    h5diff_reshape          = options.get('h5diff_reshape',False)
-    h5diff_reshape_dim      = options.get('h5diff_reshape_dim',-1)
-    h5diff_reshape_value    = options.get('h5diff_reshape_value',-1)
-    h5diff_max_differences  = options.get('h5diff_max_differences',0)
+    h5diff = SimpleNamespace( \
+             one_diff_per_run = options.get('h5diff_one_diff_per_run',False), \
+             reference_file   = options.get('h5diff_reference_file',None), \
+             file             = options.get('h5diff_file',None), \
+             data_set         = options.get('h5diff_data_set',None), \
+             tolerance_value  = options.get('h5diff_tolerance_value',1.0e-5), \
+             tolerance_type   = options.get('h5diff_tolerance_type','absolute'), \
+             sort             = options.get('h5diff_sort',False), \
+             sort_dim         = options.get('h5diff_sort_dim',-1), \
+             sort_var         = options.get('h5diff_sort_var',-1), \
+             reshape          = options.get('h5diff_reshape',False), \
+             reshape_dim      = options.get('h5diff_reshape_dim',-1), \
+             reshape_value    = options.get('h5diff_reshape_value',-1), \
+             max_differences  = options.get('h5diff_max_differences',0), \
+             referencescopy   = args.referencescopy )
     # only do h5diff test if all variables are defined
-    if h5diff_reference_file and h5diff_file and h5diff_data_set :
-        analyze.append(Analyze_h5diff(h5diff_one_diff_per_run,h5diff_reference_file, h5diff_file,h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type, args.referencescopy,\
-                h5diff_sort, h5diff_sort_dim, h5diff_sort_var,\
-                h5diff_reshape, h5diff_reshape_dim, h5diff_reshape_value,\
-                h5diff_max_differences))
+    if h5diff.reference_file and h5diff.file and h5diff.data_set :
+        analyze.append(Analyze_h5diff(h5diff))
 
     # 2.6   check array bounds in hdf5 file
-    check_hdf5_file      = options.get('check_hdf5_file',None)
-    check_hdf5_data_set  = options.get('check_hdf5_data_set',None)
-    check_hdf5_span      = options.get('check_hdf5_span',2) # default is column
-    check_hdf5_dimension = options.get('check_hdf5_dimension',None)
-    check_hdf5_limits    = options.get('check_hdf5_limits',None)
-    if all([check_hdf5_file, check_hdf5_data_set, check_hdf5_dimension, check_hdf5_limits]) :
-        analyze.append(Analyze_check_hdf5(check_hdf5_file, check_hdf5_data_set, check_hdf5_span, check_hdf5_dimension, check_hdf5_limits))
+    # check_hdf5_span: use row or column (default is column)
+    CheckHDF5 = SimpleNamespace( \
+                file           = options.get('check_hdf5_file',None), \
+                data_set       = options.get('check_hdf5_data_set',None), \
+                span           = options.get('check_hdf5_span',2), \
+                dimension      = options.get('check_hdf5_dimension',None),\
+                limits         = options.get('check_hdf5_limits',None) )
+    if all([CheckHDF5.file, CheckHDF5.data_set, CheckHDF5.dimension, CheckHDF5.limits]) :
+        analyze.append(Analyze_check_hdf5(CheckHDF5))
 
     # 2.7   check data file row
-    compare_data_file_one_diff_per_run = options.get('compare_data_file_one_diff_per_run',True)
-    compare_data_file_name            = options.get('compare_data_file_name',None)
-    compare_data_file_reference       = options.get('compare_data_file_reference',None)
-    compare_data_file_tolerance       = options.get('compare_data_file_tolerance',None)
-    compare_data_file_tolerance_type  = options.get('compare_data_file_tolerance_type','absolute')
-    compare_data_file_line            = options.get('compare_data_file_line','last')
-    compare_data_file_delimiter       = options.get('compare_data_file_delimiter',',')
-    compare_data_file_max_differences = options.get('compare_data_file_max_differences',0)
-    #     if all([compare_data_file_name, compare_data_file_reference, compare_data_file_tolerance, compare_data_file_line]) :
-    #         if compare_data_file_tolerance_type in ('absolute', 'delta', '--delta') :
-    #             compare_data_file_tolerance_type = "absolute"
-    #         elif compare_data_file_tolerance_type in ('relative', "--relative") :
-    #             compare_data_file_tolerance_type = "relative"
-    #         else :
-    #             raise Exception(tools.red("initialization of compare data file failed. h5diff_tolerance_type '%s' not accepted." % h5diff_tolerance_type))
-    if compare_data_file_name and compare_data_file_reference and compare_data_file_tolerance:
-        analyze.append(Analyze_compare_data_file(compare_data_file_one_diff_per_run, compare_data_file_name, compare_data_file_reference, compare_data_file_tolerance, compare_data_file_line, compare_data_file_delimiter, compare_data_file_max_differences, compare_data_file_tolerance_type, args.referencescopy))
+    CompareDataFile = SimpleNamespace( \
+                      one_diff_per_run = options.get('compare_data_file_one_diff_per_run',True), \
+                      name             = options.get('compare_data_file_name',None), \
+                      reference        = options.get('compare_data_file_reference',None), \
+                      tolerance        = options.get('compare_data_file_tolerance',None), \
+                      tolerance_type   = options.get('compare_data_file_tolerance_type','absolute'), \
+                      line             = options.get('compare_data_file_line','last'), \
+                      delimiter        = options.get('compare_data_file_delimiter',','), \
+                      max_differences  = options.get('compare_data_file_max_differences',0), \
+                      referencescopy   = args.referencescopy )
+    if CompareDataFile.name and CompareDataFile.reference and CompareDataFile.tolerance:
+        analyze.append(Analyze_compare_data_file(CompareDataFile))
 
     # 2.8   integrate data file column
-    integrate_line_file            = options.get('integrate_line_file',None)                 # file name (path) which is analyzed
-    integrate_line_delimiter       = options.get('integrate_line_delimiter',',')             # delimiter symbol if not comma-separated
-    integrate_line_columns         = options.get('integrate_line_columns',None)              # two columns for the values x and y supplied as 'x:y'
-    integrate_line_integral_value  = options.get('integrate_line_integral_value',None)       # integral value used for comparison
-    integrate_line_tolerance_value = options.get('integrate_line_tolerance_value',1e-5)      # tolerance that is used in comparison
-    integrate_line_tolerance_type  = options.get('integrate_line_tolerance_type','absolute') # type of tolerance, either 'absolute' or 'relative'
-    integrate_line_option          = options.get('integrate_line_option',None)               # special option, e.g., calculating a rate by dividing the integrated values by the time step which is used in the values 'x'
-    integrate_line_multiplier      = options.get('integrate_line_multiplier',1)              # factor for multiplying the result (in order to acquire a physically meaning value for comparison)
-    if all([integrate_line_file,  integrate_line_delimiter, integrate_line_columns, integrate_line_integral_value]) :
-        if integrate_line_tolerance_type in ('absolute', 'delta', '--delta') :
-            integrate_line_tolerance_type = "absolute"
-        elif integrate_line_tolerance_type in ('relative', "--relative") :
-            integrate_line_tolerance_type = "relative"
+    #   integrate_line_file            : file name (path) which is analyzed
+    #   integrate_line_delimiter       : delimiter symbol if not comma-separated
+    #   integrate_line_columns         : two columns for the values x and y supplied as 'x:y'
+    #   integrate_line_integral_value  : integral value used for comparison
+    #   integrate_line_tolerance_value : tolerance that is used in comparison
+    #   integrate_line_tolerance_type  : type of tolerance, either 'absolute' or 'relative'
+    #   integrate_line_option          : special option, e.g., calculating a rate by dividing the integrated values by the time step which is used in the values 'x'
+    #   integrate_line_multiplier      : factor for multiplying the result (in order to acquire a physically meaning value for comparison)
+    IntegrateLine = SimpleNamespace( \
+                    file            = options.get('integrate_line_file',None), \
+                    delimiter       = options.get('integrate_line_delimiter',','), \
+                    columns         = options.get('integrate_line_columns',None), \
+                    integral_value  = options.get('integrate_line_integral_value',None), \
+                    tolerance_value = options.get('integrate_line_tolerance_value',1e-5), \
+                    tolerance_type  = options.get('integrate_line_tolerance_type','absolute'), \
+                    option          = options.get('integrate_line_option',None), \
+                    multiplier      = options.get('integrate_line_multiplier',1) )
+    if all([IntegrateLine.file,  IntegrateLine.delimiter, IntegrateLine.columns, IntegrateLine.integral_value]) :
+        if IntegrateLine.tolerance_type in ('absolute', 'delta', '--delta') :
+            IntegrateLine.tolerance_type = "absolute"
+        elif IntegrateLine.tolerance_type in ('relative', "--relative") :
+            IntegrateLine.tolerance_type = "relative"
         else :
-            raise Exception(tools.red("initialization of integrate line failed. integrate_line_tolerance_type '%s' not accepted." % integrate_line_tolerance_type))
-        analyze.append(Analyze_integrate_line(integrate_line_file, integrate_line_delimiter, integrate_line_columns, integrate_line_integral_value, integrate_line_tolerance_value, integrate_line_tolerance_type, integrate_line_option, integrate_line_multiplier))
+            raise Exception(tools.red("initialization of integrate line failed. integrate_line_tolerance_type '%s' not accepted." % IntegrateLine.tolerance_type))
+        analyze.append(Analyze_integrate_line(IntegrateLine))
 
     # 2.9   compare data file column
-    compare_column_file            = options.get('compare_column_file',None)                 # file name (path) which is analyzed
-    compare_column_reference_file  = options.get('compare_column_reference_file',None)       # reference file name (path)
-    compare_column_delimiter       = options.get('compare_column_delimiter',',')             # delimiter symbol if not comma-separated
-    compare_column_index           = options.get('compare_column_index',None)                # index of the column that is to be compared
-    compare_column_tolerance_value = options.get('compare_column_tolerance_value',1e-5)      # tolerance that is used in comparison
-    compare_column_tolerance_type  = options.get('compare_column_tolerance_type','absolute') # type of tolerance, either 'absolute' or 'relative'
-    compare_column_multiplier      = options.get('compare_column_multiplier',1)              # factor for multiplying the result (in order to acquire a physically meaning value for comparison)
-    if all([compare_column_file, compare_column_reference_file,  compare_column_delimiter, compare_column_index]) :
-        if compare_column_tolerance_type in ('absolute', 'delta', '--delta') :
-            compare_column_tolerance_type = "absolute"
-        elif compare_column_tolerance_type in ('relative', "--relative") :
-            compare_column_tolerance_type = "relative"
+    #   compare_column_file            : file name (path) which is analyzed
+    #   compare_column_reference_file  : reference file name (path)
+    #   compare_column_delimiter       : delimiter symbol if not comma-separated
+    #   compare_column_index           : index of the column that is to be compared
+    #   compare_column_tolerance_value : tolerance that is used in comparison
+    #   compare_column_tolerance_type  : type of tolerance, either 'absolute' or 'relative'
+    #   compare_column_multiplier      : factor for multiplying the result (in order to acquire a physically meaning value for comparison)
+    CompareColumn = SimpleNamespace( \
+                    file            = options.get('compare_column_file',None), \
+                    reference_file  = options.get('compare_column_reference_file',None), \
+                    delimiter       = options.get('compare_column_delimiter',','), \
+                    index           = options.get('compare_column_index',None), \
+                    tolerance_value = options.get('compare_column_tolerance_value',1e-5), \
+                    tolerance_type  = options.get('compare_column_tolerance_type','absolute'), \
+                    multiplier      = options.get('compare_column_multiplier',1), \
+                    referencescopy  = args.referencescopy )
+    if all([CompareColumn.file, CompareColumn.reference_file,  CompareColumn.delimiter, CompareColumn.index]) :
+        if CompareColumn.tolerance_type in ('absolute', 'delta', '--delta') :
+            CompareColumn.tolerance_type = "absolute"
+        elif CompareColumn.tolerance_type in ('relative', "--relative") :
+            CompareColumn.tolerance_type = "relative"
         else :
-            raise Exception(tools.red("initialization of compare column failed. compare_column_tolerance_type '%s' not accepted." % compare_column_tolerance_type))
-        analyze.append(Analyze_compare_column(compare_column_file, compare_column_reference_file, compare_column_delimiter, compare_column_index,  compare_column_tolerance_value, compare_column_tolerance_type, compare_column_multiplier, args.referencescopy))
+            raise Exception(tools.red("initialization of compare column failed. compare_column_tolerance_type '%s' not accepted." % CompareColumn.tolerance_type))
+        analyze.append(Analyze_compare_column(CompareColumn))
 
     # 2.10   compare corresponding files from different commands
-    compare_across_commands_file            = options.get('compare_across_commands_file',None)                 # file name (path) which is analyzed
-    compare_across_commands_column_delimiter= options.get('compare_across_commands_column_delimiter',',')             # delimiter symbol if not comma-separated
-    compare_across_commands_column_index    = options.get('compare_across_commands_column_index',None)                # index of the column that is to be compared
-    compare_across_commands_line_number     = options.get('compare_across_commands_line_number','last')
-    compare_across_commands_tolerance_value = options.get('compare_across_commands_tolerance_value',1e-5)      # tolerance that is used in comparison
-    compare_across_commands_tolerance_type  = options.get('compare_across_commands_tolerance_type','absolute') # type of tolerance, either 'absolute' or 'relative'
-    compare_across_commands_reference       = options.get('compare_across_commands_reference',0)
-    if all([compare_across_commands_file, compare_across_commands_column_delimiter, compare_across_commands_column_index, compare_across_commands_line_number, compare_across_commands_reference ]) :
+    #   compare_across_commands_file             : file name (path) which is analyzed
+    #   compare_across_commands_column_delimiter : delimiter symbol if not comma-separated
+    #   compare_across_commands_column_index     : index of the column that is to be compared
+    #   compare_across_commands_line_number      :
+    #   compare_across_commands_tolerance_value  : tolerance that is used in comparison
+    #   compare_across_commands_tolerance_type   : type of tolerance, either 'absolute' or 'relative'
+    #   compare_across_commands_reference        :
+    CompareAcrossCommands = SimpleNamespace( \
+                            file             = options.get('compare_across_commands_file',None), \
+                            column_delimiter = options.get('compare_across_commands_column_delimiter',','), \
+                            column_index     = options.get('compare_across_commands_column_index',None), \
+                            line_number      = options.get('compare_across_commands_line_number','last'), \
+                            tolerance_value  = options.get('compare_across_commands_tolerance_value',1e-5), \
+                            tolerance_type   = options.get('compare_across_commands_tolerance_type','absolute'), \
+                            reference        = options.get('compare_across_commands_reference',0) )
+    if all([CompareAcrossCommands.file, CompareAcrossCommands.column_delimiter, CompareAcrossCommands.column_index, CompareAcrossCommands.line_number, CompareAcrossCommands.reference ]) :
         if compare_column_tolerance_type in ('absolute', 'delta', '--delta') :
             compare_column_tolerance_type = "absolute"
         elif compare_column_tolerance_type in ('relative', "--relative") :
             compare_column_tolerance_type = "relative"
         else :
-            raise Exception(tools.red("initialization of compare across commands failed. compare_across_commands_tolerance_type '%s' not accepted." % compare_across_commands_tolerance_type))
-        analyze.append(Analyze_compare_across_commands(compare_across_commands_file, compare_across_commands_column_delimiter, compare_across_commands_column_index, compare_across_commands_line_number, compare_across_commands_tolerance_value, compare_across_commands_tolerance_type, compare_across_commands_reference))
+            raise Exception(tools.red("initialization of compare across commands failed. compare_across_commands_tolerance_type '%s' not accepted." % CompareAcrossCommands.tolerance_type))
+        analyze.append(Analyze_compare_across_commands(CompareAcrossCommands))
 
     return analyze
 
@@ -383,11 +430,11 @@ class Clean_up_files() :
 
 class Analyze_L2_file(Analyze) :
     """Read the L2 error norms from std.out and compare with pre-defined upper barrier"""
-    def __init__(self, name, L2_file, L2_file_tolerance, L2_file_tolerance_type) :
-        self.file              = L2_file
-        self.L2_tolerance      = L2_file_tolerance
-        self.L2_tolerance_type = L2_file_tolerance_type
-        self.error_name        = name                   # string name of the L2 error in the std.out file (default is "L_2")
+    def __init__(self, L2ErrorFile) :
+        self.file              = L2ErrorFile.file
+        self.L2_tolerance      = L2ErrorFile.tolerance
+        self.L2_tolerance_type = L2ErrorFile.tolerance_type
+        self.error_name        = L2ErrorFile.error_name     # string name of the L2 error in the std.out file (default is "L_2")
 
     def perform(self,runs) :
 
@@ -481,16 +528,16 @@ class Analyze_L2_file(Analyze) :
                 Analyze.total_errors+=1
 
     def __str__(self) :
-        return "perform L2 error comparison with L2 errors in file %s, tolerance=%s (%s) for $%s" % (self.file,self.L2_tolerance,self.L2_tolerance_type,self.error_name)
+        return "perform L2 error comparison with L2 errors in file [%s], tolerance=%s (%s) for error named [%s]" % (self.file,self.L2_tolerance,self.L2_tolerance_type,self.error_name)
 
 
 #==================================================================================================
 
 class Analyze_L2(Analyze) :
     """Read the L2 error norms from std.out and compare with pre-defined upper barrier"""
-    def __init__(self, name, L2_tolerance) :
-        self.L2_tolerance = L2_tolerance # tolerance value for comparison with the L_2 error from std.out
-        self.error_name   = name         # string name of the L2 error in the std.out file (default is "L_2")
+    def __init__(self, L2Error) :
+        self.L2_tolerance = L2Error.tolerance  # tolerance value for comparison with the L_2 error from std.out
+        self.error_name   = L2Error.error_name # string name of the L2 error in the std.out file (default is "L_2")
 
     def perform(self,runs) :
 
@@ -537,11 +584,11 @@ class Analyze_L2(Analyze) :
                 run.analyze_successful=False
                 Analyze.total_errors+=1
             else:
-                print(tools.indent(tools.blue(L2_errors_str),2))
+                print(tools.indent(tools.blue(L2_errors_str),3))
 
 
     def __str__(self) :
-        return "perform L2 error comparison with a pre-defined tolerance=%s for %s" % (self.L2_tolerance,self.error_name)
+        return "perform L2 error comparison with a pre-defined tolerance=%s for %s:" % (self.L2_tolerance,self.error_name)
 
 #==================================================================================================
 
@@ -549,13 +596,13 @@ class Analyze_Convtest_h(Analyze) :
     """Convergence test for a fixed polynomial degree and different meshes defined in 'parameter.ini'
     The analyze routine read the L2 error norm from a set of runs and determines the order of convergence
     between the runs and averages the values. The average is compared with the polynomial degree p+1."""
-    def __init__(self, name, cells, tolerance, rate) :
-        self.cells = cells           # number of cells used for h-convergence calculation (only the ratio of two
-                                     # consecutive values is important for the EOC calcultion)
-        self.tolerance = tolerance   # determine success rate by comparing the relative convergence error with a tolerance
-        self.rate = rate             # success rate: for each nVar, the EOC is determined (the number of successful EOC vs.
-                                     # the number of total EOC tests determines the success rate which is compared with this rate)
-        self.error_name = name       # string name of the L2 error in the std.out file (default is "L_2")
+    def __init__(self, ConvtestH) :
+        self.cells = ConvtestH.cells           # number of cells used for h-convergence calculation (only the ratio of two
+                                               # consecutive values is important for the EOC calcultion)
+        self.tolerance = ConvtestH.tolerance   # determine success rate by comparing the relative convergence error with a tolerance
+        self.rate = ConvtestH.rate             # success rate: for each nVar, the EOC is determined (the number of successful EOC vs.
+                                               # the number of total EOC tests determines the success rate which is compared with this rate)
+        self.error_name = ConvtestH.error_name # string name of the L2 error in the std.out file (default is "L_2")
 
     def perform(self,runs) :
         global pyplot_module_loaded
@@ -701,22 +748,23 @@ class Analyze_Convtest_t(Analyze) :
     """Convergence test for different time steps defined in 'parameter.ini' (e.g. CFLScale)
     The analyze routine read the L2 error norm from a set of runs and determines the order of convergence
     between the runs and averages the values. The average is compared with the temporal order supplied by the user."""
-    def __init__(self, order, name, tolerance, rate, method, method_name, ini_timestep, timestep_factor, total_iter, iters) :
+    def __init__(self, ConvtestTime) :
         # 1.   set the order of convergence, tolerance, rate and error name (name of the error in the std.out)
-        self.order      = order      # user-supplied convergence order
-        self.tolerance  = tolerance  # determine success rate by comparing the relative convergence error with a tolerance
-        self.rate       = rate       # success rate: for each nVar, the EOC is determined (the number of successful EOC vs.
-                                     # the number of total EOC tests determines the success rate which is compared with this rate)
-        self.error_name = name       # string name of the L2 error in the std.out file (default is "L_2")
+        self.order      = ConvtestTime.order      # user-supplied convergence order
+        self.tolerance  = ConvtestTime.tolerance  # determine success rate by comparing the relative convergence error with a tolerance
+        self.rate       = ConvtestTime.rate       # success rate: for each nVar, the EOC is determined (the number of successful EOC vs.
+                                                  # the number of total EOC tests determines the success rate which is compared with this rate)
+
+        self.error_name = ConvtestTime.error_name # string name of the L2 error in the std.out file (default is "L_2")
 
         # 3.   set the method and input variables
-        self.method     = method      # choose between four methods: initial timestep, list of timestep_factor, total number of timesteps, list of timesteps.
-                                      # The lists are user-supplied and the other methods are read automatically from the std.out
-        self.name       = method_name # string for the name of the method (used for pyplot)
-        self.ini_timestep    = ini_timestep    # 1.) initial timestep (automatically from std.out)
-        self.timestep_factor = timestep_factor # 2.) list of timestep_factor (user-supplied list)
-        self.total_iter      = total_iter      # 3.) total number of timesteps (automatically from std.out)
-        self.iters           = iters           # 4.) list of timesteps (user-supplied list)
+        self.method     = ConvtestTime.method      # choose between four methods: initial timestep, list of timestep_factor, total number of timesteps, list of timesteps.
+                                                   # The lists are user-supplied and the other methods are read automatically from the std.out
+        self.name            = ConvtestTime.method_name     # string for the name of the method (used for pyplot)
+        self.ini_timestep    = ConvtestTime.initial_timestep# 1.) initial timestep (automatically from std.out)
+        self.timestep_factor = ConvtestTime.timestep_factor # 2.) list of timestep_factor (user-supplied list)
+        self.total_iter      = ConvtestTime.total_timesteps # 3.) total number of timesteps (automatically from std.out)
+        self.iters           = ConvtestTime.timesteps       # 4.) list of timesteps (user-supplied list)
 
         # 3.   set variables depending on the method
         if self.method == 2 :
@@ -919,12 +967,12 @@ class Analyze_Convtest_p(Analyze) :
     """Convergence test for a fixed mesh and different (increasing!) polynomial degrees defined in 'parameter.ini'
     The analyze routine reads the L2 error norm from a set of runs and determines the order of convergence
     between the runs and compares them. With increasing polynomial degree, the order of convergence must increase for this anaylsis to be successful."""
-    def __init__(self, name, rate, percentage) :
-        self.rate       = rate       # success rate: for each nVar, the EOC is determined (the number of successful EOC vs.
-                                     # the number of total EOC tests determines the success rate which is compared with this rate)
-        self.percentage = percentage # for the p-convergence, the EOC must increase with p, hence the sloop must increase
-                                     # percentage yields the minimum ratio of increasing EOC vs. the total number of EOC for each nVar
-        self.error_name = name       # string name of the L2 error in the std.out file (default is "L_2")
+    def __init__(self, ConvtestP) :
+        self.rate       = ConvtestP.rate       # success rate: for each nVar, the EOC is determined (the number of successful EOC vs.
+                                               # the number of total EOC tests determines the success rate which is compared with this rate)
+        self.percentage = ConvtestP.percentage # for the p-convergence, the EOC must increase with p, hence the sloop must increase
+                                               # percentage yields the minimum ratio of increasing EOC vs. the total number of EOC for each nVar
+        self.error_name = ConvtestP.error_name # string name of the L2 error in the std.out file (default is "L_2")
 
     def perform(self,runs) :
         global pyplot_module_loaded
@@ -1075,19 +1123,16 @@ class Analyze_Convtest_p(Analyze) :
 #==================================================================================================
 
 class Analyze_h5diff(Analyze,ExternalCommand) :
-    def __init__(self, h5diff_one_diff_per_run, h5diff_reference_file, h5diff_file, h5diff_data_set, h5diff_tolerance_value, h5diff_tolerance_type, referencescopy, \
-                       h5diff_sort, h5diff_sort_dim, h5diff_sort_var,\
-                       h5diff_reshape, h5diff_reshape_dim, h5diff_reshape_value,\
-                       h5diff_max_differences) :
+    def __init__(self, h5diff) :
         # Set number of diffs per run [True/False]
-        self.one_diff_per_run = (h5diff_one_diff_per_run in ('True', 'true', 't', 'T'))
+        self.one_diff_per_run = (h5diff.one_diff_per_run in ('True', 'true', 't', 'T'))
 
         # Create dictionary for all keys/parameters and insert a list for every value/options
-        self.prms = { "reference_file" : h5diff_reference_file, "file" : h5diff_file, "data_set" : h5diff_data_set,\
-                     "tolerance_value" : h5diff_tolerance_value, "tolerance_type" : h5diff_tolerance_type,\
-                     "sort" : h5diff_sort, "sort_dim" : h5diff_sort_dim, "sort_var" : h5diff_sort_var,\
-                     "reshape" : h5diff_reshape, "reshape_dim" : h5diff_reshape_dim, "reshape_value" : h5diff_reshape_value,\
-                     "max_differences" : h5diff_max_differences }
+        self.prms = { "reference_file" : h5diff.reference_file, "file" : h5diff.file, "data_set" : h5diff.data_set,\
+                     "tolerance_value" : h5diff.tolerance_value, "tolerance_type" : h5diff.tolerance_type,\
+                     "sort" : h5diff.sort, "sort_dim" : h5diff.sort_dim, "sort_var" : h5diff.sort_var,\
+                     "reshape" : h5diff.reshape, "reshape_dim" : h5diff.reshape_dim, "reshape_value" : h5diff.reshape_value,\
+                     "max_differences" : h5diff.max_differences }
         for key, prm in self.prms.items() :
            # Check if prm is not of type 'list'
            if type(prm) != type([]) :
@@ -1142,7 +1187,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                 raise Exception(tools.red("initialization of h5diff failed. h5diff_reshape '%s' not accepted." % reshape_loc))
 
         # set logical for creating new reference files and copying them to the example source directory
-        self.referencescopy = referencescopy
+        self.referencescopy = h5diff.referencescopy
 
     def perform(self,runs) :
         global h5py_module_loaded
@@ -1207,7 +1252,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                 # Copy new reference file: This is completely independent of the outcome of the current h5diff
                 if self.referencescopy :
                     run = copyReferenceFile(run,path,path_ref_source)
-                    s=tools.yellow("Analyze_compare_data_file: performed reference copy instead of analysis!")
+                    s=tools.yellow("Analyze_h5diff: performed reference copy instead of analysis!")
                     print(s)
                     run.analyze_results.append(s)
                     run.analyze_successful=False
@@ -1472,12 +1517,12 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
 #==================================================================================================
 
 class Analyze_check_hdf5(Analyze) :
-    def __init__(self, check_hdf5_file, check_hdf5_data_set, check_hdf5_span, check_hdf5_dimension, check_hdf5_limits) :
-        self.file                = check_hdf5_file
-        self.data_set            = check_hdf5_data_set
-        self.span                = int(check_hdf5_span)
-        (self.dim1, self.dim2)   = [int(x)   for x in check_hdf5_dimension.split(":")]
-        (self.lower, self.upper) = [float(x) for x in check_hdf5_limits.split(":")]
+    def __init__(self, CheckHDF5 ) :
+        self.file                = CheckHDF5.file
+        self.data_set            = CheckHDF5.data_set
+        self.span                = int(CheckHDF5.span)
+        (self.dim1, self.dim2)   = [int(x)   for x in CheckHDF5.dimension.split(":")]
+        (self.lower, self.upper) = [float(x) for x in CheckHDF5.limits.split(":")]
 
     def perform(self,runs) :
         global h5py_module_loaded
@@ -1584,34 +1629,34 @@ class Analyze_check_hdf5(Analyze) :
 #==================================================================================================
 
 class Analyze_compare_data_file(Analyze) :
-    def __init__(self, compare_data_file_one_diff_per_run, compare_data_file_name, compare_data_file_reference, compare_data_file_tolerance, compare_data_file_line, compare_data_file_delimiter, compare_data_file_max_differences, compare_data_file_tolerance_type, referencescopy) :
+    def __init__(self, CompareDataFile) :
 
         # Set number of diffs per run [True/False]
-        if type(compare_data_file_one_diff_per_run) == type(True): # check if default value is still set
+        if type(CompareDataFile.one_diff_per_run) == type(True): # check if default value is still set
             self.one_diff_per_run = True
         else:
             # Check what the user set
-            self.one_diff_per_run = (compare_data_file_one_diff_per_run in ('False', 'false', 'f', 'F'))
+            self.one_diff_per_run = (CompareDataFile.one_diff_per_run in ('False', 'false', 'f', 'F'))
             if self.one_diff_per_run:
                 # User selected False
                 self.one_diff_per_run = False
             else:
                 # User selected something else
-                self.one_diff_per_run = (compare_data_file_one_diff_per_run in (('True', 'true', 't', 'T')))
+                self.one_diff_per_run = (CompareDataFile.one_diff_per_run in (('True', 'true', 't', 'T')))
                 if self.one_diff_per_run:
                     # User selected True
                     pass
                 else:
-                    raise Exception(tools.red("compare_data_file_one_diff_per_run is set neither True/False, check the parameter"))
+                    raise Exception(tools.red("CompareDataFile.one_diff_per_run is set neither True/False, check the parameter"))
 
         # Create dictionary for all keys/parameters and insert a list for every value/options
-        self.prms = { "file"            : compare_data_file_name,\
-                      "reference_file"  : compare_data_file_reference,\
-                      "tolerance_value" : compare_data_file_tolerance,\
-                      "tolerance_type"  : compare_data_file_tolerance_type,\
-                      "line"            : compare_data_file_line,\
-                      "delimiter"       : compare_data_file_delimiter,\
-                      "max_differences" : compare_data_file_max_differences }
+        self.prms = { "file"            : CompareDataFile.name,\
+                      "reference_file"  : CompareDataFile.reference,\
+                      "tolerance_value" : CompareDataFile.tolerance,\
+                      "tolerance_type"  : CompareDataFile.tolerance_type,\
+                      "line"            : CompareDataFile.line,\
+                      "delimiter"       : CompareDataFile.delimiter,\
+                      "max_differences" : CompareDataFile.max_differences }
 
         for key, prm in self.prms.items() :
            # Check if prm is not of type 'list'
@@ -1651,7 +1696,7 @@ class Analyze_compare_data_file(Analyze) :
                 self.prms["line"][compare] = int(line_loc)
 
         # set logical for creating new reference files and copying them to the example source directory
-        self.referencescopy = referencescopy
+        self.referencescopy = CompareDataFile.referencescopy
 
     def perform(self,runs) :
 
@@ -1794,15 +1839,15 @@ class Analyze_compare_data_file(Analyze) :
 #==================================================================================================
 
 class Analyze_integrate_line(Analyze) :
-    def __init__(self, integrate_line_file, integrate_line_delimiter, integrate_line_columns, integrate_line_integral_value, integrate_line_tolerance_value, integrate_line_tolerance_type, integrate_line_option, integrate_line_multiplier) :
-        self.file                = integrate_line_file
-        self.delimiter           = integrate_line_delimiter
-        (self.dim1, self.dim2)   = [int(x)   for x in integrate_line_columns.split(":")]
-        self.integral_value      = float(integrate_line_integral_value)
-        self.tolerance_value     = float(integrate_line_tolerance_value)
-        self.tolerance_type      = integrate_line_tolerance_type
-        self.option              = integrate_line_option
-        self.multiplier          = float(integrate_line_multiplier)
+    def __init__(self, IntegrateLine) :
+        self.file                = IntegrateLine.file
+        self.delimiter           = IntegrateLine.delimiter
+        (self.dim1, self.dim2)   = [int(x)   for x in IntegrateLine.columns.split(":")]
+        self.integral_value      = float(IntegrateLine.integral_value)
+        self.tolerance_value     = float(IntegrateLine.tolerance_value)
+        self.tolerance_type      = IntegrateLine.tolerance_type
+        self.option              = IntegrateLine.option
+        self.multiplier          = float(IntegrateLine.multiplier)
 
     def perform(self,runs) :
 
@@ -1918,17 +1963,17 @@ class Analyze_integrate_line(Analyze) :
 #==================================================================================================
 
 class Analyze_compare_column(Analyze) :
-    def __init__(self, compare_column_file, compare_column_reference_file, compare_column_delimiter, compare_column_index,  compare_column_tolerance_value, compare_column_tolerance_type, compare_column_multiplier, referencescopy) :
-        self.file                = compare_column_file
-        self.ref                 = compare_column_reference_file
-        self.delimiter           = compare_column_delimiter
-        self.dim                 = int(compare_column_index)
-        self.tolerance_value     = float(compare_column_tolerance_value)
-        self.tolerance_type      = compare_column_tolerance_type
-        self.multiplier          = float(compare_column_multiplier)
+    def __init__(self, CompareColumn) :
+        self.file                = CompareColumn.file
+        self.ref                 = CompareColumn.reference_file
+        self.delimiter           = CompareColumn.delimiter
+        self.dim                 = int(CompareColumn.index)
+        self.tolerance_value     = float(CompareColumn.tolerance_value)
+        self.tolerance_type      = CompareColumn.tolerance_type
+        self.multiplier          = float(CompareColumn.multiplier)
 
         # set logical for creating new reference files and copying them to the example source directory
-        self.referencescopy = referencescopy
+        self.referencescopy = CompareColumn.referencescopy
 
     def perform(self,runs) :
 
@@ -2116,18 +2161,18 @@ class Analyze_compare_column(Analyze) :
 #==================================================================================================
 
 class Analyze_compare_across_commands(Analyze) :
-    def __init__(self, compare_across_commands_file, compare_across_commands_column_delimiter, compare_across_commands_column_index, compare_across_commands_line_number, compare_across_commands_tolerance_value, compare_across_commands_tolerance_type, compare_across_commands_reference) :
-        self.file                = compare_across_commands_file
-        self.delimiter           = compare_across_commands_column_delimiter
-        self.column_index        = int(compare_across_commands_column_index)
-        self.tolerance_value     = float(compare_across_commands_tolerance_value)
-        self.tolerance_type      = compare_across_commands_tolerance_type
-        self.reference           = int(compare_across_commands_reference)
+    def __init__(self, CompareAcrossCommands) :
+        self.file                = CompareAcrossCommands.file
+        self.delimiter           = CompareAcrossCommands.column_delimiter
+        self.column_index        = int(CompareAcrossCommands.column_index)
+        self.tolerance_value     = float(CompareAcrossCommands.tolerance_value)
+        self.tolerance_type      = CompareAcrossCommands.tolerance_type
+        self.reference           = int(CompareAcrossCommands.reference)
 
-        if compare_across_commands_line_number == 'last':
+        if CompareAcrossCommands.line_number == 'last':
             self.line_number = -1   # set to dummy value (and not to numeric infinity) for sanity check in 1.3
         else :
-            self.line_number = int(compare_across_commands_line_number) # take actual line number
+            self.line_number = int(CompareAcrossCommands.line_number) # take actual line number
 
     def perform(self,runs) :
 
@@ -2140,7 +2185,7 @@ class Analyze_compare_across_commands(Analyze) :
         1.4  check number of columns in data file
         1.5   get header information of considered column
         1.6   extract value in considered column
-        2. compare results of runs among eachother
+        2. compare results of runs among each other
         2.1   check index of reference command (1-based indexing, in accordance with directory name pattern 'cmd_0001, cmd_0002, ...'), index 0 means average of all commands
         2.2   compute reference value based extracted results
         2.3   calculate deviation of each extracted value from average and compare with tolerance
