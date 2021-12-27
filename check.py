@@ -360,65 +360,93 @@ def copyRestartFile(path,path_target) :
 
 #==================================================================================================
 class Externals(OutputDirectory) :
+
     def __init__(self, parameters, example, number) :
         self.parameters = parameters
         OutputDirectory.__init__(self, example, '', -1)
+
     def __str__(self) :
         s = "external parameters:\n"
         s += ",".join(["%s: %s" % (k,v) for k,v in self.parameters.items()])
         return tools.indent(s,2)
 
 def getExternals(path, example, build) :
-    externals_pre = []
-    externals_post = []
+    externals_pre    = []
+    externals_post   = []
     externals_errors = []
 
     if not os.path.exists(path) :
         return externals_pre, externals_post, externals_errors
     combis, digits = combinations.getCombinations(path)
 
-    for combi in combis :
+    for iCombi, combi in enumerate(combis) :
+
         # Check directory
         externaldirectory = combi.get('externaldirectory',None)
         if not externaldirectory or not os.path.exists(os.path.join(example.source_directory, externaldirectory)) : # string is or empty and path does not exist
-            s = tools.red('getExternals: "externaldirectory" is empty or the path %s does not exist' % os.path.join(example.source_directory,externaldirectory))
+            s = tools.red('getExternals: "externaldirectory" is empty or the path [%s] does not exist' % os.path.join(example.source_directory,externaldirectory))
             externals_errors.append(s)
             print(s)
             ExternalRun.total_errors+=1 # add error if externalrun fails
             continue
 
         # Check binary
-        externalbinary=combi.get('externalbinary',None)
+        binary_found = False # default
+        s = '' # default
+        externalbinary = combi.get('externalbinary',None)
+        if not externalbinary:
+            s = tools.red('getExternals: External tools binary path "externalbinary" has not been supplied for external run number %s with "externaldirectory"=[%s].' % (iCombi,externaldirectory))
+            externals_errors.append(s)
+            print(s)
+            ExternalRun.total_errors+=1 # add error if externalrun fails
+            continue
+        else:
+            # Get binary name
+            binary = os.path.basename(externalbinary).lower()
 
-        if isinstance(build, Standalone) :
-            head, tail       = os.path.split(externalbinary)
-            binary_path = os.path.abspath(os.path.join(build.binary_dir, tail))
-        else: # build mode
-            binary_path = os.path.abspath(os.path.join(build.binary_dir, externalbinary))
-        combi['binary_path'] = binary_path
-
-        if not externalbinary or not os.path.exists(binary_path) : # string is or empty and path does not exist
-            # If the binary is not within the ./bin/ directory, check if the path points to a binary directly
-            if os.path.exists(externalbinary):
-                binary_found = True
-                binary_path          = os.path.abspath(externalbinary)
-                combi['binary_path'] = binary_path
+            # First: Check for the binary under ./bin directory (ignore the original full path)
+            if isinstance(build, Standalone):
+                # Pre-compiled mode: Use only the binary name
+                binary_path = os.path.abspath(os.path.join(build.binary_dir, binary))
             else:
-                binary_found = False
-                s = tools.red('getExternals: "externalbinary" is empty or the path %s does not exist' % binary_path)
-                externals_errors.append(s)
-                print(s)
-                ExternalRun.total_errors+=1 # add error if externalrun fails
-                continue
-        else :
-            binary_found = True
+                # Build mode: Use the complete binary path
+                binary_path = os.path.abspath(os.path.join(build.binary_dir, externalbinary))
 
+            # Second: If the binary path does not exist
+            # 1.) Check the original binary path, e.g., ./hopr/build/bin/hopr
+            # 2.) for specific binaries, e.g., hopr: check the environment variable: HOPR_PATH
+            if os.path.exists(binary_path):
+                binary_found = True
+            else:
+                # If the binary is not within the ./bin/ directory, check if the path points to a binary directly
+                binary_path = os.path.abspath(externalbinary)
+                if os.path.exists(binary_path):
+                    binary_found = True
+                elif binary == 'hopr':
+                    # Try and load hopr binary path form environment variables
+                    hopr_path = os.getenv('HOPR_PATH')
+                    if hopr_path and os.path.exists(hopr_path):
+                        binary_path  = hopr_path
+                        binary_found = True
+                    else:
+                        s = 'Tried loading hopr binary path from environment variable $HOPR_PATH=[%s] as the supplied path does not exist.\nAdd the binary path via \"export HOPR_PATH=/opt/hopr/1.X/bin/hopr\"\n' % hopr_path
+
+                # Display error if no binary is found
+                if not binary_found:
+                    s = tools.red('getExternals: %sThe supplied path [%s] via "externalbinary" does not exist.' % (s,binary_path))
+                    externals_errors.append(s)
+                    print(s)
+                    ExternalRun.total_errors+=1 # add error if externalrun fails
+                    continue
+
+        # If the binary has been found, assign pre/post flag
         if binary_found:
-            if combi.get('externalruntime','') == 'pre' :
+            combi['binary_path'] = binary_path
+            if combi.get('externalruntime','') == 'pre':
                 externals_pre.append(Externals(combi, example, -1))
-            elif combi.get('externalruntime','') == 'post' :
+            elif combi.get('externalruntime','') == 'post':
                 externals_post.append(Externals(combi, example, -1))
-            else :
+            else:
                 s = tools.red('External tools is neither "pre" nor "post".')
                 externals_errors.append(s)
                 print(s)
@@ -510,14 +538,17 @@ def getExternalRuns(path, external) :
     #              values for N)
     combis, digits = combinations.getCombinations(path,CheckForMultipleKeys=True)  # path to parameter.ini (source)
     for parameters in combis :
+
         # check each [key] for empty [value] (e.g. wrong definition in parameter.ini file)
         for key, value in parameters.items():
             if not value :
                 raise Exception(tools.red('parameter.ini contains an empty parameter definition for [%s]. Remove unnecessary commas!' % key))
+
         # construct run information with one set of parameters (parameter.ini will be created in target directory when the setup
         # is executed), one set of command line options (e.g. mpirun information) and the info of how many times a parameter is
         # varied under the variable 'digits'
         run = ExternalRun(parameters, path, external, i, digits)
+
         # check if the run cannot be performed due to problems encountered when setting up the folder (e.g. not all files could
         # be create or copied to the target directory)
         if not run.skip :
@@ -532,13 +563,14 @@ class Run(OutputDirectory, ExternalCommand) :
     total_number_of_runs = 0
 
     def __init__(self, parameters, path, command_line, number, digits) :
-        self.successful = True
-        self.globalnumber = -1
-        self.analyze_results = []
+        self.successful         = True
+        self.globalnumber       = -1
+        self.analyze_results    = []
         self.analyze_successful = True
-        self.parameters = parameters
-        self.digits = digits
-        self.source_directory = os.path.dirname(path)
+        self.parameters         = parameters
+        self.digits             = digits
+        self.source_directory   = os.path.dirname(path)
+
         OutputDirectory.__init__(self, command_line, 'run', number, mkdir=False)
         ExternalCommand.__init__(self)
 
@@ -570,9 +602,18 @@ class Run(OutputDirectory, ExternalCommand) :
         shutil.move(self.target_directory,self.target_directory+"_failed") # rename folder (non-existent folder fails)
         self.target_directory = self.target_directory+"_failed" # set new name for summary of errors
 
-    def execute(self, build, command_line, args) :
+    def execute(self, build, command_line, args, external_failed) :
         Run.total_number_of_runs += 1
         self.globalnumber = Run.total_number_of_runs
+
+        # Check if a possible pre-processing step has failed.
+        # If so, do not run the code as the assumption is that it depends on a positive output of the (pre) external
+        if external_failed:
+            self.successful = False
+            self.rename_failed()
+            s=tools.red(tools.indent("Cannot run the code because the (pre) external run failed.",2))
+            print(s)
+            return
 
         # set path to parameter file (single combination of values for execution "parameter.ini" for example)
         self.parameter_path = os.path.join(self.target_directory, "parameter.ini")
@@ -821,11 +862,13 @@ def PerformCheck(start,builds,args,log) :
                                 getExternals(os.path.join(run.source_directory,'externals.ini'), run, build)
 
                         # (pre) externals (1): loop over all externals available in external.ini
+                        external_failed = False
                         for external in run.externals_pre :
                             log.info(str(external))
 
                             print('-' * 132)
-                            print(tools.green('Preprocessing: Running external \"' + external.parameters.get("externalbinary") + '\" ... '))
+                            externalbinary = external.parameters.get("externalbinary")
+                            print(tools.green('Preprocessing: Running external [%s] ... ' % externalbinary))
 
                             # (pre) externals (1.1): get the path and the parameterfiles to the i'th external
                             external.directory  = run.target_directory + '/'+ external.parameters.get("externaldirectory")
@@ -845,15 +888,17 @@ def PerformCheck(start,builds,args,log) :
                                     # (pre) externals (3.1): run the external binary
                                     externalrun.execute(build,external,args)
                                     if not externalrun.successful :
+                                        external_failed = True
                                         s = tools.red('Execution (pre) external failed')
                                         run.externals_errors.append(s)
+                                        print("ExternalRun.total_errors = %s" % (ExternalRun.total_errors))
                                         ExternalRun.total_errors+=1 # add error if externalrun fails
 
-                            print(tools.green('Preprocessing: External \"' + external.parameters.get("externalbinary") + '\" finished!'))
+                            print(tools.green('Preprocessing: External [%s] finished!' % externalbinary))
                             print('-' * 132)
 
                         # 4.2    execute the binary file for one combination of parameters
-                        run.execute(build,command_line,args)
+                        run.execute(build,command_line,args,external_failed)
                         if not run.successful :
                             Run.total_errors+=1 # add error if run fails
 
@@ -863,7 +908,8 @@ def PerformCheck(start,builds,args,log) :
                             log.info(str(external))
 
                             print('-' * 132)
-                            print(tools.green('Postprocessing: Running external \"' + external.parameters.get("externalbinary") + '\" ... '))
+                            externalbinary = external.parameters.get("externalbinary")
+                            print(tools.green('Postprocessing: Running external [%s] ... ' % externalbinary))
 
                             # (post) externals (1.1): get the path and the parameterfiles to the i'th external
                             external.directory  = run.target_directory + '/'+ external.parameters.get("externaldirectory")
@@ -888,7 +934,7 @@ def PerformCheck(start,builds,args,log) :
                                         run.externals_errors.append(s)
                                         ExternalRun.total_errors+=1 # add error if externalrun fails
 
-                            print(tools.green('Postprocessing: External \"' + external.parameters.get("externalbinary") + '\" finished!'))
+                            print(tools.green('Postprocessing: External [%s] finished!' % externalbinary))
                             print('-' * 132)
 
                         # 4.3 Remove unwanted files: run analysis directly after each run (as oposed to the normal analysis which is used for analyzing the created output)
