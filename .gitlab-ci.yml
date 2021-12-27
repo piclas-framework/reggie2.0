@@ -1,9 +1,32 @@
+# Settings
+# ----------------------------------------------------------------------------------------------------------------------------------------------------
+# Load modules on new boltzplatz reggie
+before_script:
+  - ulimit -s unlimited
+  - module list || true
+  - python3 -V || true
+  - python2 -V || true
+
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 # Stages
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 stages:
+  - checkin
   - deploy
 
+# ----------------------------------------------------------------------------------------------------------------------------------------------------
+# Stage "checkin": Run reggie wiht -h
+# ----------------------------------------------------------------------------------------------------------------------------------------------------
+checkin:
+  stage: deploy
+  tags:
+    - withmodules-concurrent
+  script:
+    - if [ -x "$(command -v python2)" ]; then echo "Testing python 2"; python2 ./reggie.py -h; fi
+    - if [ -x "$(command -v python3)" ]; then echo "Testing python r"; python3 ./reggie.py -h; fi
+  rules:
+    - if: '$DO_CHECKIN'
+    - if: '$CI_PIPELINE_SOURCE == "push"'
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 # Stage "github": Push the master branch to github
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -20,3 +43,5 @@ github:
     - git push --force --follow-tags piclas-framework master ;
     - git remote add reggie-framework git@github.com:reggie-framework/reggie2.0.git ;
     - git push --force --follow-tags reggie-framework master ;
+  rules:
+    - if: '$DO_DEPLOY'
