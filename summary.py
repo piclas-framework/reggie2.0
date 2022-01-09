@@ -150,7 +150,11 @@ def finalize(start, build_errors, run_errors, external_run_errors, analyze_error
 
     if start > 0 : # only calculate run time and display output when start > 0
         end = timer()
-        print("in [%2.2f sec]" % (end - start))
+        sec = end - start
+        minutes , seconds = divmod(sec     , 60.0)
+        hours   , minutes = divmod(minutes , 60.0)
+        days    , hours   = divmod(minutes , 24.0)
+        print("in [%2.2f sec] [ %02d:%02d:%02d:%02d ]" % (sec,days,hours,minutes,seconds))
     else :
         print("")
 
