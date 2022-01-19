@@ -373,10 +373,10 @@ def getAnalyzes(path, example, args) :
                             tolerance_type   = options.get('compare_across_commands_tolerance_type','absolute'), \
                             reference        = options.get('compare_across_commands_reference',0) )
     if all([CompareAcrossCommands.file, CompareAcrossCommands.column_delimiter, CompareAcrossCommands.column_index, CompareAcrossCommands.line_number, CompareAcrossCommands.reference ]) :
-        if compare_column_tolerance_type in ('absolute', 'delta', '--delta') :
-            compare_column_tolerance_type = "absolute"
-        elif compare_column_tolerance_type in ('relative', "--relative") :
-            compare_column_tolerance_type = "relative"
+        if CompareAcrossCommands.tolerance_type in ('absolute', 'delta', '--delta') :
+            CompareAcrossCommands.tolerance_type = "absolute"
+        elif CompareAcrossCommands.tolerance_type in ('relative', "--relative") :
+            CompareAcrossCommands.tolerance_type = "relative"
         else :
             raise Exception(tools.red("initialization of compare across commands failed. compare_across_commands_tolerance_type '%s' not accepted." % CompareAcrossCommands.tolerance_type))
         analyze.append(Analyze_compare_across_commands(CompareAcrossCommands))
