@@ -180,7 +180,7 @@ def getAnalyzes(path, example, args) :
     # 2.1   L2 error upper limit
     L2Error = SimpleNamespace( \
               tolerance  = float(options.get('analyze_l2',-1.)), \
-              error_name =       options.get('L2_error_name','L_2'))
+              error_name =       options.get('l2_error_name','L_2'))
     if L2Error.tolerance > 0 :
         analyze.append(Analyze_L2(L2Error))
 
