@@ -428,6 +428,7 @@ def getExternals(path, example, build) :
                     if hopr_path and os.path.exists(hopr_path):
                         binary_path  = hopr_path
                         binary_found = True
+                        combi['externalbinary'] = binary # over-write user-defined path
                     else:
                         s = 'Tried loading hopr binary path from environment variable $HOPR_PATH=[%s] as the supplied path does not exist.\nAdd the binary path via \"export HOPR_PATH=/opt/hopr/1.X/bin/hopr\"\n' % hopr_path
 
@@ -461,14 +462,15 @@ class ExternalRun(OutputDirectory,ExternalCommand) :
     total_errors = 0
     total_number_of_runs = 0
 
-    def __init__(self, parameters, path, external, number, digits, externalruns = True) :
-        self.successful = True
-        self.globalnumber = -1
-        self.analyze_results = []
+    def __init__(self, parameters, parameterfilepath, external, number, digits, externalruns = True) :
+        self.successful         = True
+        self.globalnumber       = -1
+        self.analyze_results    = []
         self.analyze_successful = True
-        self.parameters = parameters
-        self.digits = digits
-        self.source_directory = os.path.dirname(path)
+        self.parameters         = parameters
+        self.digits             = digits
+        self.source_directory   = os.path.dirname(parameterfilepath)
+
         OutputDirectory.__init__(self, external, '', -1, mkdir=False)
         ExternalCommand.__init__(self)
 
@@ -494,7 +496,6 @@ class ExternalRun(OutputDirectory,ExternalCommand) :
 
         cmd.append(binary_path)
         cmd.append(external.parameterfile)
-
         # append suffix commands, e.g., a second parameter file 'DSMC.ini' or '-N 12'
         cmd_suffix = external.parameters.get('cmd_suffix')
         if cmd_suffix :
@@ -526,7 +527,7 @@ class ExternalRun(OutputDirectory,ExternalCommand) :
         s += ",".join(["%s: %s" % (k,v) for k,v in self.parameters.items()])
         return tools.indent(s,3)
 
-def getExternalRuns(path, external) :
+def getExternalRuns(parameterfilepath, external) :
     """Get all combinations in 'parameter.ini'"""
     externalruns = []
     i = 1
@@ -536,7 +537,7 @@ def getExternalRuns(path, external) :
     #     digits : contains the number of variations for each [key]
     #              example in parameter.ini: N = 1,2,3 then digits would contain OrderedDict([('N', 2),...) for 0,1,2 = 3 different
     #              values for N)
-    combis, digits = combinations.getCombinations(path,CheckForMultipleKeys=True)  # path to parameter.ini (source)
+    combis, digits = combinations.getCombinations(parameterfilepath,CheckForMultipleKeys=True)  #  parameterfilepath = path to parameter.ini (source)
     for parameters in combis :
 
         # check each [key] for empty [value] (e.g. wrong definition in parameter.ini file)
@@ -547,7 +548,7 @@ def getExternalRuns(path, external) :
         # construct run information with one set of parameters (parameter.ini will be created in target directory when the setup
         # is executed), one set of command line options (e.g. mpirun information) and the info of how many times a parameter is
         # varied under the variable 'digits'
-        run = ExternalRun(parameters, path, external, i, digits)
+        run = ExternalRun(parameters, parameterfilepath, external, i, digits)
 
         # check if the run cannot be performed due to problems encountered when setting up the folder (e.g. not all files could
         # be create or copied to the target directory)
@@ -868,7 +869,7 @@ def PerformCheck(start,builds,args,log) :
 
                             print('-' * 132)
                             externalbinary = external.parameters.get("externalbinary")
-                            print(tools.green('Preprocessing: Running external [%s] ... ' % externalbinary))
+                            print(tools.green('Preprocessing: Running pre-external [%s] ... ' % externalbinary))
 
                             # (pre) externals (1.1): get the path and the parameterfiles to the i'th external
                             external.directory  = run.target_directory + '/'+ external.parameters.get("externaldirectory")
@@ -909,7 +910,7 @@ def PerformCheck(start,builds,args,log) :
 
                             print('-' * 132)
                             externalbinary = external.parameters.get("externalbinary")
-                            print(tools.green('Postprocessing: Running external [%s] ... ' % externalbinary))
+                            print(tools.green('Postprocessing: Running post-external [%s] ... ' % externalbinary))
 
                             # (post) externals (1.1): get the path and the parameterfiles to the i'th external
                             external.directory  = run.target_directory + '/'+ external.parameters.get("externaldirectory")
