@@ -76,7 +76,8 @@ def calcOrder_h(h,E,invert_h=False) :
     order = []
     for i in range(1,len(h)) :
         dh=1.0/(h[i]/h[i-1])
-        if E[i-1] == 0.0 :
+        # Check if any error value is exactly zero
+        if E[i-1] == 0.0 or E[i] == 0.0:
             order.append(0.0)
         else :
             dE=E[i]/E[i-1]
