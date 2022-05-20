@@ -86,9 +86,23 @@ def getArgsAndBuilds() :
             print(tools.red("Basedir (containing 'CMakeLists.txt') not found!\nEither specify the basedir on the command line or execute reggie within a project with a 'CMakeLists.txt'."))
             exit(1)
     
-        if not os.path.exists(args.check) : # check if directory exists
+        # Check if directory exists
+        if not os.path.exists(args.check):
             print(tools.red("Check directory not found: '%s'" % args.check))
             exit(1)
+        else:
+            # Check if file or link path was supplied
+            if os.path.isfile(args.check):
+                print(tools.red("Check directory supplied is a file: '%s'. Please supply a directory path" % args.check))
+                exit(1)
+            # Check if directory path was supplied
+            elif os.path.isdir(args.check):
+                pass
+            # Check rest
+            else:
+                print(tools.red("Check directory supplied is not a directory path: '%s'. Please supply a directory path" % args.check))
+                exit(1)
+
     
 
     # delete the building directory when [carryon = False] and [run = False] before getBuilds is called
