@@ -38,6 +38,7 @@ def getArgsAndBuilds() :
     parser.add_argument('-z', '--rc'         , help='Create/Replace reference files that are required for analysis. After running the program, the output files are stored in the check-/example-directory.', action='store_true', dest='referencescopy')
     parser.add_argument('-f', '--fc'         , help='Create/Replace required restart files (if defined in command_line.ini). After running the program, the output files are stored in the check-/example-directory.', action='store_true', dest='restartcopy')
     parser.add_argument('-i', '--noMPI'      , help='Run program without "mpirun" (single thread execution).', action='store_true')
+    parser.add_argument('-p', '--stop'       , help='Stop on first error.', action='store_true')
     parser.add_argument('check', help='Path to check-/example-directory.')
 
     #parser.set_defaults(carryon=False)

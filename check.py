@@ -894,6 +894,11 @@ def PerformCheck(start,builds,args,log) :
                                         run.externals_errors.append(s)
                                         print("ExternalRun.total_errors = %s" % (ExternalRun.total_errors))
                                         ExternalRun.total_errors+=1 # add error if externalrun fails
+                                        # Check if immediate stop is activated on failure
+                                        if args.stop:
+                                            s = tools.red('Stop on first error (-p, --stop) is activated! Execution (pre) external failed')
+                                            print(s)
+                                            exit(1)
 
                             print(tools.green('Preprocessing: External [%s] finished!' % externalbinary))
                             print('-' * 132)
@@ -902,6 +907,11 @@ def PerformCheck(start,builds,args,log) :
                         run.execute(build,command_line,args,external_failed)
                         if not run.successful :
                             Run.total_errors+=1 # add error if run fails
+                            # Check if immediate stop is activated on failure
+                            if args.stop:
+                                s = tools.red('Stop on first error (-p, --stop) is activated! Execution of run failed')
+                                print(s)
+                                exit(1)
 
                         # (post) externals (1): loop over all externals available in external.ini
                         for external in run.externals_post :
@@ -931,27 +941,37 @@ def PerformCheck(start,builds,args,log) :
                                     externalrun.execute(build,external,args)
                                     if not externalrun.successful :
                                         #print(externalrun.return_code)
-                                        s = tools.red('Execution (pre) external failed')
+                                        s = tools.red('Execution (post) external failed')
                                         run.externals_errors.append(s)
                                         ExternalRun.total_errors+=1 # add error if externalrun fails
+                                        # Check if immediate stop is activated on failure
+                                        if args.stop:
+                                            s = tools.red('Stop on first error (-p, --stop) is activated! Execution (post) external failed')
+                                            print(s)
+                                            exit(1)
 
                             print(tools.green('Postprocessing: External [%s] finished!' % externalbinary))
                             print('-' * 132)
 
-                        # 4.3 Remove unwanted files: run analysis directly after each run (as oposed to the normal analysis which is used for analyzing the created output)
+                        # 4.3 Remove unwanted files: run analysis directly after each run (as opposed to the normal analysis which is used for analyzing the created output)
                         for analyze in example.analyzes :
                             if isinstance(analyze,Clean_up_files) :
                                 analyze.execute(run)
 
                     # 5.   loop over all successfully executed binary results and perform analyze tests
                     runs_successful = [run for run in command_line.runs if run.successful]
-                    if runs_successful : # do analyzes only if runs_successful is not empty
+                    if runs_successful : # do analysis only if runs_successful is not empty
                         for analyze in example.analyzes :
                             if isinstance(analyze,Clean_up_files) or isinstance(analyze,Analyze_compare_across_commands) :
                                 # skip because either already called in the "run" loop under 4.2 or called later under cross-command comparisons in 7.
                                 continue
                             print(tools.indent(tools.blue(str(analyze)),2))
                             analyze.perform(runs_successful)
+                            # Check if immediate stop is activated on failure
+                            if args.stop and Analyze.total_errors > 0:
+                                s = tools.red('Stop on first error (-p, --stop) is activated! Analysis failed')
+                                print(s)
+                                exit(1)
                     else : # don't delete build folder after all examples/runs
                         remove_build_when_successful = False
 
@@ -980,6 +1000,11 @@ def PerformCheck(start,builds,args,log) :
                         if isinstance(analyze,Analyze_compare_across_commands) :
                             print(tools.indent(tools.blue(str(analyze)),2))
                             analyze.perform(runs_corresponding)
+                            # Check if immediate stop is activated on failure
+                            if args.stop and Analyze.total_errors > 0:
+                                s = tools.red('Stop on first error (-p, --stop) is activated! Analysis failed (cross-command comparisons)')
+                                print(s)
+                                exit(1)
 
             if remove_build_when_successful and not args.save :
                 tools.remove_folder(build.target_directory)
