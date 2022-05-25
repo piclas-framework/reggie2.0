@@ -31,6 +31,7 @@ def getArgsAndBuilds() :
     parser.add_argument('-j', '--buildprocs' , help='Number of processors used for compiling (make -j XXX).', type=int, default=0)
     parser.add_argument('-b', '--basedir'    , help='Path to basedir of code that should be tested (contains CMakeLists.txt).')
     parser.add_argument('-y', '--dummy'      , help='Use dummy_basedir and dummy_checks for fast testing on dummy code.', action='store_true')
+    parser.add_argument('-n', '--singledir'  , help='Use a single build directory for all combinations', action='store_true')
     parser.add_argument('-r', '--run'        , help='Run all binaries for all examples with all run-combinations for all existing binaries.', action='store_true' )
     parser.add_argument('-s', '--save'       , help='Do not remove output directories buildsXXXX in output_dir after successful run.', action='store_true')
     parser.add_argument('-t', '--compiletype', help='Override all CMAKE_BUILD_TYPE settings by ignoring the value set in builds.ini (e.g. DEBUG or RELEASE).')
@@ -112,7 +113,7 @@ def getArgsAndBuilds() :
     # get builds from checks directory if no executable is supplied
     if args.exe is None : # if not exe is supplied, get builds
         # read build combinations from checks/XX/builds.ini
-        builds = check.getBuilds(args.basedir, args.check,args.compiletype)
+        builds = check.getBuilds(args.basedir,args.check,args.compiletype,args.singledir)
     else :
         if not os.path.exists(args.exe) : # check if executable exists
             print(tools.red("No executable found under '%s'" % args.exe))

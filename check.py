@@ -213,15 +213,19 @@ def StandaloneAutomaticMPIDetection(binary_path) :
 
     return MPIifOFF
 
-def getBuilds(basedir, source_directory, CMAKE_BUILD_TYPE) :
+def getBuilds(basedir, source_directory, CMAKE_BUILD_TYPE, singledir) :
     builds = []
     i = 1
     combis, digits = combinations.getCombinations(os.path.join(source_directory, 'builds.ini'),OverrideOptionKey='CMAKE_BUILD_TYPE',OverrideOptionValue=CMAKE_BUILD_TYPE)
 
     # create Builds
-    for b in combis :
-        builds.append(Build(basedir, source_directory,b, i))
-        i += 1
+    if singledir :
+        for b in combis :
+            builds.append(Build(basedir, source_directory,b,0))
+    else :
+        for b in combis :
+            builds.append(Build(basedir, source_directory,b, i))
+            i += 1
     return builds
 
 class BuildFailedException(Exception) :
