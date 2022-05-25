@@ -91,8 +91,14 @@ class Build(OutputDirectory,ExternalCommand) :
             raise BuildFailedException(self) # "CMAKE failed"
 
         # MAKE: default with '-j'
-        self.make_cmd = ["make", "-j"]
-        if buildprocs > 0 : self.make_cmd.append(str(buildprocs))
+        if not os.environ['CMAKE_GENERATOR'] == 'Ninja' :
+            self.make_cmd = ["make", "-j"]
+            if buildprocs > 0 : self.make_cmd.append(str(buildprocs))
+        else :
+            self.make_cmd = ["ninja"]
+            if buildprocs > 0 :
+                self.make_cmd.append('-j')
+                self.make_cmd.append(str(buildprocs))
         # execute cmd in build directory
         s_NoColor="Building with [%s] ..." % (" ".join(self.make_cmd))
 
