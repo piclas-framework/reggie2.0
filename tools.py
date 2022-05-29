@@ -14,6 +14,7 @@ from __future__ import print_function # required for print() function with line 
 import logging
 import shutil
 import os
+import sys
 from timeit import default_timer as timer
 import re
 import time
@@ -210,3 +211,18 @@ def isKeyOf(a,key_IN) :
             number += 1
             found = True
     return found, number
+
+def splitall(path):
+    allparts = []
+    while 1:
+        parts = os.path.split(path)
+        if parts[0] == path:  # sentinel for absolute paths
+            allparts.insert(0, parts[0])
+            break
+        elif parts[1] == path: # sentinel for relative paths
+            allparts.insert(0, parts[1])
+            break
+        else:
+            path = parts[0]
+            allparts.insert(0, parts[1])
+    return allparts

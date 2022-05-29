@@ -31,14 +31,15 @@ def getArgsAndBuilds() :
     parser.add_argument('-j', '--buildprocs' , help='Number of processors used for compiling (make -j XXX).', type=int, default=0)
     parser.add_argument('-b', '--basedir'    , help='Path to basedir of code that should be tested (contains CMakeLists.txt).')
     parser.add_argument('-y', '--dummy'      , help='Use dummy_basedir and dummy_checks for fast testing on dummy code.', action='store_true')
-    parser.add_argument('-r', '--run'        , help='Run all binaries for all examples with all run-combinations for all existing binaries.', action='store_true' )
+    parser.add_argument('-r', '--run'        , help='Run all binaries for all examples with all run-combinations for all existing binaries.', action='store_true')
     parser.add_argument('-s', '--save'       , help='Do not remove output directories buildsXXXX in output_dir after successful run.', action='store_true')
     parser.add_argument('-t', '--compiletype', help='Override all CMAKE_BUILD_TYPE settings by ignoring the value set in builds.ini (e.g. DEBUG or RELEASE).')
     parser.add_argument('-a', '--hlrs'       , help='Run on with aprun (24-core hlrs system).', action='store_true')
     parser.add_argument('-z', '--rc'         , help='Create/Replace reference files that are required for analysis. After running the program, the output files are stored in the check-/example-directory.', action='store_true', dest='referencescopy')
     parser.add_argument('-f', '--fc'         , help='Create/Replace required restart files (if defined in command_line.ini). After running the program, the output files are stored in the check-/example-directory.', action='store_true', dest='restartcopy')
     parser.add_argument('-i', '--noMPI'      , help='Run program without "mpirun" (single thread execution).', action='store_true')
-    parser.add_argument('check', help='Path to check-/example-directory.')
+    parser.add_argument('-v', '--coverage'   , help='Compile code with code coverage option, to get code coverage information afterwards', action='store_true')
+    parser.add_argument('check'              , help='Path to check-/example-directory.')
 
     #parser.set_defaults(carryon=False)
     #parser.set_defaults(dummy=False)
@@ -89,20 +90,24 @@ def getArgsAndBuilds() :
         if not os.path.exists(args.check) : # check if directory exists
             print(tools.red("Check directory not found: '%s'" % args.check))
             exit(1)
-    
 
     # delete the building directory when [carryon = False] and [run = False] before getBuilds is called
     if not args.carryon and not args.run : tools.remove_folder(OutputDirectory.output_dir)
-    
+
+    # add compile options [--coverage -fPIC -O0] to the current options if args.coverage via an environement variable
+    if args.coverage:
+        os.environ["PICLAS_CODE_COVERAGE"] = "TRUE"
+
     # get builds from checks directory if no executable is supplied
     if args.exe is None : # if not exe is supplied, get builds
         # read build combinations from checks/XX/builds.ini
-        builds = check.getBuilds(args.basedir, args.check,args.compiletype)
-    else :
+            builds = check.getBuilds(args.basedir, args.check, args.compiletype)
+
+    else:
         if not os.path.exists(args.exe) : # check if executable exists
             print(tools.red("No executable found under '%s'" % args.exe))
             exit(1)
-        else :
+        else:
             builds = [check.Standalone(args.exe,args.check)] # set builds list to contain only the supplied executable
             args.noMPIautomatic = check.StandaloneAutomaticMPIDetection(args.exe) # Check possibly existing userblock.txt to find out if the executable was compiled with MPI=ON or MPI=OFF
             args.run = True      # set 'run-mode' do not compile the code
@@ -122,6 +127,5 @@ def getArgsAndBuilds() :
     for arg in list(args.__dict__) :
         print(arg.ljust(15)+" = [ "+str(getattr(args,arg))+" ]")
     print('='*132)
-    
     
     return args, builds

@@ -10,11 +10,13 @@
 #
 # You should have received a copy of the GNU General Public License along with reggie2.0. If not, see <http://www.gnu.org/licenses/>.
 #==================================================================================================================================
-from __future__ import print_function # required for print() function with line break via "end=' '"
+from __future__ import print_function
+from copyreg import pickle # required for print() function with line break via "end=' '"
 import os
 import re
 import shutil
 import collections
+from venv import create
 import combinations
 from outputdirectory import OutputDirectory
 from externalcommand import ExternalCommand
@@ -87,7 +89,7 @@ class Build(OutputDirectory,ExternalCommand) :
         s_Color   = "C-making with [%s] ..." % (" ".join(self.cmake_cmd_color))
         s_NoColor = "C-making with [%s] ..." % (" ".join(self.cmake_cmd))
 
-        if self.execute_cmd(self.cmake_cmd, self.target_directory, string_info = s_Color) != 0 : # use unclolored string for cmake
+        if self.execute_cmd(self.cmake_cmd, self.target_directory, string_info = s_Color) != 0 : # use uncolored string for cmake
             raise BuildFailedException(self) # "CMAKE failed"
 
         # MAKE: default with '-j'
@@ -214,7 +216,7 @@ def getBuilds(basedir, source_directory, CMAKE_BUILD_TYPE) :
 
     # create Builds
     for b in combis :
-        builds.append(Build(basedir, source_directory,b, i))
+        builds.append(Build(basedir, source_directory, b, i))
         i += 1
     return builds
 
@@ -477,7 +479,7 @@ class ExternalRun(OutputDirectory,ExternalCommand) :
         # external folders already there
         self.skip = False
 
-    def execute(self, build, external, args) :
+    def execute(self, build, external, args, cov_path=None, external_counter=None) :
 
         # set path to parameter file (single combination of values for execution "parameter.ini" for example)
         self.parameter_path = os.path.join(external.directory, external.parameterfile)
@@ -518,6 +520,18 @@ class ExternalRun(OutputDirectory,ExternalCommand) :
         else :
             s="Running [%s] ..." % (" ".join(cmd))
             self.execute_cmd(cmd, external.directory, string_info = tools.indent(s, 2)) # run the code
+        
+        # perform code coverage if requested via gcovr 
+        if args.coverage: 
+            test_name = tools.splitall(cov_path)
+            cmd_gcovr = ["gcovr", "--json", "--print-summary", "-o", "coverage_%s_%s.json" % (test_name[-2], external_counter)]
+            self.execute_cmd(cmd_gcovr, os.getcwd())
+            cmd_gcovr_html = ["gcovr", "--add-tracefile", "coverage_%s_%s.json" % (test_name[-2], external_counter), "--html", "coverage_%s_%s.html" % (test_name[-2], external_counter)] 
+            self.execute_cmd(cmd_gcovr_html, os.getcwd())
+            cmd_move = ["mv", "coverage_%s_%s.json" % (test_name[-2], external_counter), "coverage_%s_%s.html" % (test_name[-2], external_counter), cov_path]
+            self.execute_cmd(cmd_move, os.getcwd())
+            cmd_move_collect = ["cp", "coverage_%s_%s.json" % (test_name[-2], external_counter), "../../combined_reports"]
+            self.execute_cmd(cmd_move_collect, cov_path)
 
         if self.return_code != 0 :
             self.successful = False
@@ -603,7 +617,7 @@ class Run(OutputDirectory, ExternalCommand) :
         shutil.move(self.target_directory,self.target_directory+"_failed") # rename folder (non-existent folder fails)
         self.target_directory = self.target_directory+"_failed" # set new name for summary of errors
 
-    def execute(self, build, command_line, args, external_failed) :
+    def execute(self, build, command_line, args, external_failed, cov_path=None) :
         Run.total_number_of_runs += 1
         self.globalnumber = Run.total_number_of_runs
 
@@ -682,6 +696,19 @@ class Run(OutputDirectory, ExternalCommand) :
         else :
             s="Running [%s] ..." % (" ".join(cmd))
             self.execute_cmd(cmd, self.target_directory, string_info = tools.indent(s, 2)) # run the code
+
+        # do code coverage if requested via gcovr
+        if args.coverage: 
+            test_name = tools.splitall(cov_path)
+            print(test_name)
+            cmd_gcovr = ["gcovr", "--json", "--print-summary", "-o", "coverage_%s.json" % (test_name[-2])]
+            self.execute_cmd(cmd_gcovr, os.getcwd())
+            cmd_gcovr_html = ["gcovr", "--add-tracefile", "coverage_%s.json" % (test_name[-2]), "--html", "coverage_%s.html" % (test_name[-2])] 
+            self.execute_cmd(cmd_gcovr_html, os.getcwd())
+            cmd_move = ["mv", "coverage_%s.json" % (test_name[-2]), "coverage_%s.html" % (test_name[-2]), cov_path]
+            self.execute_cmd(cmd_move, os.getcwd())
+            cmd_move_collect = ["cp", "coverage_%s.json" % (test_name[-2]), "../../combined_reports"]
+            self.execute_cmd(cmd_move_collect, cov_path)
 
         # Copy restart file if required
         if cmd_restart_file and args.restartcopy:
@@ -794,7 +821,7 @@ def PerformCheck(start,builds,args,log) :
            (1):   loop over all externals available in external.ini
            (1.1):   get the path and the parameterfiles to the i'th external
            (2):   loop over all parameterfiles available for the i'th external
-           (2.1):   consider combinations
+           (2.1):   consider combinations0)
            (3):   loop over all combinations and parameter files for the i'th external
            (3.1):   run the external binary
     4.3    remove unwanted files: run analysis directly after each run (as opposed to the normal analysis which is used for analyzing the created output)
@@ -823,7 +850,7 @@ def PerformCheck(start,builds,args,log) :
             # 1.1    read the example directories
             # get example folders: run_basic/example1, run_basic/example2 from check folder
             print(build)
-            build.examples = getExamples(args.check, build,log)
+            build.examples = getExamples(args.check, build, log)
             log.info("build.examples"+str(build.examples))
 
             if len(build.examples) == 0 :
@@ -831,18 +858,26 @@ def PerformCheck(start,builds,args,log) :
                 build.result += ", " + s
                 print(s)
             # 2.   loop over all example directories
+
+            # create folder to collect all code coverage reports for this build 
+            if args.coverage:
+                combined_cov_path = os.path.join(build.source_directory , "combined_reports")
+                tools.create_folder(combined_cov_path)
+
             for example in build.examples :
                 log.info(str(example))
                 print(str(example))
 
                 # 2.1    read the command line options in 'command_line.ini' for binary execution
                 #        (e.g. number of threads for mpirun)
+                print(example.source_directory)
                 example.command_lines = \
                         getCommand_Lines(args, os.path.join(example.source_directory,'command_line.ini'), example)
 
                 # 2.2    read the analyze options in 'analyze.ini' within each example directory (e.g. L2 error analyze)
                 example.analyzes = \
                         getAnalyzes(os.path.join(example.source_directory,'analyze.ini'), example, args)
+
 
                 # 3.   loop over all command_line options
                 for command_line in example.command_lines :
@@ -853,6 +888,7 @@ def PerformCheck(start,builds,args,log) :
                     command_line.runs = \
                             getRuns(os.path.join(example.source_directory,'parameter.ini' ), command_line)
 
+                    
                     # 4.   loop over all parameter combinations supplied in the parameter file 'parameter.ini'
                     for run in command_line.runs :
                         log.info(str(run))
@@ -866,12 +902,11 @@ def PerformCheck(start,builds,args,log) :
                         external_failed = False
                         for external in run.externals_pre :
                             log.info(str(external))
-
                             print('-' * 132)
                             externalbinary = external.parameters.get("externalbinary")
                             print(tools.green('Preprocessing: Running pre-external [%s] ... ' % externalbinary))
 
-                            # (pre) externals (1.1): get the path and the parameterfiles to the i'th external
+                            # (pre) externals (1.1): get the path and the parameter files to the i'th external
                             external.directory  = run.target_directory + '/'+ external.parameters.get("externaldirectory")
                             external.parameterfiles = [i for i in os.listdir(external.directory) if i.endswith('.ini')]
 
@@ -881,13 +916,21 @@ def PerformCheck(start,builds,args,log) :
                                 # (pre) externals (2.1): consider combinations
                                 external.runs = \
                                         getExternalRuns(os.path.join(external.directory,external.parameterfile), external)
-
+                                external_counter = 1
                                 # (pre) externals (3): loop over all combinations and parameterfiles for the i'th external
                                 for externalrun in external.runs :
                                     log.info(str(externalrun))
-
                                     # (pre) externals (3.1): run the external binary
-                                    externalrun.execute(build,external,args)
+
+                                    # execute code coverage and create external specific coverage reports.
+                                    if args.coverage: 
+                                        cov_path = os.path.join(example.source_directory, "coverage_data")
+                                        tools.create_folder(cov_path)
+                                        externalrun.execute(build,external,args, cov_path, external_counter)
+                                        external_counter += 1
+                                    else:
+                                        externalrun.execute(build,external,args)
+
                                     if not externalrun.successful :
                                         external_failed = True
                                         s = tools.red('Execution (pre) external failed')
@@ -898,8 +941,16 @@ def PerformCheck(start,builds,args,log) :
                             print(tools.green('Preprocessing: External [%s] finished!' % externalbinary))
                             print('-' * 132)
 
+                        if args.coverage:
+                            cov_path = os.path.join(example.source_directory, "coverage_data")
+                            tools.create_folder(cov_path)
+                            run.execute(build,command_line, args, external_failed, cov_path)
+                            
+
                         # 4.2    execute the binary file for one combination of parameters
-                        run.execute(build,command_line,args,external_failed)
+                        if not args.coverage:
+                            run.execute(build,command_line,args,external_failed)
+
                         if not run.successful :
                             Run.total_errors+=1 # add error if run fails
 
@@ -923,12 +974,21 @@ def PerformCheck(start,builds,args,log) :
                                 external.runs = \
                                         getExternalRuns(os.path.join(external.directory,external.parameterfile), external)
 
+                                external_counter = 1
                                 # (post) externals (3): loop over all combinations and parameterfiles for the i'th external
                                 for externalrun in external.runs :
                                     log.info(str(externalrun))
-
                                     # (post) externals (3.1): run the external binary
-                                    externalrun.execute(build,external,args)
+
+                                    # execute code coverage and create external specific coverage reports.
+                                    if args.coverage: 
+                                        cov_path = os.path.join(example.source_directory, "coverage_data")
+                                        tools.create_folder(cov_path)
+                                        externalrun.execute(build,external,args, cov_path, external_counter)
+                                        external_counter += 1#external_str = str(externalrun)
+                                    else:
+                                        externalrun.execute(build,external,args)
+
                                     if not externalrun.successful :
                                         #print(externalrun.return_code)
                                         s = tools.red('Execution (pre) external failed')
@@ -953,7 +1013,7 @@ def PerformCheck(start,builds,args,log) :
                             print(tools.indent(tools.blue(str(analyze)),2))
                             analyze.perform(runs_successful)
                     else : # don't delete build folder after all examples/runs
-                        remove_build_when_successful = False
+                        remove_build_when_succecombined_reportsssful = False
 
                     # 6.   rename all run directories for which the analyze step has failed for at least one test
                     for run in runs_successful :         # all successful runs (failed runs are already renamed)
@@ -980,6 +1040,12 @@ def PerformCheck(start,builds,args,log) :
                         if isinstance(analyze,Analyze_compare_across_commands) :
                             print(tools.indent(tools.blue(str(analyze)),2))
                             analyze.perform(runs_corresponding)
+
+            # combine all coverage.json files to one html summary report. 
+            if args.coverage:
+                target_path = os.path.join(build.source_directory, "combined_reports")
+                cmd_combine = ["gcovr", "--add-tracefile", '"coverage_*.json"', "--html", "combined_report.html"]
+                ExternalCommand().execute_cmd(cmd_combine, target_path)
 
             if remove_build_when_successful and not args.save :
                 tools.remove_folder(build.target_directory)
