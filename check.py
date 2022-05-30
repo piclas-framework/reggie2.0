@@ -87,18 +87,17 @@ class Build(OutputDirectory,ExternalCommand) :
         s_Color   = "C-making with [%s] ..." % (" ".join(self.cmake_cmd_color))
         s_NoColor = "C-making with [%s] ..." % (" ".join(self.cmake_cmd))
 
-        if self.execute_cmd(self.cmake_cmd, self.target_directory, string_info = s_Color) != 0 : # use unclolored string for cmake
+        if self.execute_cmd(self.cmake_cmd, self.target_directory, string_info = s_Color) != 0 : # use uncolored string for cmake
             raise BuildFailedException(self) # "CMAKE failed"
 
         # MAKE: default with '-j'
-        if not os.environ['CMAKE_GENERATOR'] == 'Ninja' :
+        if not os.path.exists(os.path.join(self.target_directory,"build.ninja")) :
             self.make_cmd = ["make", "-j"]
             if buildprocs > 0 : self.make_cmd.append(str(buildprocs))
         else :
             self.make_cmd = ["ninja"]
             if buildprocs > 0 :
-                self.make_cmd.append('-j')
-                self.make_cmd.append(str(buildprocs))
+                self.make_cmd.append("-j"+str(buildprocs))
         # execute cmd in build directory
         s_NoColor="Building with [%s] ..." % (" ".join(self.make_cmd))
 
