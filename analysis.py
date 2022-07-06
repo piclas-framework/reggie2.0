@@ -2030,7 +2030,7 @@ class Analyze_compare_column(Analyze) :
                 run.analyze_successful=False
                 Analyze.total_errors+=1
                 return
-            
+
             # 1.3.1   read data file
             data = np.array([])
             with open(path, 'r') as csvfile:
@@ -2041,7 +2041,7 @@ class Analyze_compare_column(Analyze) :
                     try : # try reading a line from the data file and converting it into a numpy array
                         line = np.array([float(x) for x in row])
                         failed = False
-                    except : # 
+                    except : #
                         header+=1
                         header_line = row
                         failed = True
@@ -2067,7 +2067,7 @@ class Analyze_compare_column(Analyze) :
                     try : # try reading a line from the data file and converting it into a numpy array
                         line_ref = np.array([float(x) for x in row])
                         failed = False
-                    except : # 
+                    except : #
                         header_ref+=1
                         header_line_ref = row
                         failed = True
@@ -2109,7 +2109,7 @@ class Analyze_compare_column(Analyze) :
                     #print header_line[i]
                 s1 = header_line[self.dim]
                 print(tools.indent(tools.blue("Comparing the column [%s]: " % (s1)),2), end=' ') # skip linebreak
-            
+
             # 1.3.5   split the data array and set the two column vector x and y for integration
             data = np.reshape(data, (-1, line_len +1))
             data = np.transpose(data)

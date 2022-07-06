@@ -22,7 +22,7 @@ import re
 def getArgsAndBuilds() :
     """get command line arguments and builds in check directory from 'builds.ini'"""
     parser = argparse.ArgumentParser(description='DESCRIPTION:\nRegression checker for NRG codes.\nSupply the path to a /regressioncheck/checks/ directory within a repository containing a CMakeLists.txt file which can automatically be build using cmake. ', formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('-c', '--carryon', action='store_true', help='''Continue build/run process. 
+    parser.add_argument('-c', '--carryon', action='store_true', help='''Continue build/run process.
       --carryon         : build non-existing binary-combinations and run all examples for thoses builds
       --carryon --run   : run all failed examples''')
     parser.add_argument('-e', '--exe'        , help='Path to executable of code that should be tested.')
@@ -31,6 +31,7 @@ def getArgsAndBuilds() :
     parser.add_argument('-j', '--buildprocs' , help='Number of processors used for compiling (make -j XXX).', type=int, default=0)
     parser.add_argument('-b', '--basedir'    , help='Path to basedir of code that should be tested (contains CMakeLists.txt).')
     parser.add_argument('-y', '--dummy'      , help='Use dummy_basedir and dummy_checks for fast testing on dummy code.', action='store_true')
+    parser.add_argument('-n', '--singledir'  , help='Use a single build directory for all combinations', action='store_true')
     parser.add_argument('-r', '--run'        , help='Run all binaries for all examples with all run-combinations for all existing binaries.', action='store_true' )
     parser.add_argument('-s', '--save'       , help='Do not remove output directories buildsXXXX in output_dir after successful run.', action='store_true')
     parser.add_argument('-t', '--compiletype', help='Override all CMAKE_BUILD_TYPE settings by ignoring the value set in builds.ini (e.g. DEBUG or RELEASE).')
@@ -49,7 +50,7 @@ def getArgsAndBuilds() :
     #parser.set_defaults(referencescopy=False)
     #parser.set_defaults(restartcopy=False)
     #parser.set_defaults(noMPI=False)
-    
+
     # get reggie command line arguments
     args = parser.parse_args()
 
@@ -66,10 +67,10 @@ def getArgsAndBuilds() :
         elif re.search('^eslogin[0-9]+$',hostname) :
             if args.hlrs :
                 raise Exception('Running with -a or --hlrs. Cannot run this program on a login node. Get interactive job and run on mom node!')
-    
+
     # setup basedir
-    if args.dummy : 
-        # For testing reggie during reggie-developement: 
+    if args.dummy :
+        # For testing reggie during reggie-developement:
         # Overwrite basedir and check directory with dummy directories.
         reggieDir = os.path.dirname(os.path.realpath(__file__))
         args.basedir = os.path.join(reggieDir, 'dummy_basedir')
@@ -78,7 +79,7 @@ def getArgsAndBuilds() :
         print("Check   directory switched to '%s'" % args.check)
     else :
         # For real reggie-execution:
-        # Setup basedir (containing CMakeLists.txt) by searching upward from current working directory 
+        # Setup basedir (containing CMakeLists.txt) by searching upward from current working directory
         if args.basedir is None : args.basedir = os.getcwd() # start with current working directory
         try :
             if args.exe is None : # only get basedir if no executable is supplied
@@ -86,7 +87,7 @@ def getArgsAndBuilds() :
         except Exception :
             print(tools.red("Basedir (containing 'CMakeLists.txt') not found!\nEither specify the basedir on the command line or execute reggie within a project with a 'CMakeLists.txt'."))
             exit(1)
-    
+
         # Check if directory exists
         if not os.path.exists(args.check):
             print(tools.red("Check directory not found: '%s'" % args.check))
@@ -104,15 +105,15 @@ def getArgsAndBuilds() :
                 print(tools.red("Check directory supplied is not a directory path: '%s'. Please supply a directory path" % args.check))
                 exit(1)
 
-    
+
 
     # delete the building directory when [carryon = False] and [run = False] before getBuilds is called
     if not args.carryon and not args.run : tools.remove_folder(OutputDirectory.output_dir)
-    
+
     # get builds from checks directory if no executable is supplied
     if args.exe is None : # if not exe is supplied, get builds
         # read build combinations from checks/XX/builds.ini
-        builds = check.getBuilds(args.basedir, args.check,args.compiletype)
+        builds = check.getBuilds(args.basedir,args.check,args.compiletype,args.singledir)
     else :
         if not os.path.exists(args.exe) : # check if executable exists
             print(tools.red("No executable found under '%s'" % args.exe))
@@ -122,21 +123,21 @@ def getArgsAndBuilds() :
             args.noMPIautomatic = check.StandaloneAutomaticMPIDetection(args.exe) # Check possibly existing userblock.txt to find out if the executable was compiled with MPI=ON or MPI=OFF
             args.run = True      # set 'run-mode' do not compile the code
             args.basedir = None  # since code will not be compiled, the basedir is not required
-    
+
     if args.run :
         print("args.run -> skip building")
         # in 'run-mode' remove all build from list of builds if their binaries do not exist (build.binary_exists() == False)
         builds = [build for build in builds if build.binary_exists()]
-    
+
     if len(builds) == 0 :
         print(tools.red("List of 'builds' is empty! Maybe switch off '--run'."))
         exit(1)
-    
+
     # display all command line arguments
     print("Running with the following command line options")
     for arg in list(args.__dict__) :
         print(arg.ljust(15)+" = [ "+str(getattr(args,arg))+" ]")
     print('='*132)
-    
-    
+
+
     return args, builds

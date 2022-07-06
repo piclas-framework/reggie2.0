@@ -21,7 +21,7 @@ import time
 class bcolors :
     """color and font style definitions for changing output appearance"""
     # Reset (user after applying a color to return to normal coloring)
-    ENDC   ='\033[0m'    
+    ENDC   ='\033[0m'
 
     # Regular Colors
     BLACK    = '\033[0;30m'
@@ -69,17 +69,17 @@ def indent(text, amount, ch=' '):
     return ''.join(padding+line for line in text.splitlines(True))
 
 def setup_logger(debug_level):
-    """Setups a global logger with the name 'logger'. 
+    """Setups a global logger with the name 'logger'.
     This logger can accessed in any function by "log = logging.getLogger('logger')".
     Three different logging levels:
         0 : print no logging messages
         1 : print information messages (i.e. print all messages invoked with "log.info(message)")
         2 : print debug + information messages (i.e. print all messages invoked with "log.info(message)" or "log.debug(message)")
-    """ 
+    """
 
     if debug_level == 0   : # no logging
-        formatter = logging.Formatter()  
-    elif debug_level == 1 : # info 
+        formatter = logging.Formatter()
+    elif debug_level == 1 : # info
         formatter = logging.Formatter(fmt='%(message)s')
     elif debug_level == 2 : # debug
         formatter = logging.Formatter(fmt='%(levelname)s - %(module)s: %(message)s')
@@ -122,7 +122,7 @@ def remove_folder(path) :
 def create_folder(path):
     if not os.path.exists(path) :
         i=0
-        # try multiple times to create the directory (on some systems a 
+        # try multiple times to create the directory (on some systems a
         # race condition might occur between creation and checking)
         while True:
             try:
@@ -134,14 +134,14 @@ def create_folder(path):
                 break
             except OSError as e:
                 if e.errno != os.errno.EEXIST:
-                    raise   
+                    raise
                 time.sleep(1) # wait 1 second before next try
                 pass
 
 
 def diff_lists(x,x_ref,tol,tol_type) :
     """
-    determine diff of two lists of floats, either relative of absolute 
+    determine diff of two lists of floats, either relative of absolute
     (if the reference value is zero, use absolute comparison)
     x        : vector of real values
     x_ref    : vector of real values (reference)
@@ -166,13 +166,13 @@ def diff_lists(x,x_ref,tol,tol_type) :
         print("Differences in vector comparison:")
         print(5*"%13s   " % ("x","x_ref","diff","tolerance","type"))
         for i in range(len(diff)) :
-            if not success[i] : 
+            if not success[i] :
                 print(4*"%13.6e   " % (x[i],x_ref[i],diff[i],tol), "%12s" % (executed_tol_type[i]))
     return success
 
 def diff_value(x,x_ref,tol,tol_type) :
     """
-    determine diff of two floats, either relative of absolute 
+    determine diff of two floats, either relative of absolute
     (if the reference value is zero, use absolute comparison)
     x        : scalar
     x_ref    : scalar (reference)

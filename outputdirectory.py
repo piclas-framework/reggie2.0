@@ -16,7 +16,7 @@ import tools
 class OutputDirectory() :
     output_dir = "output_dir"
     def __init__(self, parent, name, number = -1, mkdir=True) :
-        
+
         self.number = number
         self.parent = parent
 
@@ -24,7 +24,7 @@ class OutputDirectory() :
         if self.parent :
             parent_dir = self.parent.target_directory
         else :
-            parent_dir = OutputDirectory.output_dir 
+            parent_dir = OutputDirectory.output_dir
 
         # numbering of directory (if a number is supplied)
         if number >= 0 :

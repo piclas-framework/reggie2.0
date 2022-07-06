@@ -91,7 +91,7 @@ class ExternalCommand() :
                 if not isinstance(out_s, str):
                     out_s = out_s.decode("utf-8", 'ignore')
                 bufOut = bufOut + out_s
-                tmp = bufOut.split('\n') 
+                tmp = bufOut.split('\n')
                 for line in tmp[:-1] :
                     self.stdout.append(line+'\n')
                     log.debug(line)
@@ -104,7 +104,7 @@ class ExternalCommand() :
                 if not isinstance(out_s, str):
                     out_s = out_s.decode("utf-8", 'ignore')
                 bufErr = bufErr + out_s
-                tmp = bufErr.split('\n') 
+                tmp = bufErr.split('\n')
                 for line in tmp[:-1] :
                     self.stderr.append(line+'\n')
                     log.info(line)
@@ -154,6 +154,6 @@ class ExternalCommand() :
                     print(tools.red("%s" % line.strip()))
 
         return self.return_code
-    
+
     def kill(self):
         self.process.kill()
