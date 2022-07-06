@@ -96,7 +96,9 @@ class Build(OutputDirectory,ExternalCommand) :
             if buildprocs > 0 : self.make_cmd.append(str(buildprocs))
         else :
             self.make_cmd = ["ninja"]
-            if buildprocs > 0 :
+            if buildprocs == 0 :
+                self.make_cmd.append("-j0")
+            elif buildprocs > 0 :
                 self.make_cmd.append("-j"+str(buildprocs))
         # execute cmd in build directory
         s_NoColor="Building with [%s] ..." % (" ".join(self.make_cmd))
