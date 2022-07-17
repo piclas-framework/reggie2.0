@@ -995,12 +995,14 @@ def PerformCheck(start,builds,args,log) :
                     if not all([run.analyze_successful for run in runs_successful]) : remove_build_when_successful = False # don't delete build folder after all examples/runs
 
                     # Don't remove when (pre) external fails
-                    for external in run.externals_pre :
-                        if not all([externalrun.successful for externalrun in external.runs]) : remove_build_when_successful = False # don't delete build folder after all examples/runs
+                    for run in runs_successful:
+                        for external in run.externals_pre:
+                            if not all([externalrun.successful for externalrun in external.runs]) : remove_build_when_successful = False # don't delete build folder after all examples/runs
 
                     # Don't remove when (post) external fails
-                    for external in run.externals_post :
-                        if not all([externalrun.successful for externalrun in external.runs]) : remove_build_when_successful = False # don't delete build folder after all examples/runs
+                    for run in runs_successful:
+                        for external in run.externals_post :
+                            if not all([externalrun.successful for externalrun in external.runs]) : remove_build_when_successful = False # don't delete build folder after all examples/runs
 
                 # 7.    perform analyze tests comparing corresponding runs from different commands
                 for iRun in range( len( example.command_lines[0].runs ) ):  # loop over runs of first command
