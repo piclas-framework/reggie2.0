@@ -2038,8 +2038,11 @@ class Analyze_compare_column(Analyze) :
         1.3.9   calculate difference and determine compare with tolerance
         '''
 
+        count = 0
+        NbrOfDifferences = 0
         # 1.  iterate over all runs
         for run in runs :
+            count += 1
             # 1.2   Check existence of the file and reference (copy the ref. file when self.referencescopy = True )
             path             = os.path.join(run.target_directory,self.file)
             path_ref_target  = os.path.join(run.target_directory,self.ref)
@@ -2149,7 +2152,10 @@ class Analyze_compare_column(Analyze) :
                     header_line[i] = header_line[i].replace(" ", "")
                     #print header_line[i]
                 s1 = header_line[self.dim]
-                print(tools.indent(tools.blue("Comparing the column [%s]: " % (s1)),2), end=' ') # skip linebreak
+                if count == 1 or NbrOfDifferences>0:
+                    print(tools.indent(tools.blue("Comparing the column [%s] for run: %s..." % (s1,count)),2), end=' ') # skip linebreak
+                else:
+                    print(tools.indent(tools.blue("%s..." % (count)),2), end=' ') # skip linebreak
 
             # 1.3.5   split the data array and set the two column vector x and y for integration
             data = np.reshape(data, (-1, line_len +1))
@@ -2197,6 +2203,8 @@ class Analyze_compare_column(Analyze) :
                 run.analyze_results.append(s)
                 run.analyze_successful=False
                 Analyze.total_errors+=1
+        # print new line
+        print()
 
 
     def __str__(self) :
