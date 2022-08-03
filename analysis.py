@@ -2068,7 +2068,7 @@ class Analyze_compare_column(Analyze) :
                 return
 
             if not os.path.exists(path_ref_target) :
-                s=tools.red("Analyze_compare_column: cannot find file=[%s] " % (self.ref))
+                s=tools.red("Analyze_compare_column: cannot find reference file=[%s] " % (self.ref))
                 print(s)
                 run.analyze_results.append(s)
                 run.analyze_successful=False
@@ -2170,7 +2170,15 @@ class Analyze_compare_column(Analyze) :
                 x_ref = data_ref
             else:
                 # split the data_ref array and set the two column vector x and y for integration
-                data_ref = np.reshape(data_ref, (-1, line_len +1))
+                try:
+                    data_ref = np.reshape(data_ref, (-1, line_len +1))
+                except Exception as e:
+                    s="cannot perform analyze Analyze_compare_column, because the shape of the data %s is not of the same shape of the reference %s and re-shaping cannot be performed!" % (x.shape,data_ref.shape)
+                    print(tools.red(s))
+                    run.analyze_results.append(s)
+                    run.analyze_successful=False
+                    Analyze.total_errors+=1
+                    return
                 data_ref = np.transpose(data_ref)
                 x_ref    = data_ref[self.dim]
 
