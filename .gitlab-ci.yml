@@ -19,8 +19,6 @@ stages:
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 checkin:
   stage: deploy
-  tags:
-    - withmodules-concurrent
   script:
     - if [ -x "$(command -v python2)" ]; then echo "Testing python 2"; python2 ./reggie.py -h; fi
     - if [ -x "$(command -v python3)" ]; then echo "Testing python r"; python3 ./reggie.py -h; fi
@@ -32,8 +30,6 @@ checkin:
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 github:
   stage: deploy
-  tags:
-    - withmodules-concurrent
   script:
     - if [ -z "${DO_DEPLOY}" ]; then exit ; fi
     - rm -rf reggie_github || true ;
