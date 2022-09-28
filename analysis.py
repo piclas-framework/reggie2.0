@@ -1817,10 +1817,15 @@ class Analyze_compare_data_file(Analyze) :
                     header=0
                     for row in line_str:
                         try :
+                            # This will fail for header lines, but not for '-0.102704038304E-10, 0.190378371853E-10,-0.299883576917E+10'
                             line = np.array([float(x) for x in row])
-                        except :
-                            header+=1
-                            header_line = row
+                        except:
+                            try:
+                                # Try and convert rows like this: ' -0.102704038304E-10   0.190378371853E-10  -0.299883576917E+10' because when "," is the delimiter they are read into a single element
+                                line = np.array([float(x) for x in row[0].split()])
+                            except:
+                                header+=1
+                                header_line = row
                         i+=1
                         if i == line_loc :
                             print(tools.yellow(str(i)), end=' ') # skip line break
@@ -1835,9 +1840,14 @@ class Analyze_compare_data_file(Analyze) :
                     header_ref=0
                     for row in line_str:
                         try :
+                            # This will fail for header lines, but not for '-0.102704038304E-10, 0.190378371853E-10,-0.299883576917E+10'
                             line_ref = np.array([float(x) for x in row])
-                        except :
-                            header_ref+=1
+                        except:
+                            try:
+                                # Try and convert rows like this: ' -0.102704038304E-10   0.190378371853E-10  -0.299883576917E+10' because when "," is the delimiter they are read into a single element
+                                line_ref = np.array([float(x) for x in row[0].split()])
+                            except:
+                                header_ref+=1
                     line_ref_len = len(line_ref)
 
                 # 1.3.3   check length of vectors
@@ -1872,8 +1882,15 @@ class Analyze_compare_data_file(Analyze) :
 
                 else:
                     NbrOfMatches=success.count(True)
-                    s = tools.blue(tools.indent("Compared %s with %s and got %s matches" % (path, reference_file_loc,NbrOfMatches),2))
-                    print(s)
+                    if NbrOfMatches==0:
+                        s=tools.red("Analyze_compare_data_file: Found zero matching values. Wrong data file under [%s] or format that could possibly not be read correctly" % (path))
+                        print(s)
+                        run.analyze_results.append(s)
+                        run.analyze_successful=False
+                        Analyze.total_errors+=1
+                    else:
+                        s = tools.blue(tools.indent("Compared %s with %s and got %s matching columns" % (path, reference_file_loc,NbrOfMatches),2))
+                        print(s)
 
     def __str__(self) :
         return "compare line in data file (e.g. .csv file): file=[%s] and reference file=[%s]" % (self.prms["file"], self.prms["reference_file"])
