@@ -18,6 +18,20 @@ import select
 from timeit import default_timer as timer
 import sys
 import time
+import glob
+
+def replace_wild_cards_recursive(cmd,workingDir):
+    # Check each cmd list entry for a wild card and exchange this entry with the globbed items
+    for i in enumerate(cmd):
+        # Check for wild cards
+        if "*" in i[1]:
+            absolutePath     = os.path.join(workingDir,i[1])
+            files            = sorted(glob.glob(absolutePath), key = lambda x: os.path.splitext(os.path.basename(x))[0])
+            files            = [sub.replace(workingDir+'/', '') for sub in files]
+            cmd[i[0]:i[0]+1] = files
+            # call function recursively to replace multiple wild cards
+            cmd = replace_wild_cards_recursive(cmd,workingDir)
+    return cmd
 
 class ExternalCommand() :
     def __init__(self) :
@@ -66,6 +80,11 @@ class ExternalCommand() :
         bufOut = ""
         bufErr = ""
 
+        # Replace possible wild chards (*) with the globbed entries because the subprocess.Popen takes "*" literally, except when
+        # called with shell=True (which however uses the /bin/sh by default)
+        cmd = replace_wild_cards_recursive(cmd,workingDir)
+
+        # Check if an environment is used and load it into the subprocess if required
         if environment is None :
             self.process = subprocess.Popen(cmd, \
                                             stdout             = pipeOut_w, \
