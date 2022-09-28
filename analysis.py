@@ -1867,7 +1867,12 @@ class Analyze_compare_data_file(Analyze) :
                 if NbrOfDifferences > 0 :
                     s = "Comparison failed for %s with %s\n" % (path, reference_file_loc)
                     s = s+"Found %s differences.\n" % NbrOfDifferences
-                    s = s+"Mismatch in columns: "+", ".join([str(header_line[i]).strip() for i in range(len(success)) if not success[i]])
+                    try:
+                        test = header_line[len(success)-1] # dummy variable to test if the header can be accessed for the last possibly entry or not
+                        s = s+"Mismatch in columns: "+", ".join([str(header_line[i]).strip() for i in range(len(success)) if not success[i]])
+                    except:
+                        # When the header is not in the same structure as the data itself, the simply output the number of the column
+                        s = s+"Mismatch in columns: "+", ".join(['Nbr. '+str(i+1).strip() for i in range(len(success)) if not success[i]])
                     if NbrOfDifferences > max_differences_loc :
                         s = tools.red(s)
                         print(s)
