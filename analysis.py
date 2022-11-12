@@ -1984,7 +1984,7 @@ class Analyze_integrate_line(Analyze) :
                     #print header_line[i]
                 s1 = header_line[self.dim1]
                 s2 = header_line[self.dim2]
-                print(tools.indent(tools.blue("Integrating the column [%s] over [%s]: " % (s2,s1)),2), end=' ') # skip linebreak
+                print(tools.indent(tools.blue("Integrating (trapezoid rule) the column [%s] over [%s] with %s points: " % (s2,s1,max_lines-header)),2), end=' ') # skip linebreak
 
             # 1.3.4   split the data array and set the two column vector x and y for integration
             data = np.reshape(data, (-1, line_len +1))
@@ -2012,19 +2012,30 @@ class Analyze_integrate_line(Analyze) :
                     dQ = dx * (y[i+1]+y[i])/2.0
                 Q += dQ
             Q = Q*self.multiplier
-            print("Integration (trapezoid rule) over %s points gives an integrated value of Q = %s (reference value is %s)" % (max_lines-header,Q,self.integral_value))
+            if self.tolerance_type == 'absolute' :
+                diff = self.integral_value - Q
+            else : # relative comparison
+                ref = abs(self.integral_value)
+                if ref > 0.:
+                    diff = abs(Q/ref-1.0)
+                else:
+                    diff = Q
+            s = "Integrated value: [%s], Reference value: [%s], %s Difference: [%s] (%s tolerance %s)" % \
+                    (Q, self.integral_value, self.tolerance_type, diff, self.tolerance_type, self.tolerance_value)
             # 1.5   calculate difference and determine compare with tolerance
             success = tools.diff_value(Q, self.integral_value, self.tolerance_value, self.tolerance_type)
             if not success :
-                s=tools.red("Mismatch in integrated line: value %s compared with reference value %s (tolerance %s and %s comparison)" % (Q, self.integral_value, self.tolerance_value, self.tolerance_type))
+                s=tools.red("Mismatch in integrated line: "+s )
                 print(s)
                 run.analyze_successful=False
                 run.analyze_results.append(s)
                 Analyze.total_errors+=1
+            else:
+                print(tools.blue(s))
 
 
     def __str__(self) :
-        return "integrate column data over line (e.g. from .csv file): file=[%s] and integrate columns %s over %s (the first column starts at 0)" % (self.file, self.dim2, self.dim1)
+        return "Integrate column data over line (e.g. from .csv file): file=[%s] and integrate columns %s over %s (the first column starts at 0)" % (self.file, self.dim2, self.dim1)
 
 #==================================================================================================
 
