@@ -1865,13 +1865,12 @@ class Analyze_compare_data_file(Analyze) :
 
                 #if not all(success) :
                 if NbrOfDifferences > 0 :
-                    s = "Comparison failed for %s with %s\n" % (path, reference_file_loc)
-                    s = s+"Found %s differences.\n" % NbrOfDifferences
+                    s = "Comparison failed for [%s] with [%s] due to %s differences\n" % (path, reference_file_loc, NbrOfDifferences)
                     try:
                         test = header_line[len(success)-1] # dummy variable to test if the header can be accessed for the last possibly entry or not
                         s = s+"Mismatch in columns: "+", ".join([str(header_line[i]).strip() for i in range(len(success)) if not success[i]])
                     except:
-                        # When the header is not in the same structure as the data itself, the simply output the number of the column
+                        # When the header is not in the same structure as the data itself, simply output the number of the column
                         s = s+"Mismatch in columns: "+", ".join(['Nbr. '+str(i+1).strip() for i in range(len(success)) if not success[i]])
                     if NbrOfDifferences > max_differences_loc :
                         s = tools.red(s)
@@ -1880,9 +1879,9 @@ class Analyze_compare_data_file(Analyze) :
                         run.analyze_successful=False
                         Analyze.total_errors+=1
                     else :
+                        s = s.replace("Comparison failed for", "Comparison ignored for")
                         s2 = ", but %s difference(s) are allowed (given by compare_data_file_max_differences). This analysis is therefore marked as passed." % max_differences_loc
                         s2 = tools.pink(s+s2)
-                        run.analyze_results.append(s2)
                         print(s2)
 
                 else:
