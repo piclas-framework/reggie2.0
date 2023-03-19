@@ -879,12 +879,12 @@ def PerformCheck(start,builds,args,log) :
                             log.info(str(external))
 
                             print('-' * 132)
-                            externalbinary = external.parameters.get("externalbinary")
-                            print(tools.green('Preprocessing: Running pre-external [%s] ... ' % externalbinary))
-
                             # (pre) externals (1.1): get the path and the parameterfiles to the i'th external
                             external.directory  = run.target_directory + '/'+ external.parameters.get("externaldirectory")
                             external.parameterfiles = [i for i in os.listdir(external.directory) if i.endswith('.ini')]
+
+                            externalbinary = external.parameters.get("externalbinary")
+                            print(tools.green('Preprocessing: Running pre-external [%s] in [%s] ... ' % (externalbinary, external.directory)))
 
                             # (pre) externals (2): loop over all parameterfiles available for the i'th external
                             for external.parameterfile in external.parameterfiles :
@@ -930,12 +930,12 @@ def PerformCheck(start,builds,args,log) :
                             log.info(str(external))
 
                             print('-' * 132)
-                            externalbinary = external.parameters.get("externalbinary")
-                            print(tools.green('Postprocessing: Running post-external [%s] ... ' % externalbinary))
-
                             # (post) externals (1.1): get the path and the parameterfiles to the i'th external
                             external.directory  = run.target_directory + '/'+ external.parameters.get("externaldirectory")
                             external.parameterfiles = [i for i in os.listdir(external.directory) if i.endswith('.ini')]
+
+                            externalbinary = external.parameters.get("externalbinary")
+                            print(tools.green('Postprocessing: Running post-external [%s] in [%s] ... ' % (externalbinary, external.directory)))
 
                             # (post) externals (2): loop over all parameterfiles available for the i'th external
                             for external.parameterfile in external.parameterfiles :
