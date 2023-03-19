@@ -62,6 +62,20 @@ def SummaryOfErrors(builds, args) :
                     run.output_strings['MPI']     = command_line.parameters.get('MPI', '-')
                     run.output_strings['time']    = "%2.1f" % run.walltime
                     run.output_strings['Info']    = run.result
+                    run.outputMPIyellow = False
+                    # Check if command_line.ini has MPI>1 but the binary is built with MPI=OFF and therefore executed in single mode
+                    try:
+                        if build.MPIrunDeactivated:
+                            try:
+                                cores = command_line.parameters.get('MPI', '-')
+                                if int(cores) > 1:
+                                    run.output_strings['MPI'] = '%s (changed from %s)' % (1,run.output_strings['MPI'])
+                                    run.outputMPIyellow = True
+                            except Exception as e:
+                                run.output_strings['MPI'] = '%s (changed from %s)' % (1,run.output_strings['MPI'])
+                                run.outputMPIyellow = True
+                    except Exception as e:
+                        pass
                     for key in run.output_strings.keys() :
                         max_lens[key] = max(max_lens[key], len(run.output_strings[key])) # set max column widths for summary table
 
@@ -114,6 +128,8 @@ def SummaryOfErrors(builds, args) :
                             print(tools.yellow(run.output_strings[key].ljust(value)), end=' ') # skip linebreak
                         elif key == "MPI" and any([args.noMPI, args.noMPIautomatic]) :
                             print(tools.yellow("1"), end=' ') # skip linebreak
+                        elif key == "MPI" and run.outputMPIyellow :
+                            print(tools.yellow('%s' % run.output_strings[key].ljust(value)), end=' ') # skip linebreak
                         else :
                             print(run.output_strings[key].ljust(value), end=' ') # skip linebreak
                         print(spacing*' ', end=' ') # skip linebreak
