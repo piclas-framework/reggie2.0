@@ -2014,8 +2014,8 @@ class Analyze_integrate_line(Analyze) :
             if self.tolerance_type == 'absolute' :
                 diff = self.integral_value - Q
             else : # relative comparison
-                ref = abs(self.integral_value)
-                if ref > 0.:
+                ref = self.integral_value
+                if abs(ref) > 0.:
                     diff = abs(Q/ref-1.0)
                 else:
                     diff = Q
