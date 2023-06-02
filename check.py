@@ -193,21 +193,29 @@ def StandaloneAutomaticMPIDetection(binary_path) :
         try :
             cmd=['ldd',binary_path,'|','grep','-i','"libmpi\.\|\<libmpi_"']
             a=' '.join(cmd)
-            p = subprocess.Popen(a, stdout=subprocess.PIPE, shell=True)
-            (output, err) = p.communicate()
+            pipe = subprocess.Popen(a, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+            (std, err) = pipe.communicate()
 
-            if not isinstance(output, str):
-                # convert byte output to string
-                output = output.decode("utf-8", 'ignore')
+            if not isinstance(std, str):
+                # convert byte std to string
+                std = std.decode("utf-8", 'ignore')
 
-            print("output = %s" % (output))
+            if not isinstance(err, str):
+                # convert byte err to string
+                err = err.decode("utf-8", 'ignore')
+
             # Check if the grep result is not empty
-            if output:
+            if std or 'not a dynamic executable' in err:
                 MPIifOFF = False
-                print(tools.yellow("Automatically determined that the executable was compiled with MPI libs\n  File: %s\n  Test: %s" % (binary_path,a)))
+                if 'not a dynamic executable' in err:
+                    err = err.rstrip('\n')
+                    err = err.lstrip()
+                    print(tools.yellow("Automatically determined that the executable was compiled with MPI libs (because file is not a dynamic executable)\n  File: %s\n  Test: %s -> returned '%s'" % (binary_path,a,err)))
+                else:
+                    print(tools.yellow("Automatically determined that the executable was compiled with MPI libs\n  File: %s\n  Test: %s -> returned '%s'" % (binary_path,a,output)))
             else:
                 MPIifOFF = True
-                print(tools.yellow("Automatically determined that the executable was compiled without MPI libs\n  File: %s\n  Test: %s" % (binary_path,a)))
+                print(tools.yellow("Automatically determined that the executable was compiled without MPI libs\n  File: %s\n  Test: %s -> returned '%s'" % (binary_path,a,err)))
 
         except Exception as e: # this fails, if the supplied command line is corrupted
             print(tools.red("Error in StandaloneAutomaticMPIDetection() in check.py:\n%s\nThis program, however, will not be terminated!" % e))
