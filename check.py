@@ -184,7 +184,7 @@ def StandaloneAutomaticMPIDetection(binary_path) :
                                     checkLine = False
 
     except Exception as e:
-        print(tools.red("Error in StandaloneAutomaticMPIDetection() in check.py:\n%s\nThis program, however, will not be terminated!" % e))
+        print(tools.red("Error checking userblock in StandaloneAutomaticMPIDetection() in check.py:\nError message [%s]\nThis program, however, will not be terminated!" % e))
 
     # 2nd Test
     # If the userblock test did not result in MPIifOFF=True, check the shared object dependencies of the executable and search for MPI related libs
@@ -212,13 +212,13 @@ def StandaloneAutomaticMPIDetection(binary_path) :
                     err = err.lstrip()
                     print(tools.yellow("Automatically determined that the executable was compiled with MPI libs (because file is not a dynamic executable)\n  File: %s\n  Test: %s -> returned '%s'" % (binary_path,a,err)))
                 else:
-                    print(tools.yellow("Automatically determined that the executable was compiled with MPI libs\n  File: %s\n  Test: %s -> returned '%s'" % (binary_path,a,output)))
+                    print(tools.yellow("Automatically determined that the executable was compiled with MPI libs\n  File: %s\n  Test: %s -> returned '%s'" % (binary_path,a,std)))
             else:
                 MPIifOFF = True
                 print(tools.yellow("Automatically determined that the executable was compiled without MPI libs\n  File: %s\n  Test: %s -> returned '%s'" % (binary_path,a,err)))
 
         except Exception as e: # this fails, if the supplied command line is corrupted
-            print(tools.red("Error in StandaloneAutomaticMPIDetection() in check.py:\n%s\nThis program, however, will not be terminated!" % e))
+            print(tools.red("Error using ldd in StandaloneAutomaticMPIDetection() in check.py:\nError message [%s]\nThis program, however, will not be terminated!" % e))
 
     return MPIifOFF
 
