@@ -184,8 +184,12 @@ def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None
 
     logging.getLogger('logger').debug("  Total number of combinations for '%s' = %d" % (filename, NumOfCombinationsTotal))
 
-    if NumOfCombinationsTotal > 10000:
-        raise Exception(tools.red("more than 10000 combinations in parameter.ini are not allowed!"))
+    # Maximum number of combinations BEFORE removing the invalid ones (if this value is to be further increased,
+    # maybe think about re-writing the code and remove invalid combinations from the start)
+    maxCombinations = int(1e5)
+
+    if NumOfCombinationsTotal > maxCombinations:
+        raise Exception(tools.red("%s is more than %s combinations in parameter.ini which is not allowed!" % (NumOfCombinationsTotal, maxCombinations)))
 
     # 2.2 build all valid combinations (all that do not match any exclusion)
     for i in range(NumOfCombinationsTotal) :         # iterate index 'i' over NumOfCombinationsTotal
