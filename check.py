@@ -137,15 +137,16 @@ def StandaloneAutomaticMPIDetection(binary_path) :
     try:
         # Check if userblock exists and read it, otherwise don't do anything and continue
         userblock = os.path.join(os.path.dirname(os.path.abspath(binary_path)),'userblock.txt')
+        #print("Checking userblock under %s " % userblock)
         if os.path.exists(userblock):
-            checkLine = False
+            checkCMAKELine = False
+            checklibstaticLine = False
             with open(userblock) as f :
                 for line in f.readlines() :   # iterate over all lines of the file
                     line = line.rstrip('\n')
 
-                    # Only check lines within the "CMAKE" block
-                    if checkLine:
-                        #print(line)
+                    # Only check lines within the "{[( CMAKE )]}" block
+                    if checkCMAKELine:
                         Parentheses = re.search(r'\((.+)\)', line)
                         if Parentheses:
                             text = Parentheses.group(0) # get text
@@ -166,22 +167,52 @@ def StandaloneAutomaticMPIDetection(binary_path) :
                                     print(tools.yellow("Automatically determined that the executable was compiled with MPI=ON\n  File: %s\n  Line: %s" % (userblock,line)))
                                     break
 
-                    # Check which block is being passed and extract the "CMAKE" block
+                    # Only check lines within the "{[( libpiclasstatic.dir/flags.make )]}" block
+                    if checklibstaticLine:
+                        if "-DUSE_MPI=0" in line:
+                            MPIifOFF = True
+                            userblockChecked = True
+                            print(tools.yellow("Automatically determined that the executable was compiled with MPI=OFF (-DUSE_MPI=0)\n  File: %s\n  Line: %s" % (userblock,line)))
+                            break
+                        elif "-DUSE_MPI=1" in line:
+                            MPIifOFF = False
+                            userblockChecked = True
+                            print(tools.yellow("Automatically determined that the executable was compiled with MPI=ON (-DUSE_MPI=1)\n  File: %s\n  Line: %s" % (userblock,line)))
+                            break
+
+                    # Check which block is being passed and extract the "CMAKE" block, other blocks will be ignores
+                    # Find { } strings
                     Braces = re.search(r'\{(.+)\}', line)
                     if Braces:
+                        # mytext = line
                         mytext = Braces.group(0)
+                        # Find [ ] strings
                         SquareBrackets = re.search(r'\[(.+)\]', mytext)
+                        # Check string within [ ]
                         if SquareBrackets:
+                            # Get string
                             mytext = SquareBrackets.group(0)
+                            # Find ( ) strings
                             Parentheses = re.search(r'\((.+)\)', mytext)
+                            # Check string within ( )
                             if Parentheses:
+                                # Get string
                                 parameter = Parentheses.group(0) # get text
-                                parameter = parameter[1:-1]      # remove opening and closing parentheses
-                                parameter = parameter.strip()    # remove leading and trailing white spaces
+                                # Remove opening and closing parentheses
+                                parameter = parameter[1:-1]
+                                # Remove leading and trailing white spaces
+                                parameter = parameter.strip()
+                                # Get lower case string and set logical if, finally, the line {[( CMAKE )]} is found
                                 if parameter.lower() == 'cmake':
-                                    checkLine = True
+                                    checkCMAKELine = True
                                 else:
-                                    checkLine = False
+                                    checkCMAKELine = False
+                                # Get lower case string and set logical if, finally, the line {[( libpiclasstatic.dir/flags.make )]} is found
+                                parameter = parameter.lower()
+                                if parameter.startswith('lib') and parameter.endswith('static.dir/flags.make'):
+                                    checklibstaticLine = True
+                                else:
+                                    checklibstaticLine = False
 
     except Exception as e:
         print(tools.red("Error checking userblock in StandaloneAutomaticMPIDetection() in check.py:\nError message [%s]\nThis program, however, will not be terminated!" % e))
