@@ -2160,12 +2160,12 @@ class Analyze_compare_column(Analyze) :
                 header_ref=0
                 # Sanity check: either reference file has 2 columns or at least as many columns as the column number selected for comparison
                 column_count_ref = len(next(line_str))       # Get the number of columns from the first row
-                if column_count_ref == 2:
-                    refDim = 1                               # Use the second column for the comparison
+                if column_count_ref == 1:
+                    refDim = 0                               # Use the only available column for the comparison
                 elif column_count_ref-1 >= self.dim:
                     refDim = self.dim
                 elif column_count_ref-1 < self.dim:
-                    s="Cannot perform analyze Analyze_compare_column, because the supplied column (%s) in %s exceeds the number of columns (%s) in the data file (the first column must start at 0)" % (self.dim, path_ref, 0)
+                    s="Cannot perform analyze Analyze_compare_column, because the supplied column (%s) in %s exceeds the number of columns (%s) in the reference file (the first column must start at 0)" % (self.dim, path_ref, 0)
                     print(tools.red(s))
                     run.analyze_results.append(s)
                     run.analyze_successful=False

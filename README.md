@@ -129,23 +129,47 @@ gitlab-ci.py
 
 # Analyze routines for "analyze.ini"
   
-1. [L2 error file](#l2-error-file)
-1. [L2 error upper limit](#l2-error-upper-limit)
-1. [h-convergence test](#h-convergence-test)
-1. [p-convergence test](#p-convergence-test)
-1. [h5diff](#h5diff)
-    1. [h5diff (multiple files)](#h5diff-multiple-files)
-        1. [Example with h5diff_one_diff_per_run = F](#example-with-h5diff_one_diff_per_run-f)
-        1. [Example with h5diff_one_diff_per_run = T](#example-with-h5diff_one_diff_per_run-t)
-    1. [h5diff (additional options)](#h5diff-additional-options)
-        1. [Dataset Sorting](#dataset-sorting)
-        1. [Multiple dataset names](#multiple-dataset-names)
-1. [h5 array bounds check](#h5-array-bounds-check)
-1. [Data file line comparison](#data-file-line-comparison)
-1. [integrate data columns](#integrate-data-columns)
-1. [compare data columns](#compare-data-column)
-1. [compare across commands](#compare-across-commands)
-1. [Clean-up files after each run](#clean-up-files)
+- [Reggie2.0 toolbox](#reggie20-toolbox)
+  - [Python version compatibility](#python-version-compatibility)
+    - [print() function](#print-function)
+    - [Python 3 can't concat bytes to str](#python-3-cant-concat-bytes-to-str)
+    - [Lists of (key, value) pairs](#lists-of-key-value-pairs)
+    - [Integer division](#integer-division)
+    - [Items](#items)
+  - [Overview](#overview)
+  - [Code hierarchy and required *.ini* files](#code-hierarchy-and-required-ini-files)
+- [Analyze routines for "analyze.ini"](#analyze-routines-for-analyzeini)
+- [L2 error file](#l2-error-file)
+- [L2 error upper limit](#l2-error-upper-limit)
+- [h-convergence test](#h-convergence-test)
+- [p-convergence test](#p-convergence-test)
+- [h5diff](#h5diff)
+  - [h5diff (multiple files)](#h5diff-multiple-files)
+    - [Example with `h5diff_one_diff_per_run = F`](#example-with-h5diff_one_diff_per_run--f)
+    - [Example with `h5diff_one_diff_per_run = T`](#example-with-h5diff_one_diff_per_run--t)
+  - [h5diff (additional options)](#h5diff-additional-options)
+    - [Dataset Sorting](#dataset-sorting)
+    - [Dataset Re-Shaping](#dataset-re-shaping)
+    - [Multiple dataset names](#multiple-dataset-names)
+- [h5 array bounds check](#h5-array-bounds-check)
+- [Data file line comparison](#data-file-line-comparison)
+    - [Example 1 of 4](#example-1-of-4)
+    - [Example 2 of 4](#example-2-of-4)
+    - [Example 3 of 4](#example-3-of-4)
+    - [Example 4 of 4](#example-4-of-4)
+- [integrate data columns](#integrate-data-columns)
+- [compare data column](#compare-data-column)
+- [Compare across commands](#compare-across-commands)
+- [Clean-up files](#clean-up-files)
+- [Command Line](#command-line)
+    - [Example](#example)
+- [Externals](#externals)
+    - [Example](#example-1)
+- [Builds](#builds)
+- [Runs](#runs)
+    - [Exclude runs directly](#exclude-runs-directly)
+    - [Use the same parameter list for multiple parameters in parameter.ini](#use-the-same-parameter-list-for-multiple-parameters-in-parameterini)
+    - [Example](#example-2)
 
 
 The parameters used in `analyze.ini` and example arguments are given in the following table. Note that if you intend to use white spaces in variable names they must be supplied in form of `\s` in the variable name. 
@@ -206,7 +230,7 @@ The intention of a white space must be stated explicitly.
 | compare data column      | compare\_column\_file                               | PartAnalyze.csv                       | None                | name of calculated output file (e.g. .csv file)                                                                                                                                                                                          |
 |                          | compare\_column\_reference\_file                    | Reference.csv                         | None                | name of of the reference file                                                                                                                                                                                                            |
 |                          | compare\_column\_delimiter                          | :                                     | ,                   | delimiter symbol, default is comma ',' (note that a comma cannot be supplied in this file as it is a delimiter itself)                                                                                                                   |
-|                          | compare\_column\_index                              | 0                                     | None                | column index for comparison (Note that the index of the column start at 0)                                                                                                                                                               |
+|                          | compare\_column\_index                              | 0                                     | None                | column indices for comparison, multiple columns per file are possible (Note that the index of the column start at 0)                                                                                                                                                               |
 |                          | compare\_column\_tolerance_value                    | 0.8e-2                                | None                | tolerance that is used in comparison                                                                                                                                                                                                     |
 |                          | compare\_column\_tolerance_type                     | relative                              | None                | type of tolerance, either 'absolute' or 'relative'                                                                                                                                                                                       |
 |                          | compare\_column\_multiplier                         | 1                                     | 1                   | factor for multiplying the result (in order to acquire a physically meaning value for comparison)                                                                                                                                        |
@@ -486,6 +510,8 @@ Note that a comma is the default delimiter symbol for reading the data from the 
 # compare data column
 * compares the data in a column with a reference file
 * The data is delimited by a comma on default but can be changed by setting "compare\_column\_delimiter = :" (when, e.g., ":" is to be used as the delimiter)
+* Comparison of several columns is possible by providing a list of the column indices
+* If only a single column (e.g. from a large PartAnalyze.csv) is compared, it is possible to provide a reference file, which only contains a single column to reduce its size
 
 Template for copying to **analyze.ini**
 
@@ -493,7 +519,7 @@ Template for copying to **analyze.ini**
 ! compare columns in a data file
 compare_column_file            = PartAnalyze.csv ! data file name
 compare_column_reference_file  = reference.csv   ! reference data file name
-compare_column_index           = 0               ! columns index (starts at 0)
+compare_column_index           = 0,1             ! columns index (starts at 0)
 compare_column_tolerance_value = 0.8e-2          ! tolerance
 compare_column_tolerance_type  = relative        ! absolute or relative comparison
 compare_column_multiplier      = 5e-3            ! fixed factor
