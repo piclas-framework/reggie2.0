@@ -357,7 +357,6 @@ def getAnalyzes(path, example, args) :
             raise Exception(tools.red("initialization of compare column failed. compare_column_tolerance_type '%s' not accepted." % CompareColumn.tolerance_type))
         # Loop over the supplied column indices
         for idx in CompareColumn.index:
-            print(idx)
             analyze.append(Analyze_compare_column(CompareColumn,idx))
 
     # 2.10   compare corresponding files from different commands
