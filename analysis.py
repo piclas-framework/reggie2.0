@@ -355,7 +355,9 @@ def getAnalyzes(path, example, args) :
             CompareColumn.tolerance_type = "relative"
         else :
             raise Exception(tools.red("initialization of compare column failed. compare_column_tolerance_type '%s' not accepted." % CompareColumn.tolerance_type))
-        analyze.append(Analyze_compare_column(CompareColumn))
+        # Loop over the supplied column indices
+        for idx in CompareColumn.index:
+            analyze.append(Analyze_compare_column(CompareColumn,idx))
 
     # 2.10   compare corresponding files from different commands
     #   compare_across_commands_file             : file name (path) which is analyzed
@@ -2039,11 +2041,11 @@ class Analyze_integrate_line(Analyze) :
 #==================================================================================================
 
 class Analyze_compare_column(Analyze) :
-    def __init__(self, CompareColumn) :
+    def __init__(self, CompareColumn, ColumnIndex) :
         self.file                = CompareColumn.file
         self.ref                 = CompareColumn.reference_file
         self.delimiter           = CompareColumn.delimiter
-        self.dim                 = int(CompareColumn.index)
+        self.dim                 = int(ColumnIndex)
         self.tolerance_value     = float(CompareColumn.tolerance_value)
         self.tolerance_type      = CompareColumn.tolerance_type
         self.multiplier          = float(CompareColumn.multiplier)
@@ -2113,18 +2115,34 @@ class Analyze_compare_column(Analyze) :
                 line_str = csv.reader(csvfile, delimiter=self.delimiter, quotechar='!')
                 max_lines=0
                 header=0
+                # Get the number of columns from the first row
+                first_row = next(line_str)
+                column_count = len(first_row)
+                # Rewind csv file back to the beginning
+                csvfile.seek(0)
+                # Sanity check: number of columns should not be smaller than the selected column
+                if column_count-1 < self.dim:
+                    s="Cannot perform analyze Analyze_compare_column, because the supplied column (%s) in %s exceeds the number of columns (%s) in the data file (the first column must start at 0)" % (self.dim, path_ref, 0)
+                    print(tools.red(s))
+                    run.analyze_results.append(s)
+                    run.analyze_successful=False
+                    Analyze.total_errors+=1
+                    return
                 for row in line_str:
-                    try : # try reading a line from the data file and converting it into a numpy array
-                        line = np.array([float(x) for x in row])
+                    # try reading a value from the column from the data file and converting it into a numpy array
+                    try :
+                        line = np.array([float(row[self.dim])])
                         failed = False
-                    except : #
+                    # Assuming that the header line cannot be converted into a float and store the header line
+                    except :
                         header+=1
-                        header_line = row
+                        header_line = row[self.dim]
                         failed = True
                     if not failed :
                         data = np.append(data, line)
                     max_lines+=1
 
+            # Check if any data has been read-in
             if failed :
                 s="Analyze_compare_column: reading of the data file [%s] has failed.\nNo float type data could be read. Check the file content." %path
                 print(tools.red(s))
@@ -2139,13 +2157,28 @@ class Analyze_compare_column(Analyze) :
                 line_str = csv.reader(csvfile_ref, delimiter=self.delimiter, quotechar='!')
                 max_lines_ref=0
                 header_ref=0
+                # Sanity check: either reference file has 2 columns or at least as many columns as the column number selected for comparison
+                column_count_ref = len(next(line_str))       # Get the number of columns from the first row
+                if column_count_ref == 1:
+                    refDim = 0                               # Use the only available column for the comparison
+                elif column_count_ref-1 >= self.dim:
+                    refDim = self.dim
+                elif column_count_ref-1 < self.dim:
+                    s="Cannot perform analyze Analyze_compare_column, because the supplied column (%s) in %s exceeds the number of columns (%s) in the reference file (the first column must start at 0)" % (self.dim, path_ref, 0)
+                    print(tools.red(s))
+                    run.analyze_results.append(s)
+                    run.analyze_successful=False
+                    Analyze.total_errors+=1
+                    return
                 for row in line_str:
-                    try : # try reading a line from the data file and converting it into a numpy array
-                        line_ref = np.array([float(x) for x in row])
+                    # Try reading a value from the column from the data file and converting it into a numpy array
+                    try :
+                        line_ref = np.array([float(row[refDim])])
                         failed = False
-                    except : #
+                    # Assuming that the header line cannot be converted into a float and store the header line
+                    except :
                         header_ref+=1
-                        header_line_ref = row
+                        header_line_ref = row[refDim]
                         failed = True
                     if not failed :
                         data_ref = np.append(data_ref, line_ref)
@@ -2159,64 +2192,17 @@ class Analyze_compare_column(Analyze) :
                 Analyze.total_errors+=1
                 return
 
-            # 1.3.3 check column number in file and reference file
-            line_len = len(line) - 1
-            if line_len < self.dim :
-                s="cannot perform analyze Analyze_compare_column, because the supplied column (%s) in %s exceeds the number of columns (%s) in the data file (the first column must start at 0)" % (self.dim, path, line_len)
-                print(tools.red(s))
-                run.analyze_results.append(s)
-                run.analyze_successful=False
-                Analyze.total_errors+=1
-                return
-
-            line_len_ref = len(line_ref) - 1
-            if line_len_ref < 0 :
-                s="cannot perform analyze Analyze_compare_column, because the supplied column (%s) in %s exceeds the number of columns (%s) in the data file (the first column must start at 0)" % (self.dim, path_ref, 0)
-                print(tools.red(s))
-                run.analyze_results.append(s)
-                run.analyze_successful=False
-                Analyze.total_errors+=1
-                return
-
-            # 1.3.4   get header information for integrated columns
+            # 1.3.4   get header information for column
             if header > 0 :
-                for i in range(line_len+1) :
-                    header_line[i] = header_line[i].replace(" ", "")
-                    #print header_line[i]
-                s1 = header_line[self.dim]
+                s1 = header_line
                 if count == 1 or NbrOfDifferences>0:
-                    print(tools.indent(tools.blue("Comparing the column [%s] for run: %s..." % (s1,count)),2), end=' ') # skip linebreak
+                    print(tools.indent(tools.blue("Comparing the column [%s] for run: %s..." % (header_line,count)),2), end=' ') # skip linebreak
                 else:
                     print(tools.indent(tools.blue("%s..." % (count)),2), end=' ') # skip linebreak
 
-            # 1.3.5   split the data array and set the two column vector x and y for integration
-            data = np.reshape(data, (-1, line_len +1))
-            data = np.transpose(data)
-            x     = data[self.dim]
-
-            # 1.3.6   Check if data_ref consists of
-            #           a) only the reference column data OR
-            #           b) the complete data table, i.e., the same data structure as the comparison data (if so, also split the data_ref array and set the two column vector x and y for integration)
-            if x.shape == data_ref.shape:
-                # Copy the data_ref data to x_ref for comparing that with x
-                x_ref = data_ref
-            else:
-                # split the data_ref array and set the two column vector x and y for integration
-                try:
-                    data_ref = np.reshape(data_ref, (-1, line_len +1))
-                except Exception as e:
-                    s="cannot perform analyze Analyze_compare_column, because the shape of the data %s is not of the same shape of the reference %s and re-shaping cannot be performed!" % (x.shape,data_ref.shape)
-                    print(tools.red(s))
-                    run.analyze_results.append(s)
-                    run.analyze_successful=False
-                    Analyze.total_errors+=1
-                    return
-                data_ref = np.transpose(data_ref)
-                x_ref    = data_ref[self.dim]
-
             # 1.3.7   Check dimensions of the arrays
-            if x.shape != x_ref.shape:
-                s="cannot perform analyze Analyze_compare_column, because the shape of the data in file=[%s] is %s and that of the reference=[%s] is %s. They cannot be different!" % (self.file,x.shape,self.ref,x_ref.shape)
+            if data.shape != data_ref.shape:
+                s="cannot perform analyze Analyze_compare_column, because the shape of the data in file=[%s] is %s and that of the reference=[%s] is %s. They cannot be different!" % (self.file,data.shape,self.ref,data_ref.shape)
                 print(tools.red(s))
                 run.analyze_results.append(s)
                 run.analyze_successful=False
@@ -2233,7 +2219,7 @@ class Analyze_compare_column(Analyze) :
                 return
 
             # 1.3.9   calculate difference and determine compare with tolerance
-            success = tools.diff_lists(x, x_ref, self.tolerance_value, self.tolerance_type)
+            success = tools.diff_lists(data, data_ref, self.tolerance_value, self.tolerance_type)
             NbrOfDifferences = success.count(False)
 
             if NbrOfDifferences > 0 :

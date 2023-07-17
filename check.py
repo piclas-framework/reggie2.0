@@ -437,11 +437,12 @@ def getExternals(path, example, build) :
         # Check directory
         externaldirectory = combi.get('externaldirectory',None)
         if not externaldirectory or not os.path.exists(os.path.join(example.source_directory, externaldirectory)) : # string is or empty and path does not exist
-            s = tools.red('getExternals: "externaldirectory" is empty or the path [%s] does not exist' % os.path.join(example.source_directory,externaldirectory))
-            externals_errors.append(s)
-            print(s)
-            ExternalRun.total_errors+=1 # add error if externalrun fails
-            continue
+            if not externaldirectory.endswith('.ini'):
+                s = tools.red('getExternals: "externaldirectory" is empty or the path [%s] does not exist' % os.path.join(example.source_directory,externaldirectory))
+                externals_errors.append(s)
+                print(s)
+                ExternalRun.total_errors+=1 # add error if externalrun fails
+                continue
 
         # Check binary
         binary_found = False # default
@@ -922,15 +923,19 @@ def PerformCheck(start,builds,args,log) :
 
                             print('-' * 132)
                             # (pre) externals (1.1): get the path and the parameterfiles to the i'th external
-                            external.directory  = run.target_directory + '/'+ external.parameters.get("externaldirectory")
-                            external.parameterfiles = [i for i in os.listdir(external.directory) if i.endswith('.ini')]
+                            externaldirectory = external.parameters.get("externaldirectory")
+                            if externaldirectory.endswith('.ini'):
+                                external.directory  = run.target_directory
+                                external.parameterfiles = [externaldirectory]
+                            else:
+                                external.directory  = run.target_directory + '/'+ externaldirectory
+                                external.parameterfiles = [i for i in os.listdir(external.directory) if i.endswith('.ini')]
 
                             externalbinary = external.parameters.get("externalbinary")
                             print(tools.green('Preprocessing: Running pre-external [%s] in [%s] ... ' % (externalbinary, external.directory)))
 
                             # (pre) externals (2): loop over all parameterfiles available for the i'th external
                             for external.parameterfile in external.parameterfiles :
-
                                 # (pre) externals (2.1): consider combinations
                                 external.runs = \
                                         getExternalRuns(os.path.join(external.directory,external.parameterfile), external)

@@ -96,7 +96,7 @@ def readValueFromFile(filename,key) :
     return currentValue
 
 def readKeyValueFile(filename) :
-    # General worflow:
+    # General workflow:
     # 1.  Read file line by line:
     # 1.1   get exclusion from line (if line starts with 'exclude:')
     # 1.2   get noCrossCombination from line (if line starts with 'nocrosscombination:')
