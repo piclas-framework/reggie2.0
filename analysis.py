@@ -2116,8 +2116,7 @@ class Analyze_compare_column(Analyze) :
                 max_lines=0
                 header=0
                 # Get the number of columns from the first row
-                first_row = next(line_str)
-                column_count = len(first_row)
+                column_count = len(next(line_str))
                 # Rewind csv file back to the beginning
                 csvfile.seek(0)
                 # Sanity check: number of columns should not be smaller than the selected column
@@ -2157,8 +2156,11 @@ class Analyze_compare_column(Analyze) :
                 line_str = csv.reader(csvfile_ref, delimiter=self.delimiter, quotechar='!')
                 max_lines_ref=0
                 header_ref=0
-                # Sanity check: either reference file has 2 columns or at least as many columns as the column number selected for comparison
-                column_count_ref = len(next(line_str))       # Get the number of columns from the first row
+                # Get the number of columns from the first row
+                column_count_ref = len(next(line_str))
+                # Rewind csv file back to the beginning
+                csvfile_ref.seek(0)
+                # Sanity check: either reference file has 1 column or at least as many columns as the column number selected for comparison
                 if column_count_ref == 1:
                     refDim = 0                               # Use the only available column for the comparison
                 elif column_count_ref-1 >= self.dim:
