@@ -343,7 +343,7 @@ def getAnalyzes(path, example, args) :
                     file            = options.get('compare_column_file',None), \
                     reference_file  = options.get('compare_column_reference_file',None), \
                     delimiter       = options.get('compare_column_delimiter',','), \
-                    index           = options.get('compare_column_index',None), \
+                    index           = [int(x)   for x in options.get('compare_column_index',None).split(",")], \
                     tolerance_value = options.get('compare_column_tolerance_value',1e-5), \
                     tolerance_type  = options.get('compare_column_tolerance_type','absolute'), \
                     multiplier      = options.get('compare_column_multiplier',1), \
@@ -2045,7 +2045,7 @@ class Analyze_compare_column(Analyze) :
         self.file                = CompareColumn.file
         self.ref                 = CompareColumn.reference_file
         self.delimiter           = CompareColumn.delimiter
-        self.dim                 = int(ColumnIndex)
+        self.dim                 = ColumnIndex
         self.tolerance_value     = float(CompareColumn.tolerance_value)
         self.tolerance_type      = CompareColumn.tolerance_type
         self.multiplier          = float(CompareColumn.multiplier)
