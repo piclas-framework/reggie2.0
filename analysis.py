@@ -343,18 +343,30 @@ def getAnalyzes(path, example, args) :
                     file            = options.get('compare_column_file',None), \
                     reference_file  = options.get('compare_column_reference_file',None), \
                     delimiter       = options.get('compare_column_delimiter',','), \
-                    index           = [int(x)   for x in options.get('compare_column_index',None).split(",")], \
+                    index           = options.get('compare_column_index',None), \
                     tolerance_value = options.get('compare_column_tolerance_value',1e-5), \
                     tolerance_type  = options.get('compare_column_tolerance_type','absolute'), \
                     multiplier      = options.get('compare_column_multiplier',1), \
                     referencescopy  = args.referencescopy )
     if all([CompareColumn.file, CompareColumn.reference_file,  CompareColumn.delimiter, CompareColumn.index]) :
+
+        # Split indices only if the string is not empty
+        if CompareColumn.index is not None:
+            if type(CompareColumn.index) == type([]):
+                # make integers from list
+                CompareColumn.index = [int(x) for x in CompareColumn.index]
+            else:
+                # Split string
+                CompareColumn.index = [int(x) for x in CompareColumn.index.split(",")]
+
+        # Set tolerance names
         if CompareColumn.tolerance_type in ('absolute', 'delta', '--delta') :
             CompareColumn.tolerance_type = "absolute"
         elif CompareColumn.tolerance_type in ('relative', "--relative") :
             CompareColumn.tolerance_type = "relative"
         else :
             raise Exception(tools.red("initialization of compare column failed. compare_column_tolerance_type '%s' not accepted." % CompareColumn.tolerance_type))
+
         # Loop over the supplied column indices
         for idx in CompareColumn.index:
             analyze.append(Analyze_compare_column(CompareColumn,idx))
