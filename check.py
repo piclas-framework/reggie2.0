@@ -904,7 +904,6 @@ def PerformCheck(start,builds,args,log) :
                     database_path = command_line.parameters.get('database',None)
                     if database_path is not None:
                         database_path = os.path.abspath(os.path.join(example.source_directory,database_path))
-                        print(database_path)
                         if not os.path.exists(database_path) :
                             s=tools.red("command_line.ini: cannot find file=[%s] " % (database_path))
                             print(s)
