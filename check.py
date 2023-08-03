@@ -901,6 +901,14 @@ def PerformCheck(start,builds,args,log) :
                 # 3.   loop over all command_line options
                 for command_line in example.command_lines :
                     log.info(str(command_line))
+                    database_path = command_line.parameters.get('database',None)
+                    if database_path is not None:
+                        database_path = os.path.abspath(os.path.join(example.source_directory,database_path))
+                        print(database_path)
+                        if not os.path.exists(database_path) :
+                            s=tools.red("command_line.ini: cannot find file=[%s] " % (database_path))
+                            print(s)
+                            exit(1)
 
                     # 3.1    read the executable parameter file 'parameter.ini' (e.g. flexi.ini with which
                     #        flexi will be started), N=, mesh=, etc.
@@ -910,7 +918,10 @@ def PerformCheck(start,builds,args,log) :
                     # 4.   loop over all parameter combinations supplied in the parameter file 'parameter.ini'
                     for run in command_line.runs :
                         log.info(str(run))
-
+                        if database_path is not None and os.path.exists(run.target_directory):
+                            head, tail = os.path.split(database_path)
+                            os.symlink(database_path, os.path.join(run.target_directory,tail))
+                            print(tools.green('Preprocessing: Linked database [%s] to [%s] ... ' % (database_path, run.target_directory)))
                         # 4.1 read the external options in 'externals.ini' within each example directory (e.g. eos, hopr, posti)
                         #     distinguish between pre- and post processing
                         run.externals_pre, run.externals_post, run.externals_errors = \
