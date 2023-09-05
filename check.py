@@ -988,8 +988,13 @@ def PerformCheck(start,builds,args,log) :
 
                             print('-' * 132)
                             # (post) externals (1.1): get the path and the parameterfiles to the i'th external
-                            external.directory  = run.target_directory + '/'+ external.parameters.get("externaldirectory")
-                            external.parameterfiles = [i for i in os.listdir(external.directory) if i.endswith('.ini')]
+                            externaldirectory = external.parameters.get("externaldirectory")
+                            if externaldirectory.endswith('.ini'):
+                                external.directory  = run.target_directory
+                                external.parameterfiles = [externaldirectory]
+                            else:
+                                external.directory  = run.target_directory + '/'+ externaldirectory
+                                external.parameterfiles = [i for i in os.listdir(external.directory) if i.endswith('.ini')]
 
                             externalbinary = external.parameters.get("externalbinary")
                             print(tools.green('Postprocessing: Running post-external [%s] in [%s] ... ' % (externalbinary, external.directory)))
