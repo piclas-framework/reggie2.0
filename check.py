@@ -560,7 +560,7 @@ class ExternalRun(OutputDirectory,ExternalCommand) :
         if cmd_pre_execute:
             cmd_pre = cmd_pre_execute.split()
             s="Running [%s] ..." % (" ".join(cmd_pre))
-            self.execute_cmd(cmd_pre, external.directory, string_info = tools.indent(s, 2)) # run something
+            self.execute_cmd(cmd_pre, external.directory, string_info = tools.indent(s, 3)) # run something
 
         if self.return_code != 0 :
             self.successful = False
@@ -571,7 +571,7 @@ class ExternalRun(OutputDirectory,ExternalCommand) :
             print(tools.indent("Cannot run the code: "+s,2))
         else :
             s="Running [%s] ..." % (" ".join(cmd))
-            self.execute_cmd(cmd, external.directory, string_info = tools.indent(s, 2)) # run the code
+            self.execute_cmd(cmd, external.directory, string_info = tools.indent(s, 3)) # run the code
 
         if self.return_code != 0 :
             self.successful = False
@@ -915,7 +915,10 @@ def PerformCheck(start,builds,args,log) :
                             getRuns(os.path.join(example.source_directory,'parameter.ini' ), command_line)
 
                     # 4.   loop over all parameter combinations supplied in the parameter file 'parameter.ini'
+                    RunCount=0
                     for run in command_line.runs :
+                        RunCount+=1
+                        print(tools.indent('Run %s of %s' % (RunCount,len(command_line.runs)),1))
                         log.info(str(run))
                         if database_path is not None and os.path.exists(run.target_directory):
                             head, tail = os.path.split(database_path)
@@ -928,10 +931,19 @@ def PerformCheck(start,builds,args,log) :
 
                         # (pre) externals (1): loop over all externals available in external.ini
                         external_failed = False
+                        if run.externals_pre is None:
+                            PreprocessingActive = False
+                        else:
+                            if len(run.externals_pre) == 0:
+                                PretprocessingActive = False
+                            else:
+                                PreprocessingActive = True
+                                externalbinaries = [external.parameters.get("externalbinary") for external in run.externals_pre]
+                                print(tools.indent(tools.green('Preprocessing: Started  %s pre-externals' % externalbinaries),3))
+
                         for external in run.externals_pre :
                             log.info(str(external))
 
-                            print('-' * 132)
                             # (pre) externals (1.1): get the path and the parameterfiles to the i'th external
                             externaldirectory = external.parameters.get("externaldirectory")
                             if externaldirectory.endswith('.ini'):
@@ -942,7 +954,6 @@ def PerformCheck(start,builds,args,log) :
                                 external.parameterfiles = [i for i in os.listdir(external.directory) if i.endswith('.ini')]
 
                             externalbinary = external.parameters.get("externalbinary")
-                            print(tools.green('Preprocessing: Running pre-external [%s] in [%s] ... ' % (externalbinary, external.directory)))
 
                             # (pre) externals (2): loop over all parameterfiles available for the i'th external
                             for external.parameterfile in external.parameterfiles :
@@ -968,8 +979,8 @@ def PerformCheck(start,builds,args,log) :
                                             print(s)
                                             exit(1)
 
-                            print(tools.green('Preprocessing: External [%s] finished!' % externalbinary))
-                            print('-' * 132)
+                        if PreprocessingActive:
+                            print(tools.indent(tools.green('Preprocessing: Externals %s finished!' % externalbinaries),3))
 
                         # 4.2    execute the binary file for one combination of parameters
                         run.execute(build,command_line,args,external_failed)
@@ -982,11 +993,20 @@ def PerformCheck(start,builds,args,log) :
                                 exit(1)
 
                         # (post) externals (1): loop over all externals available in external.ini
+                        if run.externals_post is None:
+                            PostprocessingActive = False
+                        else:
+                            if len(run.externals_post) == 0:
+                                PostprocessingActive = False
+                            else:
+                                PostprocessingActive = True
+                                externalbinaries = [external.parameters.get("externalbinary") for external in run.externals_post]
+                                print(tools.indent(tools.green('Postprocessing: Started  %s post-externals' % externalbinaries),3))
+
                         for external in run.externals_post :
 
                             log.info(str(external))
 
-                            print('-' * 132)
                             # (post) externals (1.1): get the path and the parameterfiles to the i'th external
                             externaldirectory = external.parameters.get("externaldirectory")
                             if externaldirectory.endswith('.ini'):
@@ -997,7 +1017,6 @@ def PerformCheck(start,builds,args,log) :
                                 external.parameterfiles = [i for i in os.listdir(external.directory) if i.endswith('.ini')]
 
                             externalbinary = external.parameters.get("externalbinary")
-                            print(tools.green('Postprocessing: Running post-external [%s] in [%s] ... ' % (externalbinary, external.directory)))
 
                             # (post) externals (2): loop over all parameterfiles available for the i'th external
                             for external.parameterfile in external.parameterfiles :
@@ -1023,8 +1042,8 @@ def PerformCheck(start,builds,args,log) :
                                             print(s)
                                             exit(1)
 
-                            print(tools.green('Postprocessing: External [%s] finished!' % externalbinary))
-                            print('-' * 132)
+                        if PostprocessingActive:
+                            print(tools.indent(tools.green('Postprocessing: Externals %s finished!' % externalbinaries),3))
 
                         # 4.3 Remove unwanted files: run analysis directly after each run (as opposed to the normal analysis which is used for analyzing the created output)
                         for analyze in example.analyzes :
