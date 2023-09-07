@@ -560,7 +560,7 @@ class ExternalRun(OutputDirectory,ExternalCommand) :
         if cmd_pre_execute:
             cmd_pre = cmd_pre_execute.split()
             s="Running [%s] ..." % (" ".join(cmd_pre))
-            self.execute_cmd(cmd_pre, external.directory, string_info = tools.indent(s, 3)) # run something
+            self.execute_cmd(cmd_pre, external.directory, name='pre-exec', string_info = tools.indent(s, 3)) # run something
 
         if self.return_code != 0 :
             self.successful = False
@@ -571,7 +571,8 @@ class ExternalRun(OutputDirectory,ExternalCommand) :
             print(tools.indent("Cannot run the code: "+s,2))
         else :
             s="Running [%s] ..." % (" ".join(cmd))
-            self.execute_cmd(cmd, external.directory, string_info = tools.indent(s, 3)) # run the code
+            head, tail = os.path.split(binary_path)
+            self.execute_cmd(cmd, external.directory, name=tail, string_info = tools.indent(s, 3)) # run the code
 
         if self.return_code != 0 :
             self.successful = False
