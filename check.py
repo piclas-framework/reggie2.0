@@ -936,7 +936,7 @@ def PerformCheck(start,builds,args,log) :
                             PreprocessingActive = False
                         else:
                             if len(run.externals_pre) == 0:
-                                PretprocessingActive = False
+                                PreprocessingActive = False
                             else:
                                 PreprocessingActive = True
                                 externalbinaries = [external.parameters.get("externalbinary") for external in run.externals_pre]
