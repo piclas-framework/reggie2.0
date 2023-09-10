@@ -2375,7 +2375,7 @@ class Analyze_compare_across_commands(Analyze) :
         NbrOfDifferences = success.count(False)
 
         if NbrOfDifferences > 0 :
-            s = tools.red("Found %s differences.\n" % NbrOfDifferences)
+            s = tools.red("Failed: Found %s difference(s)." % NbrOfDifferences)
             s = s+tools.red("Mismatch in line %s of column %s" % (selected_line,header_line[self.column_index] if header>0 else self.column_index) )
             print(s)
             run.analyze_results.append(s)
