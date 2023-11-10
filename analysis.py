@@ -1406,8 +1406,12 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                         b1_reshaped = b1[:reshape_value_loc , :]
                     elif reshape_dim_loc == 1:
                         b1_reshaped = b1[:                  , :reshape_value_loc]
+                    elif reshape_dim_loc == 2:
+                        b1_reshaped = b1[:                  , :                 , :reshape_value_loc]
+                    elif reshape_dim_loc == 3:
+                        b1_reshaped = b1[:                  , :                 , :                 , :reshape_value_loc]
                     else:
-                        s = tools.red("Analyze_h5diff: Reshaping is currently only implemented for 2D arrays. Use h5diff_reshape_dim=1 or 2)")
+                        s = tools.red("Analyze_h5diff: Reshaping is currently only implemented for specific arrays (dim 0 and 1 reshape 2D array) and dim 3 and 4 reshape the last dimension of 3D and 4D arrays. Use h5diff_reshape_dim=1 or 2)")
                         print(s)
                         run.analyze_results.append(s)
                         run.analyze_successful=False
