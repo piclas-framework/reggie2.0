@@ -428,6 +428,7 @@ def getExternals(path, example, build) :
     externals_post   = []
     externals_errors = []
 
+    # Get combinations from externals.ini
     if not os.path.exists(path) :
         return externals_pre, externals_post, externals_errors
     combis, digits = combinations.getCombinations(path)
