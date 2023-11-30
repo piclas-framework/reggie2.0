@@ -139,7 +139,14 @@ def readKeyValueFile(filename) :
 
             # 1.3 read a option and its possible values
             if '=' in line :
-                (key,values) = line.split('=',1)         # split line at '='
+                # Catch special variables
+                # DEFVAR=(INT):i0 = 1, 2
+                if "DEFVAR" in line and ("INT" or "REAL" in line) :
+                    splitline = line.split('=',2)
+                    key       = "=".join(splitline[:2])
+                    values    = splitline[2]
+                else:
+                    (key,values) = line.split('=',1)     # split line at '='
                 option = Option(key,splitValues(values)) # generate new Option with a list of values (splitted at ',' but not inside brackets)
                 options.append(option)                   # append option to options list, where
                 continue                                 # reading of option finished -> go on with next line
