@@ -18,6 +18,7 @@ from outputdirectory import OutputDirectory
 from sys import platform
 import socket
 import re
+import subprocess
 
 def getArgsAndBuilds() :
     """get command line arguments and builds in check directory from 'builds.ini'"""
@@ -123,6 +124,16 @@ def getArgsAndBuilds() :
             args.noMPIautomatic = check.StandaloneAutomaticMPIDetection(args.exe) # Check possibly existing userblock.txt to find out if the executable was compiled with MPI=ON or MPI=OFF
             args.run = True      # set 'run-mode' do not compile the code
             args.basedir = None  # since code will not be compiled, the basedir is not required
+
+    # Try to detect MPICH
+    args.detectedMPICH = False
+    try:
+        if args.MPIexe == 'mpirun':
+            status, result = subprocess.getstatusoutput("%s -h | grep -i mpich" % args.MPIexe)
+            if len(result) > 0 and status == 0:
+                args.detectedMPICH = True
+    except Exception as e:
+        pass
 
     if args.run :
         print("args.run -> skip building")
