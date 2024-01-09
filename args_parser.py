@@ -19,6 +19,10 @@ from sys import platform
 import socket
 import re
 import subprocess
+try:
+    import commands
+except Exception as e:
+    pass
 
 def getArgsAndBuilds() :
     """get command line arguments and builds in check directory from 'builds.ini'"""
@@ -129,7 +133,11 @@ def getArgsAndBuilds() :
     args.detectedMPICH = False
     try:
         if args.MPIexe == 'mpirun':
-            status, result = subprocess.getstatusoutput("%s -h | grep -i mpich" % args.MPIexe)
+            try:
+                status, result = subprocess.getstatusoutput("%s -h | grep -i mpich" % args.MPIexe)
+            except Exception as e:
+                # Fallback for python2.7
+                status, result = commands.getstatusoutput("%s -h | grep -i mpich" % args.MPIexe)
             if len(result) > 0 and status == 0:
                 args.detectedMPICH = True
     except Exception as e:
