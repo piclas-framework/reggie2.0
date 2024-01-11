@@ -24,6 +24,42 @@ try:
 except Exception as e:
     pass
 
+def getMaxCPUCores():
+    """get the total number of available physical cores, ignore hyper threading or SMT etc.
+    The affinity is ignored at the moment, e.g., if the total number of processes is artificially limited,
+    see https://docs.python.org/3/library/os.html#os.sched_getaffinity."""
+
+    # Linux
+    try:
+        MaxCores = open('/proc/cpuinfo').read().count('processor\t:')
+
+        with open('/proc/cpuinfo') as file:
+            for line in file:
+                l = line.rstrip()
+                l = l.split(":")
+                if 'cpu cores\t' in l[0]:
+                    # Convert to integer
+                    cpuCores = int(l[1])
+                    break
+
+        if cpuCores > 0 and MaxCores > cpuCores:
+            return cpuCores
+        else:
+            return 0
+    except Exception as e:
+        pass
+
+    # Python 2.6+
+    try:
+        import multiprocessing
+        # This yields the hyper threading or SMT cores (hence, not the physical cores), but serves as a fallback
+        MaxCores =  multiprocessing.cpu_count()
+        print(tools.yellow('getMaxCPUCores() fallback has returned the number of hyper threading or SMT cores (hence, not the physical cores)'))
+        return MaxCores
+    except Exception as e:
+        pass
+
+
 def getArgsAndBuilds() :
     """get command line arguments and builds in check directory from 'builds.ini'"""
     parser = argparse.ArgumentParser(description='DESCRIPTION:\nRegression checker for NRG codes.\nSupply the path to a /regressioncheck/checks/ directory within a repository containing a CMakeLists.txt file which can automatically be build using cmake. ', formatter_class=argparse.RawTextHelpFormatter)
@@ -142,6 +178,12 @@ def getArgsAndBuilds() :
                 args.detectedMPICH = True
     except Exception as e:
         pass
+
+    args.MaxCoresMPICH = 0
+    # Set maximum number of processes/cores for mpich as over-subscription results in a massive performance drop
+    if args.detectedMPICH:
+        args.MaxCoresMPICH = getMaxCPUCores()
+        print(tools.yellow('WARNING: MPICH detected, which limits the total number of processes that can be used to %s as over-subscription results in a massive performance drop' % args.MaxCoresMPICH))
 
     if args.run :
         print("args.run -> skip building")
