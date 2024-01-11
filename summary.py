@@ -76,6 +76,21 @@ def SummaryOfErrors(builds, args) :
                                 run.outputMPIyellow = True
                     except Exception as e:
                         pass
+
+                    # Check if MPICH was used and more than the number of physical cores
+                    try:
+                        if args.detectedMPICH:
+                            try:
+                                cores = command_line.parameters.get('MPI', '-')
+                                if int(cores) > args.MaxCoresMPICH and args.MaxCoresMPICH > 0:
+                                    run.output_strings['MPI'] = '%s (changed from %s)' % (args.MaxCoresMPICH,run.output_strings['MPI'])
+                                    run.outputMPIyellow = True
+                            except Exception as e:
+                                run.output_strings['MPI'] = '%s (changed from %s)' % (args.MaxCoresMPICH,run.output_strings['MPI'])
+                                run.outputMPIyellow = True
+                    except Exception as e:
+                        pass
+
                     for key in run.output_strings.keys() :
                         max_lens[key] = max(max_lens[key], len(run.output_strings[key])) # set max column widths for summary table
 
