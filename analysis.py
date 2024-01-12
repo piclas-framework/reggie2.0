@@ -468,7 +468,7 @@ class Analyze_L2_file(Analyze) :
         1.4   calculate difference and determine compare with tolerance
         """
 
-        LastLines = 150 # search the last X lines in the std.out file for the L2 error
+        LastLines = 2000  # search the last X lines in the std.out file for the L2 error
         # 1.  Iterate over all runs
         for run in runs :
 
@@ -570,7 +570,7 @@ class Analyze_L2(Analyze) :
         1.4   set analyzes to fail
         """
 
-        LastLines = 150 # search the last X lines in the std.out file for the L2 error
+        LastLines = 2000 # search the last X lines in the std.out file for the L2 error
         # 1.  Iterate over all runs
         for run in runs :
 
@@ -642,7 +642,7 @@ class Analyze_Convtest_h(Analyze) :
         1.7.2   set analyzes to fail if success rate is not reached for all runs
         """
 
-        LastLines = 150 # search the last X lines in the std.out file for the L2 error
+        LastLines = 2000 # search the last X lines in the std.out file for the L2 error
         # 1.  check if number of successful runs is equal the number of supplied cells
         nRuns = len(runs)
         if nRuns < 2 :
@@ -819,7 +819,7 @@ class Analyze_Convtest_t(Analyze) :
         1.7.2   set analyzes to fail if success rate is not reached for all runs
         """
 
-        LastLines = 35 # search the last 35 lines in the std.out file for the L2 error
+        LastLines = 2000 # search the last 35 lines in the std.out file for the L2 error
         # 1.  check if number of successful runs is at least two
         nRuns = len(runs)
         if nRuns < 2 :
@@ -1012,7 +1012,7 @@ class Analyze_Convtest_p(Analyze) :
         2.8.1   set analyzes to fail if success rate is not reached for all runs
         """
 
-        LastLines = 35 # search the last 35 lines in the std.out file for the L2 error
+        LastLines = 2000 # search the last 35 lines in the std.out file for the L2 error
         # 1.  read the polynomial degree  for all runs
         p = [float(run.parameters.get('N',-1)) for run in runs] # get polynomial degree
 
@@ -1776,7 +1776,13 @@ class Analyze_compare_data_file(Analyze) :
         if self.one_diff_per_run and ( self.nCompares != len(runs) ) and self.nCompares > 1 :
             s=tools.red("Number of compare_data_file tests and runs is inconsistent."+ \
                     "Please ensure all options have the same length or set compare_data_file_one_diff_per_run=F. Nbr. of comparisons: %s, Nbr. of runs: %s" % (self.nCompares, len(runs)) )
-            raise Exception(s)
+            print(s)
+            # 1.  iterate over all runs
+            for iRun, run in enumerate(runs) :
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+            return # skip the following analysis tests
 
         # 1.  iterate over all runs
         for iRun, run in enumerate(runs) :
