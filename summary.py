@@ -18,6 +18,15 @@ from outputdirectory import OutputDirectory
 import check
 import tools
 
+def StartsWithCMD(pathSplit,iDir):
+    try:
+        if pathSplit[iDir+1].startswith('cmd_'):
+            return True
+    except:
+        pass
+
+    return False
+
 def SummaryOfErrors(builds, args) :
     """
     General workflow:
@@ -63,6 +72,21 @@ def SummaryOfErrors(builds, args) :
                     run.output_strings['time']    = "%2.1f" % run.walltime
                     run.output_strings['Info']    = run.result
                     run.outputMPIyellow = False
+                    # Coloured path name
+                    try:
+                        pathSplit = run.output_strings['path'].split('/')
+                        pathColoured = ''
+                        delimiter = ''
+                        for iDir, iDirName in enumerate(pathSplit):
+                            foundCMD = StartsWithCMD(pathSplit,iDir)
+                            if foundCMD:
+                                pathColoured += delimiter+'%s' % tools.pink(iDirName)
+                            else:
+                                pathColoured += delimiter+'%s' % iDirName
+                            delimiter='/'
+                        run.output_strings['path'] = pathColoured
+                    except Exception as e:
+                        pass
                     # Check if command_line.ini has MPI>1 but the binary is built with MPI=OFF and therefore executed in single mode
                     try:
                         if build.MPIrunDeactivated:
