@@ -602,7 +602,7 @@ class Analyze_L2(Analyze) :
                 run.analyze_successful=False
                 Analyze.total_errors+=1
             else:
-                print(tools.indent(tools.blue(L2_errors_str),3))
+                print(tools.indent(tools.blue('%s: %s' % (self.error_name,L2_errors_str)),2))
 
 
     def __str__(self) :
@@ -2226,7 +2226,7 @@ class Analyze_compare_column(Analyze) :
 
             # 1.3.7   Check dimensions of the arrays
             if data.shape != data_ref.shape:
-                s="cannot perform analyze Analyze_compare_column, because the shape of the data in file=[%s] is %s and that of the reference=[%s] is %s. They cannot be different!" % (self.file,data.shape,self.ref,data_ref.shape)
+                s="cannot perform analyze Analyze_compare_column, because the shape of the data in file=[%s] is %s and that of the reference=[%s] is %s. They cannot be different!" % (path,data.shape,self.ref,data_ref.shape)
                 print(tools.red(s))
                 run.analyze_results.append(s)
                 run.analyze_successful=False
