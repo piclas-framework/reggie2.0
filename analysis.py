@@ -2247,7 +2247,7 @@ class Analyze_compare_column(Analyze) :
             NbrOfDifferences = success.count(False)
 
             if NbrOfDifferences > 0 :
-                s = tools.red("Found %s differences.\n" % NbrOfDifferences)
+                s = tools.red("Analyze_compare_column() failed: Found %s differences.\n" % NbrOfDifferences)
                 s = s+tools.red("Mismatch in column: %s" % header_line[self.dim])
                 print(s)
                 run.analyze_results.append(s)
@@ -2385,7 +2385,7 @@ class Analyze_compare_across_commands(Analyze) :
         NbrOfDifferences = success.count(False)
 
         if NbrOfDifferences > 0 :
-            s = tools.red("Failed: Found %s difference(s)." % NbrOfDifferences)
+            s = tools.red("Analyze_compare_across_commands() failed: Found %s difference(s)." % NbrOfDifferences)
             s = s+tools.red("Mismatch in line %s of column %s" % (selected_line,header_line[self.column_index] if header>0 else self.column_index) )
             print(s)
             run.analyze_results.append(s)
