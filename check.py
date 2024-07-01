@@ -914,7 +914,7 @@ def PerformCheck(start,builds,args,log) :
                         getAnalyzes(os.path.join(example.source_directory,'analyze.ini'), example, args)
 
                 # 3.   loop over all command_line options
-                for command_line in example.command_lines :
+                for iCommand, command_line in enumerate(example.command_lines) :
                     log.info(str(command_line))
                     database_path = command_line.parameters.get('database',None)
                     if database_path is not None:
@@ -1063,7 +1063,7 @@ def PerformCheck(start,builds,args,log) :
                         # 4.3 Remove unwanted files: run analysis directly after each run (as opposed to the normal analysis which is used for analyzing the created output)
                         for analyze in example.analyzes :
                             if isinstance(analyze,Clean_up_files) :
-                                analyze.execute(run)
+                                analyze.execute(iCommand,run)
 
                     # 5.   loop over all successfully executed binary results and perform analyze tests
                     runs_successful = [run for run in command_line.runs if run.successful]
@@ -1073,7 +1073,7 @@ def PerformCheck(start,builds,args,log) :
                                 # skip because either already called in the "run" loop under 4.2 or called later under cross-command comparisons in 7.
                                 continue
                             print(tools.indent(tools.blue(str(analyze)),2))
-                            analyze.perform(runs_successful)
+                            analyze.perform(iCommand,runs_successful)
                             # Check if immediate stop is activated on failure
                             if args.stop and Analyze.total_errors > 0:
                                 s = tools.red('Stop on first error (-p, --stop) is activated! Analysis failed')
