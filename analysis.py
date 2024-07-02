@@ -393,7 +393,7 @@ class Clean_up_files() :
     def __init__(self, clean_up_files) :
         self.files = clean_up_files
 
-    def perform(self,iCommand,runs) :
+    def perform(self,runs) :
         return # do nothing
 
     def execute(self,run) :
@@ -436,7 +436,7 @@ class Analyze_L2_file(Analyze) :
         self.L2_tolerance_type = L2ErrorFile.tolerance_type
         self.error_name        = L2ErrorFile.error_name     # string name of the L2 error in the std.out file (default is "L_2")
 
-    def perform(self,iCommand,runs) :
+    def perform(self,runs) :
 
         """
         General workflow:
@@ -539,7 +539,7 @@ class Analyze_L2(Analyze) :
         self.L2_tolerance = L2Error.tolerance  # tolerance value for comparison with the L_2 error from std.out
         self.error_name   = L2Error.error_name # string name of the L2 error in the std.out file (default is "L_2")
 
-    def perform(self,iCommand,runs) :
+    def perform(self,runs) :
 
         """
         General workflow:
@@ -604,7 +604,7 @@ class Analyze_Convtest_h(Analyze) :
                                                # the number of total EOC tests determines the success rate which is compared with this rate)
         self.error_name = ConvtestH.error_name # string name of the L2 error in the std.out file (default is "L_2")
 
-    def perform(self,iCommand,runs) :
+    def perform(self,runs) :
         global pyplot_module_loaded
         """
         General workflow:
@@ -781,7 +781,7 @@ class Analyze_Convtest_t(Analyze) :
                 self.get_x_values   = self.total_iter
 
 
-    def perform(self,iCommand,runs) :
+    def perform(self,runs) :
         global pyplot_module_loaded
         """
         General workflow:
@@ -974,7 +974,7 @@ class Analyze_Convtest_p(Analyze) :
                                                # percentage yields the minimum ratio of increasing EOC vs. the total number of EOC for each nVar
         self.error_name = ConvtestP.error_name # string name of the L2 error in the std.out file (default is "L_2")
 
-    def perform(self,iCommand,runs) :
+    def perform(self,runs) :
         global pyplot_module_loaded
 
         """
@@ -1200,7 +1200,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
         # set logical for creating new reference files and copying them to the example source directory
         self.referencescopy = h5diff.referencescopy
 
-    def perform(self,iCommand,runs) :
+    def perform(self,runs) :
         global h5py_module_loaded
         # Check if this analysis can be performed: h5py must be imported
         if not h5py_module_loaded : # this boolean is set when importing h5py
@@ -1568,7 +1568,7 @@ class Analyze_check_hdf5(Analyze) :
         (self.dim1, self.dim2)   = [int(x)   for x in CheckHDF5.dimension.split(":")]
         (self.lower, self.upper) = [float(x) for x in CheckHDF5.limits.split(":")]
 
-    def perform(self,iCommand,runs) :
+    def perform(self,runs) :
         global h5py_module_loaded
         # check if this analysis can be performed: h5py must be imported
         if not h5py_module_loaded : # this boolean is set when importing h5py
@@ -1742,7 +1742,7 @@ class Analyze_compare_data_file(Analyze) :
         # set logical for creating new reference files and copying them to the example source directory
         self.referencescopy = CompareDataFile.referencescopy
 
-    def perform(self,iCommand,runs) :
+    def perform(self,runs) :
 
         '''
         General workflow:
@@ -1920,7 +1920,7 @@ class Analyze_integrate_line(Analyze) :
         self.option              = IntegrateLine.option
         self.multiplier          = float(IntegrateLine.multiplier)
 
-    def perform(self,iCommand,runs) :
+    def perform(self,runs) :
 
         '''
         General workflow:
@@ -2139,7 +2139,7 @@ class Analyze_compare_column(Analyze) :
         # set logical for creating new reference files and copying them to the example source directory
         self.referencescopy = CompareColumn.referencescopy
 
-    def perform(self,iCommand,runs) :
+    def perform(self,runs) :
 
         '''
         General workflow:
@@ -2157,9 +2157,9 @@ class Analyze_compare_column(Analyze) :
         1.3.8   Check the number of data points: Comparison can only be performed if at least one point exists
         1.3.9   calculate difference and determine compare with tolerance
         '''
-        if self.one_diff_per_command and ( self.nCompares < iCommand+1 ) and self.nCompares > 1 :
+        if self.one_diff_per_command and ( self.nCompares < self.iRestartFile+1 ) and self.nCompares > 1 :
             s=tools.red("Number of compare_data_file tests and command line runs is inconsistent."+ \
-                    " Please ensure all options have the same length or set compare_data_file_one_diff_per_command=F. Nbr. of comparisons: %s, Nbr. of command line runs: %s" % (self.nCompares, iCommand+1) )
+                    " Please ensure all options have the same length or set compare_data_file_one_diff_per_command=F. Nbr. of comparisons: %s, Nbr. of command line runs: %s" % (self.nCompares, self.iRestartFile+1) )
             print(s)
             # 1.  iterate over all runs
             for iRun, run in enumerate(runs) :
@@ -2187,7 +2187,7 @@ class Analyze_compare_column(Analyze) :
             if self.one_diff_per_command :
                 if self.nCompares > 1:
                     # One comparison for each run
-                    compares = [iCommand]
+                    compares = [self.iRestartFile]
                 else:
                     compares = [0]
             elif self.one_diff_per_run :
@@ -2377,9 +2377,8 @@ class Analyze_compare_column(Analyze) :
 
     def __str__(self) :
         if self.one_diff_per_command :
-            self.command_run_counter += 1
             return "compare column data with a reference (e.g. from .csv file): file=[%s] and reference=[%s] and comparison for column %s (the first column starts at 0)" % \
-            (self.prms["file"][self.command_run_counter], self.prms["reference_file"][self.command_run_counter], self.index)
+            (self.prms["file"][self.iRestartFile], self.prms["reference_file"][self.iRestartFile], self.index)
         else:
             return "compare column data with a reference (e.g. from .csv file): file=[%s] and reference=[%s] and comparison for column %s (the first column starts at 0)" % \
             (self.prms["file"], self.prms["reference_file"], self.index)
@@ -2400,7 +2399,7 @@ class Analyze_compare_across_commands(Analyze) :
         else :
             self.line_number = int(CompareAcrossCommands.line_number) # take actual line number
 
-    def perform(self,iCommand,runs) :
+    def perform(self,runs) :
 
         '''
         General workflow:
