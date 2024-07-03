@@ -59,7 +59,7 @@ is a valid command, where `bufOut` is of type `str` and `os.read(pipeOut_r, 1024
     bufOut = bufOut + out_s
 ```
 ### Lists of (key, value) pairs
-In Python 2, `.items()` returned a list of (key, value) pairs. In Python 3, `.items()` is now an itemview object, which behaves different. 
+In Python 2, `.items()` returned a list of (key, value) pairs. In Python 3, `.items()` is now an itemview object, which behaves different.
 Therefore it has to be iterated over (or materialised), which requires `list(dict.items())`. In Python 2
 ```
 for key, value in parameters.items():
@@ -128,7 +128,7 @@ gitlab-ci.py
 
 
 # Analyze routines for "analyze.ini"
-  
+
 - [Reggie2.0 toolbox](#reggie20-toolbox)
   - [Python version compatibility](#python-version-compatibility)
     - [print() function](#print-function)
@@ -172,9 +172,9 @@ gitlab-ci.py
     - [Example](#example-2)
 
 
-The parameters used in `analyze.ini` and example arguments are given in the following table. Note that if you intend to use white spaces in variable names they must be supplied in form of `\s` in the variable name. 
-Example: `"Initial Timestep"` becomes `"Initial\sTimestep"` (or `"Initial\s Timestep"`) because all white spaces are removed from the variable name automatically. 
-The intention of a white space must be stated explicitly. 
+The parameters used in `analyze.ini` and example arguments are given in the following table. Note that if you intend to use white spaces in variable names they must be supplied in form of `\s` in the variable name.
+Example: `"Initial Timestep"` becomes `"Initial\sTimestep"` (or `"Initial\s Timestep"`) because all white spaces are removed from the variable name automatically.
+The intention of a white space must be stated explicitly.
 
 |       **analyze**        | **options**                                        | **values (examples)**                 | **Default values** | **Description**                                                                                                                                                                                                                          |
 | :----------------------: | :------------------------------------------------- | :------------------------------------ | :----------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -297,7 +297,7 @@ analyze_Convtest_p_percentage=0.75
 ```
 
 # h5diff
-* Compares two arrays from two .h5 files element-by-element either with an absolute or relative difference (when comparing with zero, h5diff automatically uses an absolute comparison).  
+* Compares two arrays from two .h5 files element-by-element either with an absolute or relative difference (when comparing with zero, h5diff automatically uses an absolute comparison).
 * Requires h5diff, which is compiled within the HDF5 package (set the corresponding environment variable).
 
       `export PATH=/opt/hdf5/X.X.XX/bin/:$PATH`
@@ -317,8 +317,8 @@ h5diff_tolerance_type  = relative
 ```
 
 ## h5diff (multiple files)
-* Compares multiple arrays from multiple .h5 files element-by-element either with an absolute or relative difference (when comparing with zero, h5diff automatically uses an absolute comparison).  
-* Requires h5diff, which is compiled within the HDF5 package.  
+* Compares multiple arrays from multiple .h5 files element-by-element either with an absolute or relative difference (when comparing with zero, h5diff automatically uses an absolute comparison).
+* Requires h5diff, which is compiled within the HDF5 package.
 
 ### Example with `h5diff_one_diff_per_run = F`
 This setup considers 2 runs and compares two files with two different reference files in each run, hence, multiple file output can be analyzed.
@@ -424,6 +424,7 @@ check_hdf5_limits      = -10.0:10.0
 * Compare a single line in, e.g., a .csv file element-by-elements
 * The data is delimited by a comma on default but can be changed by setting "compare\_data\_file\_delimiter = :" (when, e.g., ":" is to be used as the delimiter)
 * relative of absolute comparison
+* Possibility to perform one comparison per run (e.g. supply 10 data and reference files for 10 different runs), default is true
 
 ### Example 1 of 4
 Template for copying to **analyze.ini**
@@ -434,6 +435,7 @@ compare_data_file_name      = Database.csv
 compare_data_file_reference = Database_reference.csv
 compare_data_file_tolerance = 2.0
 compare_data_file_tolerance_type = relative
+compare_data_file_one_diff_per_run = T
 ```
 
 Note that a comma is the default delimiter symbol for reading the data from the supplied file. The variable "compare\_data\_file\_delimiter" cannot be set as custom delimiter symbol "," because the comma is used for splitting the keywords in analyze.ini. However, other symbols can be supplied using "compare\_data\_file\_delimiter" instead of a comma.
@@ -452,7 +454,7 @@ compare_data_file_tolerance_type = relative
 ```
 ### Example 3 of 4
 
-Additionally, multiple output files (Database\_TX000K.csv) can be supplied in combination with multiple reference files (Database\_TX000K\_ref.csv). See the following example. 
+Additionally, multiple output files (Database\_TX000K.csv) can be supplied in combination with multiple reference files (Database\_TX000K\_ref.csv). See the following example.
 
 ```
 ! compare the last row in Database.csv with a reference file
@@ -512,17 +514,21 @@ Note that a comma is the default delimiter symbol for reading the data from the 
 * The data is delimited by a comma on default but can be changed by setting "compare\_column\_delimiter = :" (when, e.g., ":" is to be used as the delimiter)
 * Comparison of several columns is possible by providing a list of the column indices
 * If only a single column (e.g. from a large PartAnalyze.csv) is compared, it is possible to provide a reference file, which only contains a single column to reduce its size
+* Possibility to perform one comparison per run (e.g. supply 10 data and reference files for 10 different runs), default is true
+* Possibility to perform one comparison per restart file, default is false. Overwrites the one comparison per run parameter above, as the command line runs are one level above
 
 Template for copying to **analyze.ini**
 
 ```
 ! compare columns in a data file
-compare_column_file            = PartAnalyze.csv ! data file name
-compare_column_reference_file  = reference.csv   ! reference data file name
-compare_column_index           = 0,1             ! columns index (starts at 0)
-compare_column_tolerance_value = 0.8e-2          ! tolerance
-compare_column_tolerance_type  = relative        ! absolute or relative comparison
-compare_column_multiplier      = 5e-3            ! fixed factor
+compare_column_file                       = PartAnalyze.csv ! data file name
+compare_column_reference_file             = reference.csv   ! reference data file name
+compare_column_index                      = 0,1             ! columns index (starts at 0)
+compare_column_tolerance_value            = 0.8e-2          ! tolerance
+compare_column_tolerance_type             = relative        ! absolute or relative comparison
+compare_column_multiplier                 = 5e-3            ! fixed factor
+compare_column_one_diff_per_run           = T
+compare_column_one_diff_per_restart_file  = F
 ```
 
 Note that a comma is the default delimiter symbol for reading the data from the supplied file. The variable "compare\_column\_delimiter" cannot be set as custom delimiter symbol "," because the comma is used for splitting the keywords in analyze.ini. However, other symbols can be supplied using "compare\_column\_delimiter" instead of a comma.
@@ -589,7 +595,7 @@ database = ../../../SpeciesDatabase.h5
 
 # Externals
 
-parameters used in `externals.ini` 
+parameters used in `externals.ini`
 
 |                      **function**                      | **options**       | **values**              | **Default values** | **Description**                                                                                                                                                 |
 | :----------------------------------------------------: | :---------------- | :---------------------- | :----------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------- |

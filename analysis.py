@@ -340,16 +340,16 @@ def getAnalyzes(path, example, args) :
     #   compare_column_tolerance_type  : type of tolerance, either 'absolute' or 'relative'
     #   compare_column_multiplier      : factor for multiplying the result (in order to acquire a physically meaning value for comparison)
     CompareColumn = SimpleNamespace( \
-                    one_diff_per_command    = options.get('compare_column_one_diff_per_command',False), \
-                    one_diff_per_run        = options.get('compare_column_one_diff_per_run',True), \
-                    file                    = options.get('compare_column_file',None), \
-                    reference_file          = options.get('compare_column_reference_file',None), \
-                    delimiter               = options.get('compare_column_delimiter',','), \
-                    index                   = options.get('compare_column_index',None), \
-                    tolerance_value         = options.get('compare_column_tolerance_value',1e-5), \
-                    tolerance_type          = options.get('compare_column_tolerance_type','absolute'), \
-                    multiplier              = options.get('compare_column_multiplier',1), \
-                    referencescopy          = args.referencescopy )
+                    one_diff_per_restart_file   = options.get('compare_column_one_diff_per_restart_file',False), \
+                    one_diff_per_run            = options.get('compare_column_one_diff_per_run',True), \
+                    file                        = options.get('compare_column_file',None), \
+                    reference_file              = options.get('compare_column_reference_file',None), \
+                    delimiter                   = options.get('compare_column_delimiter',','), \
+                    index                       = options.get('compare_column_index',None), \
+                    tolerance_value             = options.get('compare_column_tolerance_value',1e-5), \
+                    tolerance_type              = options.get('compare_column_tolerance_type','absolute'), \
+                    multiplier                  = options.get('compare_column_multiplier',1), \
+                    referencescopy              = args.referencescopy )
     if all([CompareColumn.file, CompareColumn.reference_file,  CompareColumn.delimiter, CompareColumn.index]) :
         analyze.append(Analyze_compare_column(CompareColumn,example))
 
@@ -2046,26 +2046,25 @@ class Analyze_integrate_line(Analyze) :
 
 class Analyze_compare_column(Analyze) :
     def __init__(self, CompareColumn, example) :
-        self.command_run_counter = -1
-        # Set number of diffs per run [True/False]
-        if type(CompareColumn.one_diff_per_command) == type(True): # check if default value is still set
-            self.one_diff_per_command = True
+        # Set number of diffs per restart file [True/False]
+        if type(CompareColumn.one_diff_per_restart_file) == type(False): # check if default value is still set
+            self.one_diff_per_restart_file = False
         else:
             # Check what the user set
-            self.one_diff_per_command = (CompareColumn.one_diff_per_command in ('False', 'false', 'f', 'F'))
-            if self.one_diff_per_command:
+            self.one_diff_per_restart_file = (CompareColumn.one_diff_per_restart_file in ('False', 'false', 'f', 'F'))
+            if self.one_diff_per_restart_file:
                 # User selected False
-                self.one_diff_per_command = False
+                self.one_diff_per_restart_file = False
             else:
                 # User selected something else
-                self.one_diff_per_command = (CompareColumn.one_diff_per_command in (('True', 'true', 't', 'T')))
-                if self.one_diff_per_command:
+                self.one_diff_per_restart_file = (CompareColumn.one_diff_per_restart_file in (('True', 'true', 't', 'T')))
+                if self.one_diff_per_restart_file:
                     # User selected True
                     pass
                 else:
-                    raise Exception(tools.red("CompareColumn.one_diff_per_command is set neither True/False, check the parameter"))
+                    raise Exception(tools.red("CompareColumn.one_diff_per_restart_file is set neither True/False, check the parameter"))
 
-        if self.one_diff_per_command :
+        if self.one_diff_per_restart_file :
             self.one_diff_per_run = False
         else:
             # Set number of diffs per run [True/False]
@@ -2143,23 +2142,21 @@ class Analyze_compare_column(Analyze) :
 
         '''
         General workflow:
-        1.  iterate over all runs
-        1.2   Check existence of the file and reference
-        1.3.1   read data file
-        1.3.2   read reference file
-        1.3.3   check column number
-        1.3.4   get header information for integrated columns
-        1.3.5   split the data array and set the two column vector x and y for integration
-        1.3.6   Check if data_ref consists of
-                  a) only the reference column data OR
-                  b) the complete data table, i.e., the same data structure as the comparison data (if so, also split the data_ref array and set the two column vector x and y for integration)
-        1.3.7   Check dimensions of the arrays
-        1.3.8   Check the number of data points: Comparison can only be performed if at least one point exists
-        1.3.9   calculate difference and determine compare with tolerance
+        * Iterate over all successful runs
+          * Set compares in case of one_diff_per_*
+          * Iterate over all compares
+            * Check existence of the file and reference
+            * Iterate over all columns to be compared
+              * read data file and reference file
+              * check column number
+              * get header information for columns
+              * Check dimensions of the arrays
+              * Check the number of data points: Comparison can only be performed if at least one point exists
+              * calculate difference and determine compare with tolerance
         '''
-        if self.one_diff_per_command and ( self.nCompares < self.iRestartFile+1 ) and self.nCompares > 1 :
-            s=tools.red("Number of compare_data_file tests and command line runs is inconsistent."+ \
-                    " Please ensure all options have the same length or set compare_data_file_one_diff_per_command=F. Nbr. of comparisons: %s, Nbr. of command line runs: %s" % (self.nCompares, self.iRestartFile+1) )
+        if self.one_diff_per_restart_file and ( self.nCompares < self.iRestartFile+1 ) and self.nCompares > 1 :
+            s=tools.red("Number of compare_column tests and command line runs is inconsistent."+ \
+                    " Please ensure all options have the same length or set compare_column_one_diff_per_restart_file=F. Nbr. of comparisons: %s, Nbr. of command line runs: %s" % (self.nCompares, self.iRestartFile+1) )
             print(s)
             # 1.  iterate over all runs
             for iRun, run in enumerate(runs) :
@@ -2168,8 +2165,8 @@ class Analyze_compare_column(Analyze) :
                 Analyze.total_errors+=1
             return # skip the following analysis tests
         elif self.one_diff_per_run and ( self.nCompares != len(runs) ) and self.nCompares > 1 :
-            s=tools.red("Number of compare_data_file tests and runs is inconsistent."+ \
-                    " Please ensure all options have the same length or set compare_data_file_one_diff_per_run=F. Nbr. of comparisons: %s, Nbr. of runs: %s" % (self.nCompares, len(runs)) )
+            s=tools.red("Number of compare_column tests and runs is inconsistent."+ \
+                    " Please ensure all options have the same length or set compare_column_one_diff_per_run=F. Nbr. of comparisons: %s, Nbr. of runs: %s" % (self.nCompares, len(runs)) )
             print(s)
             # 1.  iterate over all runs
             for iRun, run in enumerate(runs) :
@@ -2184,7 +2181,7 @@ class Analyze_compare_column(Analyze) :
         for iRun, run in enumerate(runs) :
             # count += 1
             # Check whether the list of diffs is to be used one-at-a-time, i.e., a list of diffs for a list of runs (each run only performs one diff, not all of them)
-            if self.one_diff_per_command :
+            if self.one_diff_per_restart_file :
                 if self.nCompares > 1:
                     # One comparison for each run
                     compares = [self.iRestartFile]
@@ -2200,7 +2197,7 @@ class Analyze_compare_column(Analyze) :
                 # All comparisons for every run
                 compares = range(self.nCompares)
 
-            # Iterate over all comparisons for h5diff
+            # Iterate over all comparisons
             for compare in compares :
                 reference_file_loc   = self.prms["reference_file"][compare]
                 file_loc             = self.prms["file"][compare]
@@ -2242,6 +2239,7 @@ class Analyze_compare_column(Analyze) :
                     # do not skip the following analysis tests to see what other files might be missing
                     continue
 
+                # Iterate over all columns to be compared
                 for index_loc in self.index:
                     # 1.3.1   read data file
                     data = np.array([])
@@ -2286,7 +2284,7 @@ class Analyze_compare_column(Analyze) :
                         # do not skip the following analysis tests
                         continue
 
-                    # 1.3.2   read reference file
+                    # Read reference file
                     data_ref = np.array([])
                     with open(path_ref_target, 'r') as csvfile_ref:
                         line_str = csv.reader(csvfile_ref, delimiter=delimiter_loc, quotechar='!')
@@ -2332,7 +2330,7 @@ class Analyze_compare_column(Analyze) :
                         # do not skip the following analysis tests
                         continue
 
-                    # 1.3.4   get header information for column
+                    # Get header information for column
                     if header > 0 :
                         s1 = header_line
                         if count == 1 or NbrOfDifferences>0:
@@ -2340,7 +2338,7 @@ class Analyze_compare_column(Analyze) :
                         else:
                             print(tools.indent(tools.blue("%s..." % (count)),2), end=' ') # skip linebreak
 
-                    # 1.3.7   Check dimensions of the arrays
+                    # Check dimensions of the arrays
                     if data.shape != data_ref.shape:
                         s="cannot perform analyze Analyze_compare_column, because the shape of the data in file=[%s] is %s and that of the reference=[%s] is %s. They cannot be different!" % (path,data.shape,reference_file_loc,data_ref.shape)
                         print(tools.red(s))
@@ -2350,7 +2348,7 @@ class Analyze_compare_column(Analyze) :
                         # do not skip the following analysis tests
                         continue
 
-                    # 1.3.8   Check the number of data points: Comparison can only be performed if at least one point exists
+                    # Check the number of data points: Comparison can only be performed if at least one point exists
                     if max_lines-header < 1 or max_lines_ref-header_ref < 1 or max_lines-header != max_lines_ref-header_ref:
                         s="cannot perform analyze Analyze_compare_column, because there are not enough lines of data or different numbers of data points to perform the comparison. Number of lines = %s (file) and %s (reference file), which must be equal and at least one." % (max_lines-header,max_lines_ref-header_ref)
                         print(tools.red(s))
@@ -2360,7 +2358,7 @@ class Analyze_compare_column(Analyze) :
                         # do not skip the following analysis tests
                         continue
 
-                    # 1.3.9   calculate difference and determine compare with tolerance
+                    # Calculate difference and determine compare with tolerance
                     success = tools.diff_lists(data, data_ref, tolerance_value_loc, tolerance_type_loc)
                     NbrOfDifferences = success.count(False)
 
@@ -2376,7 +2374,7 @@ class Analyze_compare_column(Analyze) :
 
 
     def __str__(self) :
-        if self.one_diff_per_command :
+        if self.one_diff_per_restart_file :
             return "compare column data with a reference (e.g. from .csv file): file=[%s] and reference=[%s] and comparison for column %s (the first column starts at 0)" % \
             (self.prms["file"][self.iRestartFile], self.prms["reference_file"][self.iRestartFile], self.index)
         else:
