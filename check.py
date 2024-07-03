@@ -343,6 +343,21 @@ def getCommand_Lines(args, path, example) :
 
     return command_lines
 
+def getRestartFileList(example) :
+    options_list, _, _ = combinations.readKeyValueFile(os.path.join(example.source_directory,'command_line.ini'))
+    options = {} # dict
+    for option in options_list :
+        # set all upper case characters to lower case
+        if len(option.values) > 1 :
+            options[option.name.lower()] = option.values    # set name to lower case
+        else :
+            options[option.name.lower()] = option.values[0] # set name to lower case
+        # check for empty lists and abort
+        if option.values[0]=='' :
+            raise Exception(tools.red("initialization of analyze.ini failed due to empty parameter [%s = %s], which is not allowed." % (option.name,option.values) ))
+
+    return options.get('restart_file',None)
+
 #==================================================================================================
 def SetMPIrun(build, args, MPIthreads) :
     ''' check MPI built binary (only possible for reggie-compiled binaries) '''
@@ -909,6 +924,9 @@ def PerformCheck(start,builds,args,log) :
                 example.command_lines = \
                         getCommand_Lines(args, os.path.join(example.source_directory,'command_line.ini'), example)
 
+                # 2.1b read-in restart_file parameter from command_line.ini separately
+                example.restart_file_list = getRestartFileList(example)
+
                 # 2.2    read the analyze options in 'analyze.ini' within each example directory (e.g. L2 error analyze)
                 example.analyzes = \
                         getAnalyzes(os.path.join(example.source_directory,'analyze.ini'), example, args)
@@ -923,6 +941,12 @@ def PerformCheck(start,builds,args,log) :
                             s=tools.red("command_line.ini: cannot find file=[%s] " % (database_path))
                             print(s)
                             exit(1)
+
+                    # Get the index of the restart file to append to the analyze
+                    if example.restart_file_list is not None:
+                        iRestartFile = example.restart_file_list.index(command_line.parameters.get('restart_file',None))
+                    else:
+                        iRestartFile = None
 
                     # 3.1    read the executable parameter file 'parameter.ini' (e.g. flexi.ini with which
                     #        flexi will be started), N=, mesh=, etc.
@@ -1072,7 +1096,11 @@ def PerformCheck(start,builds,args,log) :
                             if isinstance(analyze,Clean_up_files) or isinstance(analyze,Analyze_compare_across_commands) :
                                 # skip because either already called in the "run" loop under 4.2 or called later under cross-command comparisons in 7.
                                 continue
+                            # Set the restart file index in case of one diff per restart file (from command line)
+                            analyze.iRestartFile = iRestartFile
+                            # Output of the __str__ for the respective analyze routine
                             print(tools.indent(tools.blue(str(analyze)),2))
+                            # Perform the analyze for the successful runs
                             analyze.perform(runs_successful)
                             # Check if immediate stop is activated on failure
                             if args.stop and Analyze.total_errors > 0:

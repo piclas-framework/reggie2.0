@@ -340,36 +340,18 @@ def getAnalyzes(path, example, args) :
     #   compare_column_tolerance_type  : type of tolerance, either 'absolute' or 'relative'
     #   compare_column_multiplier      : factor for multiplying the result (in order to acquire a physically meaning value for comparison)
     CompareColumn = SimpleNamespace( \
-                    file            = options.get('compare_column_file',None), \
-                    reference_file  = options.get('compare_column_reference_file',None), \
-                    delimiter       = options.get('compare_column_delimiter',','), \
-                    index           = options.get('compare_column_index',None), \
-                    tolerance_value = options.get('compare_column_tolerance_value',1e-5), \
-                    tolerance_type  = options.get('compare_column_tolerance_type','absolute'), \
-                    multiplier      = options.get('compare_column_multiplier',1), \
-                    referencescopy  = args.referencescopy )
+                    one_diff_per_restart_file   = options.get('compare_column_one_diff_per_restart_file',False), \
+                    one_diff_per_run            = options.get('compare_column_one_diff_per_run',True), \
+                    file                        = options.get('compare_column_file',None), \
+                    reference_file              = options.get('compare_column_reference_file',None), \
+                    delimiter                   = options.get('compare_column_delimiter',','), \
+                    index                       = options.get('compare_column_index',None), \
+                    tolerance_value             = options.get('compare_column_tolerance_value',1e-5), \
+                    tolerance_type              = options.get('compare_column_tolerance_type','absolute'), \
+                    multiplier                  = options.get('compare_column_multiplier',1), \
+                    referencescopy              = args.referencescopy )
     if all([CompareColumn.file, CompareColumn.reference_file,  CompareColumn.delimiter, CompareColumn.index]) :
-
-        # Split indices only if the string is not empty
-        if CompareColumn.index is not None:
-            if type(CompareColumn.index) == type([]):
-                # make integers from list
-                CompareColumn.index = [int(x) for x in CompareColumn.index]
-            else:
-                # Split string
-                CompareColumn.index = [int(x) for x in CompareColumn.index.split(",")]
-
-        # Set tolerance names
-        if CompareColumn.tolerance_type in ('absolute', 'delta', '--delta') :
-            CompareColumn.tolerance_type = "absolute"
-        elif CompareColumn.tolerance_type in ('relative', "--relative") :
-            CompareColumn.tolerance_type = "relative"
-        else :
-            raise Exception(tools.red("initialization of compare column failed. compare_column_tolerance_type '%s' not accepted." % CompareColumn.tolerance_type))
-
-        # Loop over the supplied column indices
-        for idx in CompareColumn.index:
-            analyze.append(Analyze_compare_column(CompareColumn,idx))
+        analyze.append(Analyze_compare_column(CompareColumn,example))
 
     # 2.10   compare corresponding files from different commands
     #   compare_across_commands_file             : file name (path) which is analyzed
@@ -1931,7 +1913,7 @@ class Analyze_integrate_line(Analyze) :
     def __init__(self, IntegrateLine) :
         self.file                = IntegrateLine.file
         self.delimiter           = IntegrateLine.delimiter
-        (self.dim1, self.dim2)   = [int(x)   for x in IntegrateLine.columns.split(":")]
+        (self.dim1, self.dim2)   = [int(x) for x in IntegrateLine.columns.split(":")]
         self.integral_value      = float(IntegrateLine.integral_value)
         self.tolerance_value     = float(IntegrateLine.tolerance_value)
         self.tolerance_type      = IntegrateLine.tolerance_type
@@ -2063,14 +2045,95 @@ class Analyze_integrate_line(Analyze) :
 #==================================================================================================
 
 class Analyze_compare_column(Analyze) :
-    def __init__(self, CompareColumn, ColumnIndex) :
-        self.file                = CompareColumn.file
-        self.ref                 = CompareColumn.reference_file
-        self.delimiter           = CompareColumn.delimiter
-        self.dim                 = ColumnIndex
-        self.tolerance_value     = float(CompareColumn.tolerance_value)
-        self.tolerance_type      = CompareColumn.tolerance_type
-        self.multiplier          = float(CompareColumn.multiplier)
+    def __init__(self, CompareColumn, example) :
+        # Set number of diffs per restart file [True/False]
+        if type(CompareColumn.one_diff_per_restart_file) == type(False): # check if default value is still set
+            self.one_diff_per_restart_file = False
+        else:
+            # Check what the user set
+            self.one_diff_per_restart_file = (CompareColumn.one_diff_per_restart_file in ('False', 'false', 'f', 'F'))
+            if self.one_diff_per_restart_file:
+                # User selected False
+                self.one_diff_per_restart_file = False
+            else:
+                # User selected something else
+                self.one_diff_per_restart_file = (CompareColumn.one_diff_per_restart_file in (('True', 'true', 't', 'T')))
+                if self.one_diff_per_restart_file:
+                    # User selected True
+                    pass
+                else:
+                    raise Exception(tools.red("CompareColumn.one_diff_per_restart_file is set neither True/False, check the parameter"))
+
+        if self.one_diff_per_restart_file :
+            self.one_diff_per_run = False
+        else:
+            # Set number of diffs per run [True/False]
+            if type(CompareColumn.one_diff_per_run) == type(True): # check if default value is still set
+                self.one_diff_per_run = True
+            else:
+                # Check what the user set
+                self.one_diff_per_run = (CompareColumn.one_diff_per_run in ('False', 'false', 'f', 'F'))
+                if self.one_diff_per_run:
+                    # User selected False
+                    self.one_diff_per_run = False
+                else:
+                    # User selected something else
+                    self.one_diff_per_run = (CompareColumn.one_diff_per_run in (('True', 'true', 't', 'T')))
+                    if self.one_diff_per_run:
+                        # User selected True
+                        pass
+                    else:
+                        raise Exception(tools.red("CompareColumn.one_diff_per_run is set neither True/False, check the parameter"))
+
+        # Create dictionary for all keys/parameters and insert a list for every value/options
+        self.prms = { "file"            : CompareColumn.file,\
+                      "reference_file"  : CompareColumn.reference_file,\
+                      "tolerance_value" : CompareColumn.tolerance_value,\
+                      "tolerance_type"  : CompareColumn.tolerance_type,\
+                      "delimiter"       : CompareColumn.delimiter}
+        # Column indices are not part of the dictionary
+
+        if type(CompareColumn.index) == type([]):
+            # make integers from list
+            self.index = [int(x) for x in CompareColumn.index]
+        else:
+            # Split string
+            self.index = [int(x) for x in CompareColumn.index.split(",")]
+
+        for key, prm in self.prms.items() :
+           # Check if prm is not of type 'list'
+           if type(prm) != type([]) :
+              # create list with prm as entry
+              self.prms[key] = [prm]
+
+        # Get the number of values/options for each key/parameter
+        numbers = {key: len(prm) for key, prm in self.prms.items()}
+
+        # Get maximum number of values (from all possible keys)
+        self.nCompares = numbers[ max( numbers, key = numbers.get ) ]
+
+        # Get maximum number of runs from the command line
+        self.nCommands = len(example.command_lines)
+
+        # Check all numbers and if a key has only 1 number, increase the number to maximum and use the same value for all
+        for key, number in numbers.items() :
+            if number == 1 :
+                self.prms[key] = [ self.prms[key][0] for i in range(self.nCompares) ]
+                numbers[key] = self.nCompares
+
+        # Check if all parameters have the same length (values with only one parameter have been filled up above)
+        if any( [ (number != self.nCompares) for number in numbers.values() ] ) :
+            raise Exception(tools.red("Number of multiple data sets for multiple compare_column is inconsistent. Please ensure all options have the same length or length=1."))
+
+        # Check tolerance type (absolute or relative) and set the correct h5diff command line argument
+        for compare in range(self.nCompares) :
+            tolerance_type_loc = self.prms["tolerance_type"][compare]
+            if tolerance_type_loc in ('absolute', 'delta', '--delta') :
+                self.prms["tolerance_type"][compare] = "absolute"
+            elif tolerance_type_loc in ('relative', "--relative") :
+                self.prms["tolerance_type"][compare] = "relative"
+            else :
+                raise Exception(tools.red("initialization of compare_column failed. compare_column_tolerance_type '%s' not accepted." % tolerance_type_loc))
 
         # set logical for creating new reference files and copying them to the example source directory
         self.referencescopy = CompareColumn.referencescopy
@@ -2079,186 +2142,244 @@ class Analyze_compare_column(Analyze) :
 
         '''
         General workflow:
-        1.  iterate over all runs
-        1.2   Check existence of the file and reference
-        1.3.1   read data file
-        1.3.2   read reference file
-        1.3.3   check column number
-        1.3.4   get header information for integrated columns
-        1.3.5   split the data array and set the two column vector x and y for integration
-        1.3.6   Check if data_ref consists of
-                  a) only the reference column data OR
-                  b) the complete data table, i.e., the same data structure as the comparison data (if so, also split the data_ref array and set the two column vector x and y for integration)
-        1.3.7   Check dimensions of the arrays
-        1.3.8   Check the number of data points: Comparison can only be performed if at least one point exists
-        1.3.9   calculate difference and determine compare with tolerance
+        * Iterate over all successful runs
+          * Set compares in case of one_diff_per_*
+          * Iterate over all compares
+            * Check existence of the file and reference
+            * Iterate over all columns to be compared
+              * read data file and reference file
+              * check column number
+              * get header information for columns
+              * Check dimensions of the arrays
+              * Check the number of data points: Comparison can only be performed if at least one point exists
+              * calculate difference and determine compare with tolerance
         '''
+        if self.one_diff_per_restart_file and ( self.nCompares < self.iRestartFile+1 ) and self.nCompares > 1 :
+            s=tools.red("Number of compare_column tests and command line runs is inconsistent."+ \
+                    " Please ensure all options have the same length or set compare_column_one_diff_per_restart_file=F. Nbr. of comparisons: %s, Nbr. of command line runs: %s" % (self.nCompares, self.iRestartFile+1) )
+            print(s)
+            # 1.  iterate over all runs
+            for iRun, run in enumerate(runs) :
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+            return # skip the following analysis tests
+        elif self.one_diff_per_run and ( self.nCompares != len(runs) ) and self.nCompares > 1 :
+            s=tools.red("Number of compare_column tests and runs is inconsistent."+ \
+                    " Please ensure all options have the same length or set compare_column_one_diff_per_run=F. Nbr. of comparisons: %s, Nbr. of runs: %s" % (self.nCompares, len(runs)) )
+            print(s)
+            # 1.  iterate over all runs
+            for iRun, run in enumerate(runs) :
+                run.analyze_results.append(s)
+                run.analyze_successful=False
+                Analyze.total_errors+=1
+            return # skip the following analysis tests
 
         count = 0
         NbrOfDifferences = 0
         # 1.  iterate over all runs
-        for run in runs :
-            count += 1
-            # 1.2   Check existence of the file and reference (copy the ref. file when self.referencescopy = True )
-            path             = os.path.join(run.target_directory,self.file)
-            path_ref_target  = os.path.join(run.target_directory,self.ref)
-            path_ref_source  = os.path.join(run.source_directory,self.ref)
-
-            # Copy new reference file: This is completely independent of the outcome of the current compare data file
-            if self.referencescopy :
-                run = copyReferenceFile(run,path,path_ref_source)
-                s=tools.yellow("Analyze_compare_column: performed reference copy")
-                print(s)
-                run.analyze_results.append(s)
-                run.analyze_successful=False
-                Analyze.total_infos+=1
-                # do not skip the following analysis tests, because reference file will be created -> continue
-                continue
-
-            if not os.path.exists(path) :
-                s=tools.red("Analyze_compare_column: cannot find file=[%s] " % (self.file))
-                print(s)
-                run.analyze_results.append(s)
-                run.analyze_successful=False
-                Analyze.total_errors+=1
-                return
-
-            if not os.path.exists(path_ref_target) :
-                s=tools.red("Analyze_compare_column: cannot find reference file=[%s] " % (self.ref))
-                print(s)
-                run.analyze_results.append(s)
-                run.analyze_successful=False
-                Analyze.total_errors+=1
-                return
-
-            # 1.3.1   read data file
-            data = np.array([])
-            with open(path, 'r') as csvfile:
-                line_str = csv.reader(csvfile, delimiter=self.delimiter, quotechar='!')
-                max_lines=0
-                header=0
-                # Get the number of columns from the first row
-                column_count = len(next(line_str))
-                # Rewind csv file back to the beginning
-                csvfile.seek(0)
-                # Sanity check: number of columns should not be smaller than the selected column
-                if column_count-1 < self.dim:
-                    s="Cannot perform analyze Analyze_compare_column, because the supplied column (%s) in %s exceeds the number of columns (%s) in the data file (the first column must start at 0)" % (self.dim, path_ref, 0)
-                    print(tools.red(s))
-                    run.analyze_results.append(s)
-                    run.analyze_successful=False
-                    Analyze.total_errors+=1
-                    return
-                for row in line_str:
-                    # try reading a value from the column from the data file and converting it into a numpy array
-                    try :
-                        line = np.array([float(row[self.dim])])
-                        failed = False
-                    # Assuming that the header line cannot be converted into a float and store the header line
-                    except :
-                        header+=1
-                        header_line = row[self.dim]
-                        failed = True
-                    if not failed :
-                        data = np.append(data, line)
-                    max_lines+=1
-
-            # Check if any data has been read-in
-            if failed :
-                s="Analyze_compare_column: reading of the data file [%s] has failed.\nNo float type data could be read. Check the file content." %path
-                print(tools.red(s))
-                run.analyze_results.append(s)
-                run.analyze_successful=False
-                Analyze.total_errors+=1
-                return
-
-            # 1.3.2   read reference file
-            data_ref = np.array([])
-            with open(path_ref_target, 'r') as csvfile_ref:
-                line_str = csv.reader(csvfile_ref, delimiter=self.delimiter, quotechar='!')
-                max_lines_ref=0
-                header_ref=0
-                # Get the number of columns from the first row
-                column_count_ref = len(next(line_str))
-                # Rewind csv file back to the beginning
-                csvfile_ref.seek(0)
-                # Sanity check: either reference file has 1 column or at least as many columns as the column number selected for comparison
-                if column_count_ref == 1:
-                    refDim = 0                               # Use the only available column for the comparison
-                elif column_count_ref-1 >= self.dim:
-                    refDim = self.dim
-                elif column_count_ref-1 < self.dim:
-                    s="Cannot perform analyze Analyze_compare_column, because the supplied column (%s) in %s exceeds the number of columns (%s) in the reference file (the first column must start at 0)" % (self.dim, path_ref, 0)
-                    print(tools.red(s))
-                    run.analyze_results.append(s)
-                    run.analyze_successful=False
-                    Analyze.total_errors+=1
-                    return
-                for row in line_str:
-                    # Try reading a value from the column from the data file and converting it into a numpy array
-                    try :
-                        line_ref = np.array([float(row[refDim])])
-                        failed = False
-                    # Assuming that the header line cannot be converted into a float and store the header line
-                    except :
-                        header_ref+=1
-                        header_line_ref = row[refDim]
-                        failed = True
-                    if not failed :
-                        data_ref = np.append(data_ref, line_ref)
-                    max_lines_ref+=1
-
-            if failed :
-                s="Analyze_compare_column: reading of the data reference file [%s] has failed.\nNo float type data could be read. Check the file content." %path_ref
-                print(tools.red(s))
-                run.analyze_results.append(s)
-                run.analyze_successful=False
-                Analyze.total_errors+=1
-                return
-
-            # 1.3.4   get header information for column
-            if header > 0 :
-                s1 = header_line
-                if count == 1 or NbrOfDifferences>0:
-                    print(tools.indent(tools.blue("Comparing the column [%s] for run: %s..." % (header_line,count)),2), end=' ') # skip linebreak
+        for iRun, run in enumerate(runs) :
+            # count += 1
+            # Check whether the list of diffs is to be used one-at-a-time, i.e., a list of diffs for a list of runs (each run only performs one diff, not all of them)
+            if self.one_diff_per_restart_file :
+                if self.nCompares > 1:
+                    # One comparison for each run
+                    compares = [self.iRestartFile]
                 else:
-                    print(tools.indent(tools.blue("%s..." % (count)),2), end=' ') # skip linebreak
+                    compares = [0]
+            elif self.one_diff_per_run :
+                if self.nCompares > 1:
+                    # One comparison for each run
+                    compares = [iRun]
+                else:
+                    compares = [0]
+            else :
+                # All comparisons for every run
+                compares = range(self.nCompares)
 
-            # 1.3.7   Check dimensions of the arrays
-            if data.shape != data_ref.shape:
-                s="cannot perform analyze Analyze_compare_column, because the shape of the data in file=[%s] is %s and that of the reference=[%s] is %s. They cannot be different!" % (path,data.shape,self.ref,data_ref.shape)
-                print(tools.red(s))
-                run.analyze_results.append(s)
-                run.analyze_successful=False
-                Analyze.total_errors+=1
-                return
+            # Iterate over all comparisons
+            for compare in compares :
+                reference_file_loc   = self.prms["reference_file"][compare]
+                file_loc             = self.prms["file"][compare]
+                tolerance_value_loc  = float(self.prms["tolerance_value"][compare])
+                tolerance_type_loc   = self.prms["tolerance_type"][compare]
+                delimiter_loc        = self.prms["delimiter"][compare]
 
-            # 1.3.8   Check the number of data points: Comparison can only be performed if at least one point exists
-            if max_lines-header < 1 or max_lines_ref-header_ref < 1 or max_lines-header != max_lines_ref-header_ref:
-                s="cannot perform analyze Analyze_compare_column, because there are not enough lines of data or different numbers of data points to perform the comparison. Number of lines = %s (file) and %s (reference file), which must be equal and at least one." % (max_lines-header,max_lines_ref-header_ref)
-                print(tools.red(s))
-                run.analyze_results.append(s)
-                run.analyze_successful=False
-                Analyze.total_errors+=1
-                return
+                # 1.2   Check existence of the file and reference (copy the ref. file when self.referencescopy = True )
+                path             = os.path.join(run.target_directory,file_loc)
+                path_ref_target  = os.path.join(run.target_directory,reference_file_loc)
+                path_ref_source  = os.path.join(run.source_directory,reference_file_loc)
 
-            # 1.3.9   calculate difference and determine compare with tolerance
-            success = tools.diff_lists(data, data_ref, self.tolerance_value, self.tolerance_type)
-            NbrOfDifferences = success.count(False)
+                # Copy new reference file: This is completely independent of the outcome of the current compare data file
+                if self.referencescopy :
+                    run = copyReferenceFile(run,path,path_ref_source)
+                    s=tools.yellow("Analyze_compare_column: performed reference copy")
+                    print(s)
+                    run.analyze_results.append(s)
+                    run.analyze_successful=False
+                    Analyze.total_infos+=1
+                    # do not skip the following analysis tests, because reference file will be created -> continue
+                    continue
 
-            if NbrOfDifferences > 0 :
-                s = tools.red("Analyze_compare_column() failed: Found %s differences.\n" % NbrOfDifferences)
-                s = s+tools.red("Mismatch in column: %s" % header_line[self.dim])
-                print(s)
-                run.analyze_results.append(s)
-                run.analyze_successful=False
-                Analyze.total_errors+=1
-        # print new line
-        print()
+                if not os.path.exists(path) :
+                    s=tools.red("Analyze_compare_column: cannot find file=[%s] " % (file_loc))
+                    print(s)
+                    run.analyze_results.append(s)
+                    run.analyze_successful=False
+                    Analyze.total_errors+=1
+                    # do not skip the following analysis tests to see what other files might be missing
+                    continue
+
+                if not os.path.exists(path_ref_target) :
+                    s=tools.red("Analyze_compare_column: cannot find reference file=[%s] " % (reference_file_loc))
+                    print(s)
+                    run.analyze_results.append(s)
+                    run.analyze_successful=False
+                    Analyze.total_errors+=1
+                    # do not skip the following analysis tests to see what other files might be missing
+                    continue
+
+                # Iterate over all columns to be compared
+                for index_loc in self.index:
+                    # 1.3.1   read data file
+                    data = np.array([])
+                    with open(path, 'r') as csvfile:
+                        line_str = csv.reader(csvfile, delimiter=delimiter_loc, quotechar='!')
+                        max_lines=0
+                        header=0
+                        # Get the number of columns from the first row
+                        column_count = len(next(line_str))
+                        # Rewind csv file back to the beginning
+                        csvfile.seek(0)
+                        # Sanity check: number of columns should not be smaller than the selected column
+                        if column_count-1 < index_loc:
+                            s="Cannot perform analyze Analyze_compare_column, because the supplied column (%s) in %s exceeds the number of columns (%s) in the data file (the first column must start at 0)" % (index_loc, path, 0)
+                            print(tools.red(s))
+                            run.analyze_results.append(s)
+                            run.analyze_successful=False
+                            Analyze.total_errors+=1
+                            # do not skip the following analysis tests to check other columns
+                            continue
+                        for row in line_str:
+                            # try reading a value from the column from the data file and converting it into a numpy array
+                            try :
+                                line = np.array([float(row[index_loc])])
+                                failed = False
+                            # Assuming that the header line cannot be converted into a float and store the header line
+                            except :
+                                header+=1
+                                header_line = row[index_loc]
+                                failed = True
+                            if not failed :
+                                data = np.append(data, line)
+                            max_lines+=1
+
+                    # Check if any data has been read-in
+                    if failed :
+                        s="Analyze_compare_column: reading of the data file [%s] has failed.\nNo float type data could be read. Check the file content." %path
+                        print(tools.red(s))
+                        run.analyze_results.append(s)
+                        run.analyze_successful=False
+                        Analyze.total_errors+=1
+                        # do not skip the following analysis tests
+                        continue
+
+                    # Read reference file
+                    data_ref = np.array([])
+                    with open(path_ref_target, 'r') as csvfile_ref:
+                        line_str = csv.reader(csvfile_ref, delimiter=delimiter_loc, quotechar='!')
+                        max_lines_ref=0
+                        header_ref=0
+                        # Get the number of columns from the first row
+                        column_count_ref = len(next(line_str))
+                        # Rewind csv file back to the beginning
+                        csvfile_ref.seek(0)
+                        # Sanity check: either reference file has 1 column or at least as many columns as the column number selected for comparison
+                        if column_count_ref == 1:
+                            refDim = 0                               # Use the only available column for the comparison
+                        elif column_count_ref-1 >= index_loc:
+                            refDim = index_loc
+                        elif column_count_ref-1 < index_loc:
+                            s="Cannot perform analyze Analyze_compare_column, because the supplied column (%s) in %s exceeds the number of columns (%s) in the reference file (the first column must start at 0)" % (index_loc, path_ref_target, 0)
+                            print(tools.red(s))
+                            run.analyze_results.append(s)
+                            run.analyze_successful=False
+                            Analyze.total_errors+=1
+                            # do not skip the following analysis tests to check other columns
+                            continue
+                        for row in line_str:
+                            # Try reading a value from the column from the data file and converting it into a numpy array
+                            try :
+                                line_ref = np.array([float(row[refDim])])
+                                failed = False
+                            # Assuming that the header line cannot be converted into a float and store the header line
+                            except :
+                                header_ref+=1
+                                header_line_ref = row[refDim]
+                                failed = True
+                            if not failed :
+                                data_ref = np.append(data_ref, line_ref)
+                            max_lines_ref+=1
+
+                    if failed :
+                        s="Analyze_compare_column: reading of the data reference file [%s] has failed.\nNo float type data could be read. Check the file content." %path_ref_target
+                        print(tools.red(s))
+                        run.analyze_results.append(s)
+                        run.analyze_successful=False
+                        Analyze.total_errors+=1
+                        # do not skip the following analysis tests
+                        continue
+
+                    # Get header information for column
+                    if header > 0 :
+                        s1 = header_line
+                        if count == 1 or NbrOfDifferences>0:
+                            print(tools.indent(tools.blue("Comparing the column [%s] for run: %s..." % (header_line,count)),2), end=' ') # skip linebreak
+                        else:
+                            print(tools.indent(tools.blue("%s..." % (count)),2), end=' ') # skip linebreak
+
+                    # Check dimensions of the arrays
+                    if data.shape != data_ref.shape:
+                        s="cannot perform analyze Analyze_compare_column, because the shape of the data in file=[%s] is %s and that of the reference=[%s] is %s. They cannot be different!" % (path,data.shape,reference_file_loc,data_ref.shape)
+                        print(tools.red(s))
+                        run.analyze_results.append(s)
+                        run.analyze_successful=False
+                        Analyze.total_errors+=1
+                        # do not skip the following analysis tests
+                        continue
+
+                    # Check the number of data points: Comparison can only be performed if at least one point exists
+                    if max_lines-header < 1 or max_lines_ref-header_ref < 1 or max_lines-header != max_lines_ref-header_ref:
+                        s="cannot perform analyze Analyze_compare_column, because there are not enough lines of data or different numbers of data points to perform the comparison. Number of lines = %s (file) and %s (reference file), which must be equal and at least one." % (max_lines-header,max_lines_ref-header_ref)
+                        print(tools.red(s))
+                        run.analyze_results.append(s)
+                        run.analyze_successful=False
+                        Analyze.total_errors+=1
+                        # do not skip the following analysis tests
+                        continue
+
+                    # Calculate difference and determine compare with tolerance
+                    success = tools.diff_lists(data, data_ref, tolerance_value_loc, tolerance_type_loc)
+                    NbrOfDifferences = success.count(False)
+
+                    if NbrOfDifferences > 0 :
+                        s = tools.red("Analyze_compare_column() failed: Found %s differences.\n" % NbrOfDifferences)
+                        s = s+tools.red("Mismatch in column: %s" % header_line[index_loc])
+                        print(s)
+                        run.analyze_results.append(s)
+                        run.analyze_successful=False
+                        Analyze.total_errors+=1
+                # print new line
+                print()
 
 
     def __str__(self) :
-        return "compare column data with a reference (e.g. from .csv file): file=[%s] and reference=[%s] and comparison for column %s (the first column starts at 0)" % (self.file, self.ref, self.dim)
+        if self.one_diff_per_restart_file :
+            return "compare column data with a reference (e.g. from .csv file): file=[%s] and reference=[%s] and comparison for column %s (the first column starts at 0)" % \
+            (self.prms["file"][self.iRestartFile], self.prms["reference_file"][self.iRestartFile], self.index)
+        else:
+            return "compare column data with a reference (e.g. from .csv file): file=[%s] and reference=[%s] and comparison for column %s (the first column starts at 0)" % \
+            (self.prms["file"], self.prms["reference_file"], self.index)
 
 #==================================================================================================
 
