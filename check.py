@@ -596,15 +596,18 @@ class ExternalRun(OutputDirectory,ExternalCommand) :
             return
 
         # check if the command 'cmd' can be executed
+        cmdstr = " ".join(cmd)
         if self.return_code != 0 :
             print(tools.indent("Cannot run the code: "+s,2))
         else :
-            s="Running [%s] ..." % (" ".join(cmd))
+            s="Running [%s] ..." % cmdstr
             head, tail = os.path.split(binary_path)
             self.execute_cmd(cmd, external.directory, name=tail, string_info = tools.indent(s, 3)) # run the code
 
         if self.return_code != 0 :
             self.successful = False
+
+        return cmdstr
 
     def __str__(self) :
         s = "RUN parameters:\n"
@@ -1005,10 +1008,10 @@ def PerformCheck(start,builds,args,log) :
                                     log.info(str(externalrun))
 
                                     # (pre) externals (3.1): run the external binary
-                                    externalrun.execute(build,external,args)
+                                    extermalcmd = externalrun.execute(build,external,args)
                                     if not externalrun.successful :
                                         external_failed = True
-                                        s = tools.red('Execution (pre) external failed')
+                                        s = tools.red('Execution (pre) external failed: %s' % extermalcmd)
                                         run.externals_errors.append(s)
                                         print("ExternalRun.total_errors = %s" % (ExternalRun.total_errors))
                                         ExternalRun.total_errors+=1 # add error if externalrun fails
@@ -1069,10 +1072,10 @@ def PerformCheck(start,builds,args,log) :
                                     log.info(str(externalrun))
 
                                     # (post) externals (3.1): run the external binary
-                                    externalrun.execute(build,external,args)
+                                    extermalcmd = externalrun.execute(build,external,args)
                                     if not externalrun.successful :
                                         #print(externalrun.return_code)
-                                        s = tools.red('Execution (post) external failed')
+                                        s = tools.red('Execution (post) external failed: %s' % extermalcmd)
                                         run.externals_errors.append(s)
                                         ExternalRun.total_errors+=1 # add error if externalrun fails
                                         # Check if immediate stop is activated on failure
