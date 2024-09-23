@@ -219,7 +219,7 @@ def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None
             #       base of opt1 = 1   (first digit has base 1 in every number system)
             #       base of opt2 = 2   (since opt1 has two   values, we get a 2 here)
             #       base of opt3 = 6   (since opt2 has three values and base=2, we get 2*3=6.  This is the number of combinations of opt1 and opt2)
-            #       base of opt4 = 24  (since opt3 has foure values and base=6, we get 6*4=24. This is the number of combinations of opt1, opt2 and opt3)
+            #       base of opt4 = 24  (since opt3 has four  values and base=6, we get 6*4=24. This is the number of combinations of opt1, opt2 and opt3)
             #   Luckily we already stored the base while counting the number of all combinations before.
             #   We now can compute the index in the list of values of an option (which is the value of the respective digit in our crazy number system)
             #   by dividing the index i (which is a number in our crazy number system) by the base and modulo the number of values of the option.
@@ -229,7 +229,7 @@ def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None
         for option in options :
             if CheckForMultipleKeys :
                 # check if the same parameter name (e.g. 'BoundaryName') occurs more than once in the list and
-                # move multiple occurances to a separate key/value where the value is a list of all occurances
+                # move multiple occurrences to a separate key/value where the value is a list of all occurrences
                 # this must be done, because dicts cannot have the same key name more than once (it is a dictionary)
                 found, number = isKeyOf(combination,option.name)
                 if found :
@@ -278,7 +278,7 @@ def writeCombinationsToFile(combinations, path) : # write one set of parameters 
             # check if multiple parameters with the exact same name are used within parameter.ini (examples are BoundaryName or RefState)
             if "MULTIPLE_KEY:" in key :
                 f.write("  ! %s=%s\n" % (key, value))      # write comment into file
-                for item in value :                        # write all multiple occuring values of the multiple key without "MULTIPLE_KEY:" to file
+                for item in value :                        # write all multiple occurring values of the multiple key without "MULTIPLE_KEY:" to file
                     f.write("%s=%s\n" % (key[13:], item)) # write key/value into file
             else :
                 # for parameters with value 'crosscombinations' in the key-value pair, replace it with the value from 'crosscombinations'

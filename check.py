@@ -401,7 +401,7 @@ def SetMPIrun(build, args, MPIthreads) :
                             # MPICH core limit due to massive drop in performance when using over-subscription
                             if args.MaxCoresMPICH > 0:
                                 if args.MaxCoresMPICH < int(MPIthreads):
-                                    print(tools.indent(tools.yellow("MPICH process limit activated: Setting MPIthreads=%s (origianlly was %s)" % (args.MaxCoresMPICH,MPIthreads)),3))
+                                    print(tools.indent(tools.yellow("MPICH process limit activated: Setting MPIthreads=%s (originally was %s)" % (args.MaxCoresMPICH,MPIthreads)),3))
                                     MPIthreads = str(args.MaxCoresMPICH)
                             cmd = [args.MPIexe,"-np",MPIthreads]
                         else:
