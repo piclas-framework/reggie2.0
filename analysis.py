@@ -274,6 +274,8 @@ def getAnalyzes(path, example, args) :
              reshape_value    = options.get('h5diff_reshape_value',-1), \
              flip             = options.get('h5diff_flip',False), \
              max_differences  = options.get('h5diff_max_differences',0), \
+             var_attribute    = options.get('h5diff_var_attribute',None), \
+             var_name         = options.get('h5diff_var_name',None), \
              referencescopy   = args.referencescopy )
     # only do h5diff test if all variables are defined
     if h5diff.reference_file and h5diff.file and h5diff.data_set :
@@ -1133,7 +1135,9 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                      "sort" : h5diff.sort, "sort_dim" : h5diff.sort_dim, "sort_var" : h5diff.sort_var,\
                      "reshape" : h5diff.reshape, "reshape_dim" : h5diff.reshape_dim, "reshape_value" : h5diff.reshape_value,\
                      "flip" : h5diff.flip,\
-                     "max_differences" : h5diff.max_differences }
+                     "max_differences" : h5diff.max_differences,\
+                     "var_attribute" : h5diff.var_attribute,\
+                     "var_name" : h5diff.var_name}
         for key, prm in self.prms.items() :
            # Check if prm is not of type 'list'
            if type(prm) != type([]) :
@@ -1255,6 +1259,8 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                 reshape_value_loc    = int(self.prms["reshape_value"][compare])
                 flip_loc             = self.prms["flip"][compare]
                 max_differences_loc  = int(self.prms["max_differences"][compare])
+                var_attribute_loc    = self.prms["var_attribute"][compare]
+                var_name_loc         = self.prms["var_name"][compare]
 
                 # 1.1.0   Read the hdf5 file
                 path            = os.path.join(run.target_directory,file_loc)
@@ -1486,8 +1492,52 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                     # 1.2.1   Execute the command 'cmd' = 'h5diff -r [--type] [value] [.h5 file] [.h5 reference] [DataSetName_file] [DataSetName_reference]'
                     cmd = ["h5diff","-r",tolerance_type_loc,str(tolerance_value_loc),str(file_loc),str(reference_file_loc),str(data_set_loc_file),str(data_set_loc_ref)]
                     try :
-                        s="Running [%s] ..." % ("  ".join(cmd))
-                        self.execute_cmd(cmd, run.target_directory,name="h5diff"+str(n), string_info = tools.indent(s, 2), displayOnFailure = False) # run the code
+                        if var_attribute_loc is not None and var_name_loc is not None:
+                            # Open datasets again
+                            f1 = h5py.File(path,'r')
+                            f2 = h5py.File(path_ref_target,'r')
+                            def get_variable_dimension(f, dataset_path, variable_attribute, variable_name):
+                                # Check if the dataset has attributes containing variable names for dimensions
+                                try:
+                                    dataset = f
+                                    if variable_attribute in dataset.attrs:
+                                        variable_names = dataset.attrs[variable_attribute]
+                                        variable_names = [name.decode('utf-8') for name in dataset.attrs[variable_attribute]]
+                                        print("Names: ",variable_names)
+                                        if variable_name in variable_names:
+                                            print("Variable index found:",list(variable_names).index(variable_name))
+                                            return list(variable_names).index(variable_name)
+                                        else:
+                                            print(f"Variable name '{variable_name}' not found in dimension names.")
+                                            return None
+                                    else:
+                                        print(f"No '{variable_attribute}' attribute found in dataset '{dataset_path}'.")
+                                        return None
+                                except KeyError:
+                                    print(f"Dataset '{dataset_path}' not found in the file.")
+                                    return None
+
+                            dim1 = get_variable_dimension(f1, data_set_loc_file, var_attribute_loc, var_name_loc)
+                            dim2 = get_variable_dimension(f1, data_set_loc_ref, var_attribute_loc, var_name_loc)
+
+                            # Load datasets from both files
+                            dataset1 = np.array(f1[data_set_loc_file],dtype=float)
+                            dataset2 = np.array(f2[data_set_loc_ref],dtype=float)
+
+                            # Extract slices along the specified dimension
+                            data1_slice = np.ravel(dataset1[...,dim1])
+                            data2_slice = np.ravel(dataset2[...,dim2])
+
+                            data1_slice = np.array([float(x) for x in data1_slice])
+                            data2_slice = np.array([float(x) for x in data2_slice])
+
+                            print(data1_slice.shape)
+                            print(data1_slice.dtype)
+                            success = tools.diff_lists(data1_slice, data2_slice, tolerance_value_loc, tolerance_type_loc)
+                            print(success)
+                        else:
+                            s="Running [%s] ..." % ("  ".join(cmd))
+                            self.execute_cmd(cmd, run.target_directory,name="h5diff"+str(n), string_info = tools.indent(s, 2), displayOnFailure = False) # run the code
 
                         # 1.2.2   Check maximum number of differences if user has selected h5diff_max_differences > 0
                         try :
