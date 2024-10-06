@@ -14,9 +14,10 @@ from __future__ import print_function # required for print() function with line 
 from timeit import default_timer as timer
 import os
 import collections
-from outputdirectory import OutputDirectory
-import check
-import tools
+
+from reggie import check
+from reggie import tools
+from reggie.outputdirectory import OutputDirectory
 
 def StartsWithCMD(pathSplit,iDir):
     try:
