@@ -25,3 +25,4 @@ classifiers = [
 
 [tool.poetry.scripts]
 reggie = "reggie.reggie:main"
+repas = "reggie.repas.repas:main"
