@@ -335,7 +335,7 @@ def getCommand_Lines(args, path, example) :
     if args.noMPI or args.noMPIautomatic :
         combis, digits = combinations.getCombinations(path,OverrideOptionKey='MPI', OverrideOptionValue='1')
     else :
-        combis, digits = combinations.getCombinations(path)
+        combis, digits = combinations.getCombinations(path,MaxCoresMPICH=args.MaxCoresMPICH)
 
     for r in combis :
         command_lines.append(Command_Lines(r, example, i))
