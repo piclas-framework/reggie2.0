@@ -327,15 +327,14 @@ class Command_Lines(OutputDirectory) :
         s += ",".join(["%s: %s" % (k,v) for k,v in self.parameters.items()])
         return tools.indent(s,2)
 
-def getCommand_Lines(args, path, example) :
+def getCommand_Lines(path, example, MPIbuilt, MaxCoresMPICH) :
     command_lines = []
     i = 1
-
     # If single execution is to be performed, remove "MPI =! 1" from command line list
-    if args.noMPI or args.noMPIautomatic :
+    if not MPIbuilt:
         combis, digits = combinations.getCombinations(path,OverrideOptionKey='MPI', OverrideOptionValue='1')
     else :
-        combis, digits = combinations.getCombinations(path,MaxCoresMPICH=args.MaxCoresMPICH)
+        combis, digits = combinations.getCombinations(path,MaxCoresMPICH=MaxCoresMPICH)
 
     for r in combis :
         command_lines.append(Command_Lines(r, example, i))
@@ -921,11 +920,25 @@ def PerformCheck(start,builds,args,log) :
             for example in build.examples :
                 log.info(str(example))
                 print(str(example))
+                # check whether the example is using MPI (either disabled for the whole reggie execution or because compiled without MPI)
+                if args.noMPI or args.noMPIautomatic:
+                    MPIbuilt = False
+                else:
+                    if args.run:
+                        # If code is not compiled (ie. an executable is provided, activating MPI)
+                        MPIbuilt = True
+                    else:
+                        # Determining how the executable has been compiled
+                        LIBS_USE_MPI = build.configuration.get('LIBS_USE_MPI','OFF')
+                        if LIBS_USE_MPI == 'ON':
+                            MPIbuilt = True
+                        else:
+                            MPIbuilt = False
 
                 # 2.1    read the command line options in 'command_line.ini' for binary execution
                 #        (e.g. number of threads for mpirun)
                 example.command_lines = \
-                        getCommand_Lines(args, os.path.join(example.source_directory,'command_line.ini'), example)
+                        getCommand_Lines(os.path.join(example.source_directory,'command_line.ini'), example, MPIbuilt, MaxCoresMPICH=args.MaxCoresMPICH)
 
                 # 2.1b read-in restart_file parameter from command_line.ini separately
                 example.restart_file_list = getRestartFileList(example)
