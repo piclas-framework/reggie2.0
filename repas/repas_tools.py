@@ -33,17 +33,17 @@ from combinations import isKeyOf
 class bcolors :
     """color and font style definitions for changing output appearance"""
     # Reset (user after applying a color to return to normal coloring)
-    ENDC   ='\033[0m'    
+    ENDC   ='\033[0m'
 
     # Regular Colors
-    BLACK  ='\033[0;30m' 
-    RED    ='\033[0;31m' 
-    GREEN  ='\033[0;32m' 
-    YELLOW ='\033[0;33m' 
-    BLUE   ='\033[0;34m' 
-    PURPLE ='\033[0;35m' 
-    CYAN   ='\033[0;36m' 
-    WHITE  ='\033[0;37m' 
+    BLACK  ='\033[0;30m'
+    RED    ='\033[0;31m'
+    GREEN  ='\033[0;32m'
+    YELLOW ='\033[0;33m'
+    BLUE   ='\033[0;34m'
+    PURPLE ='\033[0;35m'
+    CYAN   ='\033[0;36m'
+    WHITE  ='\033[0;37m'
 
     # Text Style
     BOLD = '\033[1m'
@@ -107,9 +107,9 @@ class Case(ExternalCommand) :
         os.system("mv %s %s" % (tmp_file_name, self.parameter_file)) # mv tmp file to parameter file
 
     def names(self) :
-        
+
         # read combinations in 'parameter.ini' for renaming the results
-        combis, digits = getCombinations(self.parameter_file,CheckForMultipleKeys=True) 
+        combis, digits = getCombinations(self.parameter_file,CheckForMultipleKeys=True)
 
         # set "suffix"
         logging.getLogger('logger').debug("")
@@ -143,7 +143,7 @@ class Case(ExternalCommand) :
             s = "cmd=%s" % self.command
             if self.execute_cmd(self.command, self.target_directory, string_info = s) != 0 : # use uncolored string for cmake
                 self.failed=True
-        except : # this fails, if the supplied command line is corrupted
+        except Exception: # this fails, if the supplied command line is corrupted
             print(tools.red("Failed"))
             self.failed=True
 
@@ -201,21 +201,21 @@ class Case(ExternalCommand) :
                 if file.endswith(".pdf"):
                     try :
                         if file.index('order') != -1 :
-                            order = file[file.index('order')+5:-4]             # get string from 'order' + 5 to the end, but remove last 4 character ".pdf"
+                            #order = file[file.index('order')+5:-4] # get string from 'order' + 5 to the end, but remove last 4 character ".pdf"
                             #new_name = "L2"+self.suffix+"_order%s.pdf" % order # add suffix to name
                             new_name = self.prefix+file
-                    except :
-                        new_name = "L2"+self.suffix+".pdf" 
+                    except Exception:
+                        new_name = "L2"+self.suffix+".pdf"
                     os.system("cp output_dir/standalone/examples/cmd_0001/"+file+" "+self.results_main+new_name) # move file to upper most path
 
                 if file.endswith(".csv"):
                     try :
                         if file.index('order') != -1 :
-                            order = file[file.index('order')+5:-4]             # get string from 'order' + 5 to the end, but remove last 4 character ".pdf"
+                            #order = file[file.index('order')+5:-4] # get string from 'order' + 5 to the end, but remove last 4 character ".pdf"
                             #new_name = "L2"+self.suffix+"_order%s.csv" % order # add suffix to name
                             new_name = self.prefix+file
-                    except :
-                        new_name = "L2"+self.suffix+".csv" 
+                    except Exception:
+                        new_name = "L2"+self.suffix+".csv"
                     os.system("cp output_dir/standalone/examples/cmd_0001/"+file+" "+self.results_main+new_name) # move file to upper most path
         except Exception as ex:
             print("save_data: cannote store convergence data because (some) output was not created")

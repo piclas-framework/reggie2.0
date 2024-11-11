@@ -30,11 +30,11 @@ General workflow:
 print('')
 print(tools.red('       oooooooo      ====================')+tools.yellow('=====================================')+tools.green('====================      oooooooo       '))
 print(tools.red('    ooo   oo   ooo      _____    ______  ')+tools.yellow('  _____    _____   _____   ______    ')+tools.green(' ___         ___       ooo   oo   ooo    '))
-print(tools.red('   oo     oo     oo    |  __ \  |  ____| ')+tools.yellow(' / ____|  / ____| |_   _| |  ____|   ')+tools.green('|__ \       / _ \     oo     oo     oo   '))
+print(tools.red('   oo     oo     oo    |  __ \  |  ____| ')+tools.yellow(' / ____|  / ____| |_   _| |  ____|   ')+tools.green('|__ \       / _ \     oo     oo     oo   ')) # noqa W605 invalid escape sequence
 print(tools.red('  oo      oo      oo   | |__) | | |__    ')+tools.yellow('| |  __  | |  __    | |   | |__      ')+tools.green('   ) |     | | | |   oo      oo      oo  '))
 print(tools.red('  oo     oooo     oo   |  _  /  |  __|   ')+tools.yellow('| | |_ | | | |_ |   | |   |  __|     ')+tools.green('  / /      | | | |   oo     oooo     oo  '))
-print(tools.red('  oo    oooooo    oo   | | \ \  | |____  ')+tools.yellow('| |__| | | |__| |  _| |_  | |____    ')+tools.green(' / /_   _  | |_| |   oo    oooooo    oo  '))
-print(tools.red('   oo oo  oo  oo oo    |_|  \_\ |______| ')+tools.yellow(' \_____|  \_____| |_____| |______|   ')+tools.green('|____| (_)  \___/     oo oo  oo  oo oo   '))
+print(tools.red('  oo    oooooo    oo   | | \ \  | |____  ')+tools.yellow('| |__| | | |__| |  _| |_  | |____    ')+tools.green(' / /_   _  | |_| |   oo    oooooo    oo  ')) # noqa W605
+print(tools.red('   oo oo  oo  oo oo    |_|  \_\ |______| ')+tools.yellow(' \_____|  \_____| |_____| |______|   ')+tools.green('|____| (_)  \___/     oo oo  oo  oo oo   ')) # noqa W605
 print(tools.red('    ooo   oo   ooo                       ')+tools.yellow('                                     ')+tools.green('                       ooo   oo   ooo    '))
 print(tools.red('       oooooooo      ====================')+tools.yellow('=====================================')+tools.green('====================      oooooooo       '))
 print('')

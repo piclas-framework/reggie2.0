@@ -14,8 +14,7 @@ from __future__ import print_function # required for print() function with line 
 import logging
 import shutil
 import os
-from timeit import default_timer as timer
-import re
+from timeit import default_timer as timer # noqa: F401: imported but unused (kept for performance measurements)
 import time
 
 class bcolors :
@@ -102,11 +101,13 @@ def find_basedir(basedir) :
     """Search 'CMakeLists.txt' in directories above current working directory.
     The directory containing the 'CMakeLists.txt' is the 'basedir'."""
     found = os.path.exists(os.path.join(basedir, "CMakeLists.txt")) # check if actual directory is the basedir
-    if found : basedir = os.path.abspath(basedir)
+    if found :
+        basedir = os.path.abspath(basedir)
     while not found :                                               # look upwards until basedir found
         basedir = os.path.dirname(basedir)                              # basedir = basedir/..
         found = os.path.exists(os.path.join(basedir, "CMakeLists.txt")) # check if actual directory is the basedir
-        if basedir == "/" : break                                       # check if root of filesystem is reached
+        if basedir == "/": # check if root of filesystem is reached
+            break
 
     if not found :
         raise Exception("No basedir found. Started searching for 'CMakeLists.txt' in '%s'" % os.getcwd())

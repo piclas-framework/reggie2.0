@@ -13,7 +13,7 @@
 import os
 import tools
 
-class OutputDirectory() :
+class OutputDirectory :
     output_dir = "output_dir"
     def __init__(self, parent, name, number = -1, mkdir=True) :
 

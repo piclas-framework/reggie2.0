@@ -22,7 +22,7 @@ def StartsWithCMD(pathSplit,iDir):
     try:
         if pathSplit[iDir+1].startswith('cmd_'):
             return True
-    except:
+    except Exception:
         pass
 
     return False
@@ -85,7 +85,7 @@ def SummaryOfErrors(builds, args) :
                                 pathColoured += delimiter+'%s' % iDirName
                             delimiter='/'
                         run.output_strings['path'] = pathColoured
-                    except Exception as e:
+                    except Exception:
                         pass
                     # Check if command_line.ini has MPI>1 but the binary is built with MPI=OFF and therefore executed in single mode
                     try:
@@ -95,10 +95,10 @@ def SummaryOfErrors(builds, args) :
                                 if int(cores) > 1:
                                     run.output_strings['MPI'] = '%s (changed from %s)' % (1,run.output_strings['MPI'])
                                     run.outputMPIyellow = True
-                            except Exception as e:
+                            except Exception:
                                 run.output_strings['MPI'] = '%s (changed from %s)' % (1,run.output_strings['MPI'])
                                 run.outputMPIyellow = True
-                    except Exception as e:
+                    except Exception:
                         pass
 
                     # Check if MPICH was used and more than the number of physical cores
@@ -109,10 +109,10 @@ def SummaryOfErrors(builds, args) :
                                 if int(cores) > args.MaxCoresMPICH and args.MaxCoresMPICH > 0:
                                     run.output_strings['MPI'] = '%s (changed from %s)' % (args.MaxCoresMPICH,run.output_strings['MPI'])
                                     run.outputMPIyellow = True
-                            except Exception as e:
+                            except Exception:
                                 run.output_strings['MPI'] = '%s (changed from %s)' % (args.MaxCoresMPICH,run.output_strings['MPI'])
                                 run.outputMPIyellow = True
-                    except Exception as e:
+                    except Exception:
                         pass
 
                     for key in run.output_strings.keys() :
@@ -136,7 +136,8 @@ def SummaryOfErrors(builds, args) :
         elif isinstance(build, check.Build) :
             print("Build %d of %d (%s) compiled with in [%.2f sec]:" % (build.number, len(builds), build.result, build.walltime))
             print(" ".join(build.cmake_cmd_color))
-            if build.return_code != 0 : break # stop output as soon as a failed build in encountered
+            if build.return_code != 0 : # stop output as soon as a failed build in encountered
+                break
 
         # 3.2 loop over all examples, command_lines and runs
         for example in build.examples :
@@ -152,7 +153,8 @@ def SummaryOfErrors(builds, args) :
                     restart_file = command_line.parameters.get('restart_file', None)
                     if not param_str_old.startswith(param_str) or len(param_str_old) == 0: # Only print when the parameter set changes
                         if restart_file and not run.restart_file_used and restart_file != restart_file_old: # Add restart file once
-                            if len(param_str) > 0: param_str += ", "
+                            if len(param_str) > 0:
+                                param_str += ", "
                             param_str += "%s=%s" % ('restart_file',restart_file)
                             restart_file_old = restart_file
                         if len(param_str) > 0:

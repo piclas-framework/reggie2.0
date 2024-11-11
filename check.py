@@ -14,13 +14,11 @@ from __future__ import print_function # required for print() function with line 
 import os
 import re
 import shutil
-import collections
 import combinations
 from outputdirectory import OutputDirectory
 from externalcommand import ExternalCommand
 import tools
 from analysis import Analyze, getAnalyzes, Clean_up_files, Analyze_compare_across_commands
-import collections
 import subprocess
 import summary
 # import h5 I/O routines
@@ -55,7 +53,7 @@ class Build(OutputDirectory,ExternalCommand) :
             # get 'binary' from 'configuration' dict and remove it
             try :
                 binary_name = self.configuration["binary"]
-            except :
+            except Exception:
                 print(tools.red("No 'binary'-option with the name of the binary specified in 'builds.ini'"))
                 exit(1)
             self.configuration.pop('binary', None) # remove binary from config dict
@@ -93,7 +91,8 @@ class Build(OutputDirectory,ExternalCommand) :
         # MAKE: default with '-j'
         if not os.path.exists(os.path.join(self.target_directory,"build.ninja")) :
             self.make_cmd = ["make", "-j"]
-            if buildprocs > 0 : self.make_cmd.append(str(buildprocs))
+            if buildprocs > 0 :
+                self.make_cmd.append(str(buildprocs))
         else :
             self.make_cmd = ["ninja"]
             if buildprocs == 0 :
@@ -222,7 +221,7 @@ def StandaloneAutomaticMPIDetection(binary_path) :
     if not MPIifOFF and not userblockChecked:
         # Use try/except here, but don't terminate the program when try fails
         try :
-            cmd=['ldd',binary_path,'|','grep','-i','"libmpi\.\|\<libmpi_"']
+            cmd=['ldd',binary_path,'|','grep','-i','"libmpi\.\|\<libmpi_"'] # noqa W605 invalid escape sequence
             a=' '.join(cmd)
             pipe = subprocess.Popen(a, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             (std, err) = pipe.communicate()
@@ -254,18 +253,21 @@ def StandaloneAutomaticMPIDetection(binary_path) :
     return MPIifOFF
 
 def getBuilds(basedir, source_directory, CMAKE_BUILD_TYPE, singledir) :
-    builds = []
-    i = 1
+    # builds = []
+    # i = 1
     combis, digits = combinations.getCombinations(os.path.join(source_directory, 'builds.ini'),OverrideOptionKey='CMAKE_BUILD_TYPE',OverrideOptionValue=CMAKE_BUILD_TYPE)
 
     # create Builds
     if singledir :
-        for b in combis :
-            builds.append(Build(basedir, source_directory,b,0))
+        builds = [Build(basedir, source_directory, b, 0) for b in combis]
+        # TODO
+        # for b in combis :
+            # builds.append(Build(basedir, source_directory,b,0))
     else :
-        for b in combis :
-            builds.append(Build(basedir, source_directory,b, i))
-            i += 1
+        builds = [Build(basedir, source_directory, b, i) for i, b in enumerate(combis, start=1)]
+        # for b in combis :
+            # builds.append(Build(basedir, source_directory,b, i))
+            # i += 1
     return builds
 
 class BuildFailedException(Exception) :
@@ -373,7 +375,7 @@ def SetMPIrun(build, args, MPIthreads) :
                 MPIbuilt = "ON" # fall back and assume MPI=ON (this fill break if the executable is actually built MPI=OFF)
             else:
                 MPI_built_flag = 'LIBS_USE_MPI'
-        except Exception as e:
+        except Exception:
             pass
 
     build.MPIbuilt = MPIbuilt
@@ -727,7 +729,7 @@ class Run(OutputDirectory, ExternalCommand) :
                             s = tools.yellow("Automatically reducing number of MPI threads from %s to %s (number of elements in mesh)!" % (int(MPIthreads),int(nElems[0])))
                             print(s)
                         MPIthreads = str(min(int(nElems[0]),int(MPIthreads)))
-            except Exception as ex :
+            except Exception:
                 pass
 
 
@@ -1008,10 +1010,10 @@ def PerformCheck(start,builds,args,log) :
                                 external.directory  = run.target_directory + '/'+ externaldirectory
                                 external.parameterfiles = [i for i in os.listdir(external.directory) if i.endswith('.ini')]
 
-                            externalbinary = external.parameters.get("externalbinary")
+                            # TODO externalbinary = external.parameters.get("externalbinary")
 
                             # (pre) externals (2): loop over all parameterfiles available for the i'th external
-                            for external.parameterfile in external.parameterfiles :
+                            for external.parameterfile in external.parameterfiles : # noqa B020 loop control variable external overrides iterable it iterates
                                 # (pre) externals (2.1): consider combinations
                                 external.runs = \
                                         getExternalRuns(os.path.join(external.directory,external.parameterfile), external)
@@ -1071,10 +1073,10 @@ def PerformCheck(start,builds,args,log) :
                                 external.directory  = run.target_directory + '/'+ externaldirectory
                                 external.parameterfiles = [i for i in os.listdir(external.directory) if i.endswith('.ini')]
 
-                            externalbinary = external.parameters.get("externalbinary")
+                            # TODO externalbinary = external.parameters.get("externalbinary")
 
                             # (post) externals (2): loop over all parameterfiles available for the i'th external
-                            for external.parameterfile in external.parameterfiles :
+                            for external.parameterfile in external.parameterfiles : # noqa B020 loop control variable external overrides iterable it iterates
 
                                 # (post) externals (2.1): consider combinations
                                 external.runs = \
@@ -1132,17 +1134,20 @@ def PerformCheck(start,builds,args,log) :
                             run.rename_failed()
 
                     # Don't remove when run fails
-                    if not all([run.analyze_successful for run in runs_successful]) : remove_build_when_successful = False # don't delete build folder after all examples/runs
+                    if not all([run.analyze_successful for run in runs_successful]) : # don't delete build folder after all examples/runs
+                        remove_build_when_successful = False
 
                     # Don't remove when (pre) external fails
                     for run in runs_successful:
                         for external in run.externals_pre:
-                            if not all([externalrun.successful for externalrun in external.runs]) : remove_build_when_successful = False # don't delete build folder after all examples/runs
+                            if not all([externalrun.successful for externalrun in external.runs]) : # don't delete build folder after all examples/runs
+                                remove_build_when_successful = False
 
                     # Don't remove when (post) external fails
                     for run in runs_successful:
                         for external in run.externals_post :
-                            if not all([externalrun.successful for externalrun in external.runs]) : remove_build_when_successful = False # don't delete build folder after all examples/runs
+                            if not all([externalrun.successful for externalrun in external.runs]) : # don't delete build folder after all examples/runs
+                                remove_build_when_successful = False
 
                 # 7.    perform analyze tests comparing corresponding runs from different commands
                 for iRun in range( len( example.command_lines[0].runs ) ):  # loop over runs of first command

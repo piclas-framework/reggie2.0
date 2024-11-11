@@ -73,7 +73,8 @@ def readValueFromFile(filename,key) :
         for line in f.readlines() :   # iterate over all lines of the file
             line = re.sub(r"\s+", "", line)        # remove all whitespaces ("\s" is the whitespac symbol)
             line = re.sub(r"\\s", " ", line)       # add new whitespaces for all occurrances of "\s" in the string ("\s" is NOT the whitespace symbol here)
-            if line.startswith('!') : continue     # skip lines starting with a comment
+            if line.startswith('!') : # skip lines starting with a comment
+                continue
             line = line.split('!')[0]              # remove comments
 
             # 1.1 read an exclusion
@@ -115,7 +116,8 @@ def readKeyValueFile(filename) :
         for line in f.readlines() :   # iterate over all lines of the file
             line = re.sub(r"\s+", "", line)        # remove all whitespaces ("\s" is the whitespac symbol)
             line = re.sub(r"\\s", " ", line)       # add new whitespaces for all occurrances of "\s" in the string ("\s" is NOT the whitespace symbol here)
-            if line.startswith('!') : continue     # skip lines starting with a comment
+            if line.startswith('!') : # skip lines starting with a comment
+                continue
             line = line.split('!')[0]              # remove comments
 
             # 1.1 read an exclusion
@@ -278,8 +280,8 @@ def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None
                 break
 
         # Don't add combination if it was marked skip=True
-        if skip : continue
-
+        if skip :
+            continue
 
 
         # add valid combination

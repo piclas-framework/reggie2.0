@@ -1,0 +1,131 @@
+# accepts also ALL as argument, this will also disable any conflicting rules
+# CAUTION: Use ALL with discretion. Enabling ALL will implicitly enable new rules whenever you upgrade ruff
+
+line-length = 200
+#indent-width = 4
+[lint]
+
+# choose options for the ruff linter
+# checks that should be selected
+# select = []
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes (Error)
+    "F",
+    # Pyflakes (Warning)
+    "W",
+    # flake8-bugbear
+    "B",
+
+    # flake8-simplify
+    #"SIM",
+    # isort
+    "I",
+    # pycodestyle -> check doc strings
+    #"D",
+    #flake8-builtins -> check shadowing
+    "A",
+    #flake8-implicit-str-concat
+    "ISC",
+    #flake8-import-conventions   mathplotlib as mpl??
+    "ICN",
+    #flake8-unused-arguments
+    #"ARG",
+    #flake8-todos -> TODOs need to be attached to an issue
+    #"TD",
+    #Perflint -> may increase performance
+    "PERF",
+    #Ruff-specific rules: check for unused noqa commands
+    "RUF100",
+]
+
+
+# checks that should be ignored
+# F401: `re` imported but unused
+# F841: Local variable `e` is assigned to but never used
+# F811: Redefinition of unused `collections` from line 17
+
+# E501: line too long
+
+# B007: Loop control variable `iRun` not used within loop body
+# B020: Loop control variable `external` overrides iterable it iterates
+
+# I001: Import block is un-sorted or un-formatted
+
+# W605: Invalid escape sequence: `\ `
+
+#ignore = ["F401","F841","F811","UP031","UP010","UP015","UP039","UP003","UP025","UP027","UP009","UP004","UP032","B007","B020","I001","W605","TD002"]
+# TD002: Missing author in TODO; try: `# todo(<author_name>): ...` or `# todo @<author_name>: ...`
+ignore = ["E501","TD002"]
+# ruff labels fixes as "safe" and "unsafe". The meaning and intent of your code will be retained when 
+# applying safe fixes, but the meaning could be changed when applying unsafe fixes. Since no fixes 
+# should be applied automatically all safes are set to "unsafe"  
+extend-unsafe-fixes = ["ALL"]
+
+# corresponds to flake8-implicit-str-concat, ICN
+[lint.flake8-import-conventions.aliases]
+# Declare the default aliases.
+numpy = "np"
+pandas = "pd"
+
+[lint.isort]
+length-sort-straight = true
+# Use two lines after each import block.
+lines-after-imports = 2
+
+
+# when formater is used dont forget to exclude errors like 
+
+# When using Ruff as a formatter, we recommend avoiding the following lint rules:
+# 
+# tab-indentation (W191)
+# indentation-with-invalid-multiple (E111)
+# indentation-with-invalid-multiple-comment (E114)
+# over-indented (E117)
+# indent-with-spaces (D206)
+# triple-single-quotes (D300)
+# bad-quotes-inline-string (Q000)
+# bad-quotes-multiline-string (Q001)
+# bad-quotes-docstring (Q002)
+# avoidable-escaped-quote (Q003)
+# missing-trailing-comma (COM812)
+# prohibited-trailing-comma (COM819)
+# single-line-implicit-string-concatenation (ISC001)
+# multi-line-implicit-string-concatenation (ISC002)
+
+
+[format]
+# Ruff uses existing trailing commas as an indication that short lines should be left separate. If this option is set to true, the magic trailing comma is ignored.
+skip-magic-trailing-comma = false
+
+
+##### later for gitlab checks
+
+# Fixes 
+    #Show unsafe fixes - ruff check --unsafe-fixes
+    #Apply unsafe fixes
+
+    # ignore
+    #To suppress a violation inline, Ruff uses a noqa system similar to Flake8. To ignore an individual violation, add # noqa: {code} to the end of the line, like so:
+
+
+    # Ignore F841.
+    #x = 1  # noqa: F841
+
+    # Ignore E741 and F841.
+    #i = 1  # noqa: E741, F841
+
+    # Ignore _all_ violations.
+    #x = 1  # noqa
+
+    # check for unused noqa
+    #Ruff implements a special rule, unused-noqa, under the RUF100 code, to enforce that your noqa directives are "valid", in that the violations they say they ignore are actually being triggered on that line (and thus suppressed). To flag unused noqa directives, run: ruff check /path/to/file.py --extend-select RUF100.
+
+    #Ruff can also remove any unused noqa directives via its fix functionality. To remove any unused noqa directives, run: ruff check /path/to/file.py --extend-select RUF100 --fix.
+
+
+# formater 
+
+# run
+# ruff format --diff to shows differences

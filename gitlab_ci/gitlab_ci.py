@@ -17,12 +17,14 @@ import re
 import logging
 import argparse
 import shutil
+import tools
+import gitlab_ci_tools
 
 # import reggie source code
 # use reggie2.0 functions by adding the path
 import settings
 settings.init() # Call only once
-import sys
+import sys # noqa: E402: Module level import not at top of file
 sys.path.append(settings.absolute_reggie_path)
 reggie_exe_path = os.path.join(settings.absolute_reggie_path,'reggie.py')
 if not os.path.exists(reggie_exe_path) :
@@ -56,12 +58,8 @@ def DisplayInitMessage(Bool,Message) :
     if Bool :
         print("\n%s\n" % Message)
         Bool=False
-    
-    return Bool
 
-import tools
-import args_parser
-import gitlab_ci_tools
+    return Bool
 
 """
 General workflow:
@@ -201,11 +199,13 @@ for case in cases :
         print(tools.red("case directory not found under: '%s'" % case_dir))
         exit(1)
 
+    cmd = ["python", reggie_path] + [str(x).strip() for x in c.split(" ")]
+    # TODO
     # set the command line "cmd"
-    cmd=["python", reggie_path]
+    # cmd=["python", reggie_path]
     #cmd=["python2.7", reggie_path]
-    for x in c.split(" ") :
-        cmd.append(str(x).strip())
+    # for x in c.split(" ") :
+        # cmd.append(str(x).strip())
 
     # add debug level to gitlab-ci command line
     if args.info :
@@ -245,7 +245,7 @@ for case in cases :
             try :
                 if case.execute_cmd(cmd, target_directory, string_info = s_NoColor.strip()) != 0 : # use uncolored string for cmake
                     case.failed=True
-            except : # this fails, if the supplied command line is corrupted
+            except Exception: # this fails, if the supplied command line is corrupted
                 print(tools.red("Failed"))
                 case.failed=True
 

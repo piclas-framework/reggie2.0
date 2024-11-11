@@ -19,7 +19,6 @@ import analyze_functions
 import combinations
 import tools
 import csv
-import re
 import logging
 import glob
 import shutil
@@ -457,7 +456,7 @@ class Analyze_L2_file(Analyze) :
             # 1.1   Read L2 errors from std out channel
             try:
                 L2_errors = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name,LastLines))
-            except :
+            except Exception:
                 s = tools.red("L2 analysis failed: L2 error could not be read from %s (searching for %s in the last %s lines)" % ('std.out',self.error_name,LastLines) )
                 print(s)
 
@@ -489,7 +488,7 @@ class Analyze_L2_file(Analyze) :
             # 1.2   Read reference L2 errors from self.file_data list
             try:
                 L2_errors_ref = np.array(analyze_functions.get_last_L2_error(self.file_data,self.error_name,LastLines))
-            except :
+            except Exception:
                 s = tools.red("L2 analysis failed: L2 error could not be read from %s (searching for %s in the last %s lines)" % (self.file,self.error_name,LastLines) )
                 print(s)
 
@@ -559,7 +558,7 @@ class Analyze_L2(Analyze) :
             # 1.1   read L2 errors from 'std.out' file
             try:
                 L2_errors = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name,LastLines))
-            except :
+            except Exception:
                 s = tools.red("L2 analysis failed: L2 error could not be read from %s (searching for %s in the last %s lines)" % ('std.out',self.error_name,LastLines) )
                 print(s)
 
@@ -645,11 +644,11 @@ class Analyze_Convtest_h(Analyze) :
                 L2_errors = np.array([analyze_functions.get_last_L2_error(run.stdout,self.error_name) for \
                         run in runs])
                 L2_errors = np.transpose(L2_errors)
-            except :
+            except Exception:
                 for run in runs : # find out exactly which L2 error could not be read
                     try :
-                        L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name,LastLines))
-                    except :
+                        L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name,LastLines)) # noqa F841 local variable 'test' is assigned to but never used
+                    except Exception: # noqa PERF203 `try`-`except` within a loop incurs performance
                         s = tools.red("h-convergence failed: L2 error could not be read from %s (searching for %s in the last %s lines)" % ('std.out',self.error_name,LastLines) )
                         print(s)
 
@@ -819,11 +818,11 @@ class Analyze_Convtest_t(Analyze) :
                 if self.method == 1 :   # 1.) initial timestep (automatically from std.out)
                     try :
                         self.x_values = np.array([analyze_functions.get_initial_timesteps(run.stdout,self.get_x_values) for run in runs])
-                    except :
+                    except Exception:
                         for run in runs : # find out exactly which L2 error could not be read
                             try :
                                 self.x_values_test = np.array(analyze_functions.get_initial_timesteps(run.stdout,self.get_x_values))
-                            except :
+                            except Exception: # noqa PERF203 `try`-`except` within a loop incurs performance
                                 s = tools.red("t-convergence failed: could not read [%s] from output (searching in all lines)" % self.get_x_values)
                                 print(s)
 
@@ -837,11 +836,11 @@ class Analyze_Convtest_t(Analyze) :
                 elif self.method == 3 : # 3.) total number of timesteps (automatically from std.out)
                     try :
                         self.x_values = np.array([analyze_functions.get_last_number_of_timesteps(run.stdout,self.get_x_values) for run in runs])
-                    except :
+                    except Exception:
                         for run in runs : # find out exactly which L2 error could not be read
                             try :
                                 self.x_values_test = np.array(analyze_functions.get_last_number_of_timesteps(run.stdout,self.get_x_values,LastLines))
-                            except :
+                            except Exception: # noqa PERF203 `try`-`except` within a loop incurs performance
                                 s = tools.red("t-convergence failed: could not read [%s] from %s (searching in the last %s lines)" % ('std.out',self.get_x_values,LastLines) )
                                 print(s)
 
@@ -861,11 +860,11 @@ class Analyze_Convtest_t(Analyze) :
                 L2_errors = np.array([analyze_functions.get_last_L2_error(run.stdout,self.error_name,LastLines) for \
                         run in runs])
                 L2_errors = np.transpose(L2_errors)
-            except :
+            except Exception:
                 for run in runs : # find out exactly which L2 error could not be read
                     try :
-                        L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name,LastLines))
-                    except :
+                        L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name,LastLines)) # noqa F841 local variable 'test' is assigned to but never used
+                    except Exception: # noqa PERF203 `try`-`except` within a loop incurs performance
                         s = tools.red("t-convergence failed: some L2 errors could not be read from %s (searching for '%s' in the last %s lines)" % ('std.out',self.error_name,LastLines) )
                         print(s)
 
@@ -1016,11 +1015,11 @@ class Analyze_Convtest_p(Analyze) :
                 L2_errors = np.array([analyze_functions.get_last_L2_error(run.stdout,self.error_name,LastLines) for \
                         run in runs])
                 L2_errors = np.transpose(L2_errors)
-            except :
+            except Exception:
                 for run in runs : # find out exactly which L2 error could not be read
                     try :
-                        L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name,LastLines))
-                    except :
+                        L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name,LastLines)) # noqa F841 local variable 'test' is assigned to but never used
+                    except Exception: # noqa PERF203 `try`-`except` within a loop incurs performance
                         s = tools.red("p-convergence failed: some L2 errors could not be read from %s (searching for '%s' in the last %s lines)" % ('std.out',self.error_name,LastLines) )
                         print(s)
 
@@ -1069,9 +1068,11 @@ class Analyze_Convtest_p(Analyze) :
             # 2.5   check if the order of convergence is always increasing with increasing polynomial degree
             increasing = []
             for j in range(nVar) :
-                increasing_run = []
-                for i in range(1,len(p)-1) :
-                    increasing_run.append(L2_order[j][i]>L2_order[j][i-1]) # check for increasing order of convergence
+                increasing_run = [L2_order[j][i] > L2_order[j][i-1] for i in range(1, len(p)-1)] # check for increasing order of convergence
+                # TODO
+                # increasing_run = []
+                # for i in range(1,len(p)-1) :
+                    # increasing_run.append(L2_order[j][i]>L2_order[j][i-1]) # check for increasing order of convergence
                     #print increasing_run,L2_order[j][i],L2_order[j][i-1]
                 print(increasing_run)
                 if 1==1 :
@@ -1136,7 +1137,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                      "max_differences" : h5diff.max_differences }
         for key, prm in self.prms.items() :
            # Check if prm is not of type 'list'
-           if type(prm) != type([]) :
+           if not isinstance(prm,list):
               # create list with prm as entry
               self.prms[key] = [prm]
 
@@ -1503,7 +1504,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                                             print(s)
                                             self.return_code = 0
                         # If this try fails, just ignore it
-                        except :
+                        except Exception:
                             pass
 
 
@@ -1549,7 +1550,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
 
                         # 1.3.1   Add failed info if return a code != 0 to run
                         run.analyze_results.append(tools.red("h5diff failed. (Exception="+str(ex)+")"))
-                        run.analyze_results.append(tools.red("Maybe h5diff is not found automatically. Find it with \"locate -b '\h5diff'\" and add the corresponding path, e.g., \"export PATH=/opt/hdf5/1.X/bin/:$PATH\""))
+                        run.analyze_results.append(tools.red("Maybe h5diff is not found automatically. Find it with \"locate -b '\h5diff'\" and add the corresponding path, e.g., \"export PATH=/opt/hdf5/1.X/bin/:$PATH\"")) # noqa W605 invalid escape sequence
 
                         # 1.3.2   Set analyzes to fail if return a code != 0
                         run.analyze_successful=False
@@ -1676,7 +1677,7 @@ class Analyze_compare_data_file(Analyze) :
     def __init__(self, CompareDataFile) :
 
         # Set number of diffs per run [True/False]
-        if type(CompareDataFile.one_diff_per_run) == type(True): # check if default value is still set
+        if isinstance(CompareDataFile.one_diff_per_run,bool): # check if default value is still set
             self.one_diff_per_run = True
         else:
             # Check what the user set
@@ -1704,7 +1705,7 @@ class Analyze_compare_data_file(Analyze) :
 
         for key, prm in self.prms.items() :
            # Check if prm is not of type 'list'
-           if type(prm) != type([]) :
+           if not isinstance(prm,list):
               # create list with prm as entry
               self.prms[key] = [prm]
 
@@ -1760,7 +1761,7 @@ class Analyze_compare_data_file(Analyze) :
                     "Please ensure all options have the same length or set compare_data_file_one_diff_per_run=F. Nbr. of comparisons: %s, Nbr. of runs: %s" % (self.nCompares, len(runs)) )
             print(s)
             # 1.  iterate over all runs
-            for iRun, run in enumerate(runs) :
+            for _iRun, run in enumerate(runs) :
                 run.analyze_results.append(s)
                 run.analyze_successful=False
                 Analyze.total_errors+=1
@@ -1825,11 +1826,11 @@ class Analyze_compare_data_file(Analyze) :
                         try :
                             # This will fail for header lines, but not for '-0.102704038304E-10, 0.190378371853E-10,-0.299883576917E+10'
                             line = np.array([float(x) for x in row])
-                        except:
+                        except Exception:
                             try:
                                 # Try and convert rows like this: ' -0.102704038304E-10   0.190378371853E-10  -0.299883576917E+10' because when "," is the delimiter they are read into a single element
                                 line = np.array([float(x) for x in row[0].split()])
-                            except:
+                            except Exception:
                                 header+=1
                                 header_line = row
                         i+=1
@@ -1848,11 +1849,11 @@ class Analyze_compare_data_file(Analyze) :
                         try :
                             # This will fail for header lines, but not for '-0.102704038304E-10, 0.190378371853E-10,-0.299883576917E+10'
                             line_ref = np.array([float(x) for x in row])
-                        except:
+                        except Exception: # noqa PERF203 `try`-`except` within a loop incurs performance
                             try:
                                 # Try and convert rows like this: ' -0.102704038304E-10   0.190378371853E-10  -0.299883576917E+10' because when "," is the delimiter they are read into a single element
                                 line_ref = np.array([float(x) for x in row[0].split()])
-                            except:
+                            except Exception:
                                 header_ref+=1
                     line_ref_len = len(line_ref)
 
@@ -1873,9 +1874,9 @@ class Analyze_compare_data_file(Analyze) :
                 if NbrOfDifferences > 0 :
                     s = "Comparison failed for [%s] with [%s] due to %s differences\n" % (path, reference_file_loc, NbrOfDifferences)
                     try:
-                        test = header_line[len(success)-1] # dummy variable to test if the header can be accessed for the last possibly entry or not
+                        test = header_line[len(success)-1] # dummy variable to test if the header can be accessed for the last possibly entry or not, # noqa F841 local variable 'test' is assigned to but never used
                         s = s+"Mismatch in columns: "+", ".join([str(header_line[i]).strip() for i in range(len(success)) if not success[i]])
-                    except:
+                    except Exception:
                         # When the header is not in the same structure as the data itself, simply output the number of the column
                         s = s+"Mismatch in columns: "+", ".join(['Nbr. '+str(i+1).strip() for i in range(len(success)) if not success[i]])
                     if NbrOfDifferences > max_differences_loc :
@@ -1956,7 +1957,7 @@ class Analyze_integrate_line(Analyze) :
                     try : # try reading a line from the data file and converting it into a numpy array
                         line = np.array([float(x) for x in row])
                         failed = False
-                    except : #
+                    except Exception: #
                         header+=1
                         header_line = row
                         failed = True
@@ -2047,7 +2048,7 @@ class Analyze_integrate_line(Analyze) :
 class Analyze_compare_column(Analyze) :
     def __init__(self, CompareColumn, example) :
         # Set number of diffs per restart file [True/False]
-        if type(CompareColumn.one_diff_per_restart_file) == type(False): # check if default value is still set
+        if isinstance(CompareColumn.one_diff_per_restart_file,bool): # check if default value is still set
             self.one_diff_per_restart_file = False
         else:
             # Check what the user set
@@ -2068,7 +2069,7 @@ class Analyze_compare_column(Analyze) :
             self.one_diff_per_run = False
         else:
             # Set number of diffs per run [True/False]
-            if type(CompareColumn.one_diff_per_run) == type(True): # check if default value is still set
+            if isinstance(CompareColumn.one_diff_per_run,bool): # check if default value is still set
                 self.one_diff_per_run = True
             else:
                 # Check what the user set
@@ -2093,7 +2094,7 @@ class Analyze_compare_column(Analyze) :
                       "delimiter"       : CompareColumn.delimiter}
         # Column indices are not part of the dictionary
 
-        if type(CompareColumn.index) == type([]):
+        if isinstance(CompareColumn.index,list):
             # make integers from list
             self.index = [int(x) for x in CompareColumn.index]
         else:
@@ -2102,7 +2103,7 @@ class Analyze_compare_column(Analyze) :
 
         for key, prm in self.prms.items() :
            # Check if prm is not of type 'list'
-           if type(prm) != type([]) :
+           if not isinstance(prm,list):
               # create list with prm as entry
               self.prms[key] = [prm]
 
@@ -2159,7 +2160,7 @@ class Analyze_compare_column(Analyze) :
                     " Please ensure all options have the same length or set compare_column_one_diff_per_restart_file=F. Nbr. of comparisons: %s, Nbr. of command line runs: %s" % (self.nCompares, self.iRestartFile+1) )
             print(s)
             # 1.  iterate over all runs
-            for iRun, run in enumerate(runs) :
+            for _iRun, run in enumerate(runs) :
                 run.analyze_results.append(s)
                 run.analyze_successful=False
                 Analyze.total_errors+=1
@@ -2169,7 +2170,7 @@ class Analyze_compare_column(Analyze) :
                     " Please ensure all options have the same length or set compare_column_one_diff_per_run=F. Nbr. of comparisons: %s, Nbr. of runs: %s" % (self.nCompares, len(runs)) )
             print(s)
             # 1.  iterate over all runs
-            for iRun, run in enumerate(runs) :
+            for _iRun, run in enumerate(runs) :
                 run.analyze_results.append(s)
                 run.analyze_successful=False
                 Analyze.total_errors+=1
@@ -2266,7 +2267,7 @@ class Analyze_compare_column(Analyze) :
                                 line = np.array([float(row[index_loc])])
                                 failed = False
                             # Assuming that the header line cannot be converted into a float and store the header line
-                            except :
+                            except Exception:
                                 header+=1
                                 header_line = row[index_loc]
                                 failed = True
@@ -2313,9 +2314,8 @@ class Analyze_compare_column(Analyze) :
                                 line_ref = np.array([float(row[refDim])])
                                 failed = False
                             # Assuming that the header line cannot be converted into a float and store the header line
-                            except :
+                            except Exception:
                                 header_ref+=1
-                                header_line_ref = row[refDim]
                                 failed = True
                             if not failed :
                                 data_ref = np.append(data_ref, line_ref)
@@ -2332,7 +2332,6 @@ class Analyze_compare_column(Analyze) :
 
                     # Get header information for column
                     if header > 0 :
-                        s1 = header_line
                         if count == 1 or NbrOfDifferences>0:
                             print(tools.indent(tools.blue("Comparing the column [%s] for run: %s..." % (header_line,count)),2), end=' ') # skip linebreak
                         else:
@@ -2429,7 +2428,6 @@ class Analyze_compare_across_commands(Analyze) :
                 return
 
             # 1.2   read data file
-            data = np.array([])
             with open(path, 'r') as csvfile:
                 line_str = csv.reader(csvfile, delimiter=self.delimiter, quotechar='!')
                 i=0
@@ -2438,7 +2436,7 @@ class Analyze_compare_across_commands(Analyze) :
                     try : # try reading a line from the data file and converting it into a numpy array
                         line = np.array([float(x) for x in row])
                         failed = False
-                    except : # count as header line
+                    except Exception: # count as header line
                         header+=1
                         header_line = row
                         failed = True

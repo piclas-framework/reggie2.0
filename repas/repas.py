@@ -12,10 +12,8 @@
 #==================================================================================================================================
 # import general functions
 import os
-import fileinput
 import logging
 import argparse
-import shutil
 import re
 from sys import platform
 import socket
@@ -24,25 +22,20 @@ import socket
 # use reggie2.0 functions by adding the path
 import settings
 settings.init() # Call only once
-import sys
+import sys # noqa: E402: Module level import not at top of file
 sys.path.append(settings.absolute_reggie_path)
 reggie_exe_path = os.path.join(settings.absolute_reggie_path,'reggie.py')
 if not os.path.exists(reggie_exe_path) :
     print("Reggie main file not found in reggie repository under: '%s'" % reggie_exe_path)
     exit(1)
 
-from repas_tools import finalize
-import repas_tools
+from repas_tools import finalize # noqa: E402
+import repas_tools # noqa: E402
 
-from combinations import getCombinations
-from combinations import isKeyOf
-from combinations import readKeyValueFile
-from tools import red
-from tools import yellow
-from timeit import default_timer as timer
+from combinations import getCombinations # noqa: E402
+from timeit import default_timer as timer # noqa: E402
 
-import tools
-import args_parser
+import tools # noqa: E402
 
 """
 General workflow:
@@ -58,26 +51,26 @@ General workflow:
 print('')
 print(tools.red('=============================================================================================================================='))
 print(tools.red('         _____                    _____                    _____                    _____                    _____            '))
-print(tools.red('         /\    \                  /\    \                  /\    \                  /\    \                  /\    \          '))
-print(tools.red('        /::\    \                /::\    \                /::\    \                /::\    \                /::\    \         '))
-print(tools.red('       /::::\    \              /::::\    \              /::::\    \              /::::\    \              /::::\    \        '))
-print(tools.red('      /::::::\    \            /::::::\    \            /::::::\    \            /::::::\    \            /::::::\    \       '))
-print(tools.red('     /:::/\:::\    \          /:::/\:::\    \          /:::/\:::\    \          /:::/\:::\    \          /:::/\:::\    \      '))
-print(tools.red('    /:::/__\:::\    \        /:::/__\:::\    \        /:::/__\:::\    \        /:::/__\:::\    \        /:::/__\:::\    \     '))
-print(tools.red('   /::::\   \:::\    \      /::::\   \:::\    \      /::::\   \:::\    \      /::::\   \:::\    \       \:::\   \:::\    \    '))
-print(tools.red('  /::::::\   \:::\    \    /::::::\   \:::\    \    /::::::\   \:::\    \    /::::::\   \:::\    \    ___\:::\   \:::\    \   '))
-print(tools.red(' /:::/\:::\   \:::\____\  /:::/\:::\   \:::\    \  /:::/\:::\   \:::\____\  /:::/\:::\   \:::\    \  /\   \:::\   \:::\    \  '))
-print(tools.red('/:::/  \:::\   \:::|    |/:::/__\:::\   \:::\____\/:::/  \:::\   \:::|    |/:::/  \:::\   \:::\____\/::\   \:::\   \:::\____\ '))
-print(tools.red('\::/   |::::\  /:::|____|\:::\   \:::\   \::/    /\::/    \:::\  /:::|____|\::/    \:::\  /:::/    /\:::\   \:::\   \::/    / '))
-print(tools.red(' \/____|:::::\/:::/    /  \:::\   \:::\   \/____/  \/_____/\:::\/:::/    /  \/____/ \:::\/:::/    /  \:::\   \:::\   \/____/  '))
-print(tools.red('       |:::::::::/    /    \:::\   \:::\    \               \::::::/    /            \::::::/    /    \:::\   \:::\    \      '))
-print(tools.red('       |::|\::::/    /      \:::\   \:::\____\               \::::/    /              \::::/    /      \:::\   \:::\____\     '))
-print(tools.red('       |::| \::/____/        \:::\   \::/    /                \::/____/               /:::/    /        \:::\  /:::/    /     '))
-print(tools.red('       |::|  ~|               \:::\   \/____/                  ~~                    /:::/    /          \:::\/:::/    /      '))
-print(tools.red('       |::|   |                \:::\    \                                           /:::/    /            \::::::/    /       '))
-print(tools.red('       \::|   |                 \:::\____\                                         /:::/    /              \::::/    /        '))
-print(tools.red('        \:|   |                  \::/    /                                         \::/    /                \::/    /         '))
-print(tools.red('         \|___|                   \/____/                                           \/____/                  \/____/          '))
+print(tools.red('         /\    \                  /\    \                  /\    \                  /\    \                  /\    \          ')) # noqa W605 invalid escape sequence
+print(tools.red('        /::\    \                /::\    \                /::\    \                /::\    \                /::\    \         ')) # noqa W605
+print(tools.red('       /::::\    \              /::::\    \              /::::\    \              /::::\    \              /::::\    \        ')) # noqa W605
+print(tools.red('      /::::::\    \            /::::::\    \            /::::::\    \            /::::::\    \            /::::::\    \       ')) # noqa W605
+print(tools.red('     /:::/\:::\    \          /:::/\:::\    \          /:::/\:::\    \          /:::/\:::\    \          /:::/\:::\    \      ')) # noqa W605
+print(tools.red('    /:::/__\:::\    \        /:::/__\:::\    \        /:::/__\:::\    \        /:::/__\:::\    \        /:::/__\:::\    \     ')) # noqa W605
+print(tools.red('   /::::\   \:::\    \      /::::\   \:::\    \      /::::\   \:::\    \      /::::\   \:::\    \       \:::\   \:::\    \    ')) # noqa W605
+print(tools.red('  /::::::\   \:::\    \    /::::::\   \:::\    \    /::::::\   \:::\    \    /::::::\   \:::\    \    ___\:::\   \:::\    \   ')) # noqa W605
+print(tools.red(' /:::/\:::\   \:::\____\  /:::/\:::\   \:::\    \  /:::/\:::\   \:::\____\  /:::/\:::\   \:::\    \  /\   \:::\   \:::\    \  ')) # noqa W605
+print(tools.red('/:::/  \:::\   \:::|    |/:::/__\:::\   \:::\____\/:::/  \:::\   \:::|    |/:::/  \:::\   \:::\____\/::\   \:::\   \:::\____\ ')) # noqa W605
+print(tools.red('\::/   |::::\  /:::|____|\:::\   \:::\   \::/    /\::/    \:::\  /:::|____|\::/    \:::\  /:::/    /\:::\   \:::\   \::/    / ')) # noqa W605
+print(tools.red(' \/____|:::::\/:::/    /  \:::\   \:::\   \/____/  \/_____/\:::\/:::/    /  \/____/ \:::\/:::/    /  \:::\   \:::\   \/____/  ')) # noqa W605
+print(tools.red('       |:::::::::/    /    \:::\   \:::\    \               \::::::/    /            \::::::/    /    \:::\   \:::\    \      ')) # noqa W605
+print(tools.red('       |::|\::::/    /      \:::\   \:::\____\               \::::/    /              \::::/    /      \:::\   \:::\____\     ')) # noqa W605
+print(tools.red('       |::| \::/____/        \:::\   \::/    /                \::/____/               /:::/    /        \:::\  /:::/    /     ')) # noqa W605
+print(tools.red('       |::|  ~|               \:::\   \/____/                  ~~                    /:::/    /          \:::\/:::/    /      ')) # noqa W605
+print(tools.red('       |::|   |                \:::\    \                                           /:::/    /            \::::::/    /       ')) # noqa W605
+print(tools.red('       \::|   |                 \:::\____\                                         /:::/    /              \::::/    /        ')) # noqa W605
+print(tools.red('        \:|   |                  \::/    /                                         \::/    /                \::/    /         ')) # noqa W605
+print(tools.red('         \|___|                   \/____/                                           \/____/                  \/____/          ')) # noqa W605
 print(tools.red('=============================================================================================================================='))
 print('')
 
@@ -129,7 +122,7 @@ else :
   cmd = ['python',reggie_exe_path,'-e',str(args.exe),'.','-s','-d1']
 #cmd = ["ls","-l"] # for testing some other commands
 if args.case :
-    if os.path.isdir(args.case) :  
+    if os.path.isdir(args.case) :
         os.chdir(args.case)
     else :
         raise Exception('Supplied case directory is not correctly defined! -c [%s]' %args.case)
@@ -144,7 +137,7 @@ repas = repas_tools.Case(cwd,cmd,'parameter_rename.ini','parameter_change.ini','
 # read the combinations for running the setups from parameter_change.ini
 combis, digits = getCombinations(os.path.join(cwd,repas.names2_file))
 
-# Edit parameter.ini for multiple parameters, subsequently, the reggie will change a set of variables 
+# Edit parameter.ini for multiple parameters, subsequently, the reggie will change a set of variables
 #      and produce output which must be collected
 # loop all runs
 i=0
@@ -157,10 +150,10 @@ for combi in combis :
 
     # create parameter file for current combi
     repas.create(combi,digits)
-    
+
     # read 'parameter_rename.ini' for renaming the results file
     repas.names()
-    
+
     # run the code and repas output
     repas.run(i)
     i += 1

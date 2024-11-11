@@ -17,7 +17,6 @@ import tools
 import select
 from timeit import default_timer as timer
 import sys
-import time
 import glob
 
 def replace_wild_cards_recursive(cmd,workingDir):
@@ -33,7 +32,7 @@ def replace_wild_cards_recursive(cmd,workingDir):
             cmd = replace_wild_cards_recursive(cmd,workingDir)
     return cmd
 
-class ExternalCommand() :
+class ExternalCommand :
     def __init__(self) :
         self.stdout = []
         self.stderr = []
@@ -59,7 +58,7 @@ class ExternalCommand() :
             print(string_info)
 
         # check that only cmd arguments of type 'list' are supplied to this function
-        if type(cmd) != type([]) :
+        if not isinstance(cmd, list):
             print(tools.red("cmd must be of type 'list'\ncmd=")+str(cmd)+tools.red(" and type(cmd)="),type(cmd))
             exit(1)
 

@@ -21,7 +21,7 @@ import re
 import subprocess
 try:
     import commands
-except Exception as e:
+except Exception:
     pass
 
 def getMaxCPUCores():
@@ -35,18 +35,18 @@ def getMaxCPUCores():
 
         with open('/proc/cpuinfo') as file:
             for line in file:
-                l = line.rstrip()
-                l = l.split(":")
-                if 'cpu cores\t' in l[0]:
+                line_parts = line.rstrip()
+                line_parts = line_parts.split(":")
+                if 'cpu cores\t' in line_parts[0]:
                     # Convert to integer
-                    cpuCores = int(l[1])
+                    cpuCores = int(line_parts[1])
                     break
 
         if cpuCores > 0 and MaxCores > cpuCores:
             return cpuCores
         else:
             return 0
-    except Exception as e:
+    except Exception:
         pass
 
     # Python 2.6+
@@ -56,7 +56,7 @@ def getMaxCPUCores():
         MaxCores =  multiprocessing.cpu_count()
         print(tools.yellow('getMaxCPUCores() fallback has returned the number of hyper threading or SMT cores (hence, not the physical cores)'))
         return MaxCores
-    except Exception as e:
+    except Exception:
         pass
 
 
@@ -121,7 +121,8 @@ def getArgsAndBuilds() :
     else :
         # For real reggie-execution:
         # Setup basedir (containing CMakeLists.txt) by searching upward from current working directory
-        if args.basedir is None : args.basedir = os.getcwd() # start with current working directory
+        if args.basedir is None : # start with current working directory
+            args.basedir = os.getcwd()
         try :
             if args.exe is None : # only get basedir if no executable is supplied
                 args.basedir = tools.find_basedir(args.basedir)
@@ -149,7 +150,8 @@ def getArgsAndBuilds() :
 
 
     # delete the building directory when [carryon = False] and [run = False] before getBuilds is called
-    if not args.carryon and not args.run : tools.remove_folder(OutputDirectory.output_dir)
+    if not args.carryon and not args.run :
+        tools.remove_folder(OutputDirectory.output_dir)
 
     # get builds from checks directory if no executable is supplied
     if args.exe is None : # if not exe is supplied, get builds
@@ -171,12 +173,12 @@ def getArgsAndBuilds() :
         if args.MPIexe == 'mpirun':
             try:
                 status, result = subprocess.getstatusoutput("%s -h | grep -i mpich" % args.MPIexe)
-            except Exception as e:
+            except Exception:
                 # Fallback for python2.7
                 status, result = commands.getstatusoutput("%s -h | grep -i mpich" % args.MPIexe)
             if len(result) > 0 and status == 0:
                 args.detectedMPICH = True
-    except Exception as e:
+    except Exception:
         pass
 
     args.MaxCoresMPICH = 0
