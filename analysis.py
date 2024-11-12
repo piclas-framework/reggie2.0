@@ -1544,13 +1544,13 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                                             f.close()
                                             return list(variable_names).index(variable_name)
                                         else:
-                                            print(f"Variable name '{variable_name}' not found in dimension names.")
+                                            print("Variable name '%s' not found in dimension names." % variable_name)
                                             return None
                                     else:
-                                        print(f"No '{variable_attribute}' attribute found in dataset '{dataset_path}'.")
+                                        print("No '%s' attribute found in dataset '%s'." % (variable_attribute, dataset_path))
                                         return None
                                 except KeyError:
-                                    print(f"Dataset '{dataset_path}' not found in the file.")
+                                    print("Dataset '%s' not found in the file." % dataset_path)
                                     return None
 
                             dim1 = get_variable_dimension(f1, data_set_loc_file, var_attribute_loc, var_name_loc)
@@ -1592,12 +1592,12 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                                     if total_entries > num_entries:
                                         indices += list(range(max(num_entries, total_entries - num_entries), total_entries))
                                     # print out differences
-                                    print(tools.red(f"{'Index':<{20}} | {var_name_loc:<{45}} | {var_name_loc +'_ref':<{45}}")+tools.yellow(f" | {'Absolute Diff':<{20}} | {'Relative Diff':<{20}}"))
+                                    print(tools.red("{:<20} | {:<45} | {:<45}".format('Index', var_name_loc, var_name_loc + '_ref')) + tools.yellow(" | {:<20} | {:<20}".format('Absolute Diff', 'Relative Diff')))
                                     print('-' * 160)
                                     for i in indices:
                                         abs_diff = np.abs(real_diffs[i] - real_diffs_ref[i])
                                         rel_diff = abs_diff / np.abs(real_diffs_ref[i])
-                                        print(tools.red(f"{non_masked_indices[i]:<{20}} | {str(real_diffs[i]):<{45}} | {str(real_diffs_ref[i]):<{45}}")+tools.yellow(f" | {str(abs_diff):<{20}} | {str(rel_diff):<{20}}"))
+                                        print(tools.red("{:<20} | {:<45} | {:<45}".format(non_masked_indices[i], str(real_diffs[i]), str(real_diffs_ref[i]))) + tools.yellow(" | {:<20} | {:<20}".format(str(abs_diff), str(rel_diff))))
                                     run.analyze_results.append(s)
                                     run.analyze_successful=False
                                     Analyze.total_errors+=1
@@ -2092,9 +2092,9 @@ class Analyze_vtudiff(Analyze,ExternalCommand) :
                         writer.SetFileName(output_file_loc)
                         writer.SetInputData(vtk_data)
                         writer.Write()
-                        print(f"File written to: {output_file_loc}")
+                        print("File written to: %s" % output_file_loc)
                     except Exception as e:
-                        print(f"Error writing VTK file: {e}")
+                        print("Error writing VTK file: %s" % e)
 
                 # 1.3   Compare the data
                 # np.isclose creates a boolean array with True for elements that are close to each other within a tolerance
@@ -2127,20 +2127,24 @@ class Analyze_vtudiff(Analyze,ExternalCommand) :
                             # check if there are any differences in the array, which are found as False in the mask
                             if np.any(~data_compare[:,offset:size+offset]):
                                 # print out header
-                                print(tools.red(f"{'Index':<{20}} | {name:<{45}} | {list(array_names_dims_ref.keys())[i]+'_ref':<{44}}") + tools.yellow(f" | {'Absolute Difference':<{30}} | {'Relative Difference':<{30}}"))
+                                print(tools.red("{:<20} | {:<45} | {:<44}".format('Index', name, list(array_names_dims_ref.keys())[i] + '_ref')) + tools.yellow(" | {:<30} | {:<30}".format('Absolute Difference', 'Relative Difference')))
                                 print('-' * 170)
                                 # loop over unique indices and print out the differences
                                 for i in indices:
                                     abs_diff = np.abs(masked_array[non_masked_indices[i], offset:size+offset] - masked_array_ref[non_masked_indices[i], offset:size+offset])
                                     rel_diff = abs_diff / np.abs(masked_array_ref[non_masked_indices[i], offset:size+offset])
                                     print(tools.red(
-                                        f"{non_masked_indices[i]:<{20}} | "
-                                        f"{str(np.around(masked_array[non_masked_indices[i], offset:size+offset], decimals=4)):<{45}} | "
-                                        f"{str(np.around(masked_array_ref[non_masked_indices[i], offset:size+offset], decimals=4)):<{45}}"
-                                    ) + tools.yellow(
-                                        f"| {str(np.around(abs_diff, decimals=2)):<{30}} | "
-                                        f"{str(np.around(rel_diff, decimals=2)):<{30}}"
-                                    ))
+                                            "{:<20} | {:<45} | {:<45}".format(
+                                                non_masked_indices[i],
+                                                str(np.around(masked_array[non_masked_indices[i], offset:size+offset], decimals=4)),
+                                                str(np.around(masked_array_ref[non_masked_indices[i], offset:size+offset], decimals=4))
+                                            )
+                                        ) + tools.yellow(
+                                            "| {:<30} | {:<30}".format(
+                                                str(np.around(abs_diff, decimals=2)),
+                                                str(np.around(rel_diff, decimals=2))
+                                            )
+                                        ))
                                 offset += size
                                 error_array_names.append(name)
                             else:
