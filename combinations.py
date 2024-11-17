@@ -155,7 +155,7 @@ def readKeyValueFile(filename) :
 
     return options, exclusions, noCrossCombinations
 
-def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None, OverrideOptionValue=None) :
+def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None, OverrideOptionValue=None, MaxCoresMPICH=0) :
     # 1. get the key-value list from file
     # 1.1   get exclusion from line (if line starts with 'exclude:')
     # 1.2   get noCrossCombination from line (if line starts with 'nocrosscombination:')
@@ -176,6 +176,23 @@ def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None
             raise Exception(tools.red("Trying to set %s = [%s], but %s was not found in the list." % (OverrideOptionKey,OverrideOptionValue,OverrideOptionKey) ))
 
         options.sort(key=lambda option: len(option.values), reverse=True) # sort list in order to have the most varying option at the beginning
+
+    # Avoid performing multiple tests, where the number of cores will be limited to MaxCoresMPICH (only set in the call from getCommand_Lines)
+    if MaxCoresMPICH > 0:
+        # loop over all the options
+        for i in range(len(options)) :
+            # find the MPI option
+            if options[i].name == 'MPI':
+                counter = 0
+                # loop over the values
+                for j in range(len(options[i].values)) :
+                    # determine number of cores above the MPICH limit
+                    if int(options[i].values[j]) >= MaxCoresMPICH:
+                        counter += 1
+                        # add an exclusion for the second and subsequent occurrences
+                        if counter > 1:
+                            ex = {options[i].name:options[i].values[j]}
+                            exclusions.append(ex)
 
     # 2.  Compute combinations:
     # 2.1   count total number of all combinations
