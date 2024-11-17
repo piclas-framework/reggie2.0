@@ -85,7 +85,7 @@ extend-select = ["D213"]
 #                   - other options exclude this check (e.g. D213 is excluded by convention = "google", but should be included anyways)
 # D213: Checks for docstring summary lines that are not positioned on the second physical line of the docstring.
 
-extend-unsafe-fixes = ["ALL"]
+# extend-unsafe-fixes = ["ALL"]
 # ruff labels fixes as "safe" and "unsafe". 
 # "The meaning and intent of your code will be retained when applying safe fixes, but the meaning could be changed when applying unsafe fixes."
 # Here all fixes are set to "unsafe", so all fixes have to be checked by hand or at least with an additional flag "--unsafe-fixes"!

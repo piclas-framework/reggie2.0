@@ -1,4 +1,4 @@
-#==================================================================================================================================
+# ==================================================================================================================================
 # Copyright (c) 2017 - 2018 Stephen Copplestone and Matthias Sonntag
 #
 # This file is part of reggie2.0 (gitlab.com/reggie2.0/reggie2.0). reggie2.0 is free software: you can redistribute it and/or modify
@@ -9,7 +9,7 @@
 # of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License v3.0 for more details.
 #
 # You should have received a copy of the GNU General Public License along with reggie2.0. If not, see <http://www.gnu.org/licenses/>.
-#==================================================================================================================================
+# ==================================================================================================================================
 import argparse
 import os
 import tools
@@ -19,10 +19,12 @@ from sys import platform
 import socket
 import re
 import subprocess
+
 try:
     import commands
 except Exception:
     pass
+
 
 def getMaxCPUCores():
     """
@@ -54,15 +56,16 @@ def getMaxCPUCores():
     # Python 2.6+
     try:
         import multiprocessing
+
         # This yields the hyper threading or SMT cores (hence, not the physical cores), but serves as a fallback
-        MaxCores =  multiprocessing.cpu_count()
+        MaxCores = multiprocessing.cpu_count()
         print(tools.yellow('getMaxCPUCores() fallback has returned the number of hyper threading or SMT cores (hence, not the physical cores)'))
         return MaxCores
     except Exception:
         pass
 
 
-def getArgsAndBuilds() :
+def getArgsAndBuilds():
     """Get command line arguments and builds in check directory from 'builds.ini'"""
     # fmt: off
     parser = argparse.ArgumentParser(description='DESCRIPTION:\nRegression checker for NRG codes.\nSupply the path to a /regressioncheck/checks/ directory within a repository containing a CMakeLists.txt file which can automatically be build using cmake. ', formatter_class=argparse.RawTextHelpFormatter) # noqa: E501 Line too long
@@ -87,14 +90,14 @@ def getArgsAndBuilds() :
     parser.add_argument('check', help='Path to check-/example-directory.')
     # fmt: on
 
-    #parser.set_defaults(carryon=False)
-    #parser.set_defaults(dummy=False)
-    #parser.set_defaults(run=False)
-    #parser.set_defaults(save=False)
-    #parser.set_defaults(hlrs=False)
-    #parser.set_defaults(referencescopy=False)
-    #parser.set_defaults(restartcopy=False)
-    #parser.set_defaults(noMPI=False)
+    # parser.set_defaults(carryon=False)
+    # parser.set_defaults(dummy=False)
+    # parser.set_defaults(run=False)
+    # parser.set_defaults(save=False)
+    # parser.set_defaults(hlrs=False)
+    # parser.set_defaults(referencescopy=False)
+    # parser.set_defaults(restartcopy=False)
+    # parser.set_defaults(noMPI=False)
 
     # get reggie command line arguments
     args = parser.parse_args()
@@ -103,34 +106,34 @@ def getArgsAndBuilds() :
     args.noMPIautomatic = False
 
     # Check OS
-    if re.search('^linux',platform) :
-        hostname=socket.gethostname()
-        print("platform: %s, hostname: %s" % (platform,hostname))
-        if re.search('^mom[0-9]+$',hostname) :
+    if re.search('^linux', platform):
+        hostname = socket.gethostname()
+        print("platform: %s, hostname: %s" % (platform, hostname))
+        if re.search('^mom[0-9]+$', hostname):
             print(tools.yellow('Automatic detection of hlrs system: Assuming aprun is used and setting args.hlrs = True'))
             args.hlrs = True
-        elif re.search('^eslogin[0-9]+$',hostname) :
-            if args.hlrs :
+        elif re.search('^eslogin[0-9]+$', hostname):
+            if args.hlrs:
                 raise Exception('Running with -a or --hlrs. Cannot run this program on a login node. Get interactive job and run on mom node!')
 
     # setup basedir
-    if args.dummy :
+    if args.dummy:
         # For testing reggie during reggie-developement:
         # Overwrite basedir and check directory with dummy directories.
         reggieDir = os.path.dirname(os.path.realpath(__file__))
         args.basedir = os.path.join(reggieDir, 'dummy_basedir')
-        args.check =   os.path.join(reggieDir, 'dummy_checks/test')
+        args.check = os.path.join(reggieDir, 'dummy_checks/test')
         print("Basedir directory switched to '%s'" % args.basedir)
         print("Check   directory switched to '%s'" % args.check)
-    else :
+    else:
         # For real reggie-execution:
         # Setup basedir (containing CMakeLists.txt) by searching upward from current working directory
-        if args.basedir is None : # start with current working directory
+        if args.basedir is None:  # start with current working directory
             args.basedir = os.getcwd()
-        try :
-            if args.exe is None : # only get basedir if no executable is supplied
+        try:
+            if args.exe is None:  # only get basedir if no executable is supplied
                 args.basedir = tools.find_basedir(args.basedir)
-        except Exception :
+        except Exception:
             print(tools.red("Basedir (containing 'CMakeLists.txt') not found!\nEither specify the basedir on the command line or execute reggie within a project with a 'CMakeLists.txt'."))
             exit(1)
 
@@ -151,24 +154,22 @@ def getArgsAndBuilds() :
                 print(tools.red("Check directory supplied is not a directory path: '%s'. Please supply a directory path" % args.check))
                 exit(1)
 
-
-
     # delete the building directory when [carryon = False] and [run = False] before getBuilds is called
-    if not args.carryon and not args.run :
+    if not args.carryon and not args.run:
         tools.remove_folder(OutputDirectory.output_dir)
 
     # get builds from checks directory if no executable is supplied
-    if args.exe is None : # if not exe is supplied, get builds
+    if args.exe is None:  # if not exe is supplied, get builds
         # read build combinations from checks/XX/builds.ini
-        builds = check.getBuilds(args.basedir,args.check,args.compiletype,args.singledir)
-    else :
-        if not os.path.exists(args.exe) : # check if executable exists
+        builds = check.getBuilds(args.basedir, args.check, args.compiletype, args.singledir)
+    else:
+        if not os.path.exists(args.exe):  # check if executable exists
             print(tools.red("No executable found under '%s'" % args.exe))
             exit(1)
-        else :
-            builds = [check.Standalone(args.exe,args.check)] # set builds list to contain only the supplied executable
-            args.noMPIautomatic = check.StandaloneAutomaticMPIDetection(args.exe) # Check possibly existing userblock.txt to find out if the executable was compiled with MPI=ON or MPI=OFF
-            args.run = True      # set 'run-mode' do not compile the code
+        else:
+            builds = [check.Standalone(args.exe, args.check)]  # set builds list to contain only the supplied executable
+            args.noMPIautomatic = check.StandaloneAutomaticMPIDetection(args.exe)  # Check possibly existing userblock.txt to find out if the executable was compiled with MPI=ON or MPI=OFF
+            args.run = True  # set 'run-mode' do not compile the code
             args.basedir = None  # since code will not be compiled, the basedir is not required
 
     # Try to detect MPICH
@@ -189,23 +190,21 @@ def getArgsAndBuilds() :
     # Set maximum number of processes/cores for mpich as over-subscription results in a massive performance drop
     if args.detectedMPICH:
         args.MaxCoresMPICH = getMaxCPUCores()
-        print(tools.yellow('WARNING: MPICH detected, which limits the total number of processes that can be used to %s as over-subscription results in a massive performance drop'
-                           % args.MaxCoresMPICH))
+        print(tools.yellow('WARNING: MPICH detected, which limits the total number of processes that can be used to %s as over-subscription results in a massive performance drop' % args.MaxCoresMPICH))
 
-    if args.run :
+    if args.run:
         print("args.run -> skip building")
         # in 'run-mode' remove all build from list of builds if their binaries do not exist (build.binary_exists() == False)
         builds = [build for build in builds if build.binary_exists()]
 
-    if len(builds) == 0 :
+    if len(builds) == 0:
         print(tools.red("List of 'builds' is empty! Maybe switch off '--run'."))
         exit(1)
 
     # display all command line arguments
     print("Running with the following command line options")
-    for arg in list(args.__dict__) :
-        print(arg.ljust(15)+" = [ "+str(getattr(args,arg))+" ]")
-    print('='*132)
-
+    for arg in list(args.__dict__):
+        print(arg.ljust(15) + " = [ " + str(getattr(args, arg)) + " ]")
+    print('=' * 132)
 
     return args, builds

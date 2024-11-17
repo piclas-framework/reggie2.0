@@ -1,4 +1,4 @@
-#==================================================================================================================================
+# ==================================================================================================================================
 # Copyright (c) 2017 - 2018 Stephen Copplestone and Matthias Sonntag
 #
 # This file is part of reggie2.0 (gitlab.com/reggie2.0/reggie2.0). reggie2.0 is free software: you can redistribute it and/or modify
@@ -9,31 +9,30 @@
 # of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License v3.0 for more details.
 #
 # You should have received a copy of the GNU General Public License along with reggie2.0. If not, see <http://www.gnu.org/licenses/>.
-#==================================================================================================================================
+# ==================================================================================================================================
 import os
 import tools
 
-class OutputDirectory :
-    output_dir = "output_dir"
-    def __init__(self, parent, name, number = -1, mkdir=True) :
 
+class OutputDirectory:
+    output_dir = "output_dir"
+
+    def __init__(self, parent, name, number=-1, mkdir=True):
         self.number = number
         self.parent = parent
 
         # set parent directory for subfolder creation
-        if self.parent :
+        if self.parent:
             parent_dir = self.parent.target_directory
-        else :
+        else:
             parent_dir = OutputDirectory.output_dir
 
         # numbering of directory (if a number is supplied)
-        if number >= 0 :
-            self.target_directory = os.path.join(parent_dir, "%s_%04d" %(name, number))
-        else :
+        if number >= 0:
+            self.target_directory = os.path.join(parent_dir, "%s_%04d" % (name, number))
+        else:
             self.target_directory = os.path.join(parent_dir, name)
 
         # create directory if it is non-existent
-        if mkdir :
+        if mkdir:
             tools.create_folder(self.target_directory)
-
-

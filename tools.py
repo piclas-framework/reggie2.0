@@ -1,4 +1,4 @@
-#==================================================================================================================================
+# ==================================================================================================================================
 # Copyright (c) 2017 - 2018 Stephen Copplestone and Matthias Sonntag
 #
 # This file is part of reggie2.0 (gitlab.com/reggie2.0/reggie2.0). reggie2.0 is free software: you can redistribute it and/or modify
@@ -9,16 +9,18 @@
 # of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License v3.0 for more details.
 #
 # You should have received a copy of the GNU General Public License along with reggie2.0. If not, see <http://www.gnu.org/licenses/>.
-#==================================================================================================================================
-from __future__ import print_function # required for print() function with line break via "end=' '"
+# ==================================================================================================================================
+from __future__ import print_function  # required for print() function with line break via "end=' '"
 import logging
 import shutil
 import os
-from timeit import default_timer as timer # noqa: F401 imported but unused (kept for performance measurements)
+from timeit import default_timer as timer  # noqa: F401 imported but unused (kept for performance measurements)
 import time
 
-class bcolors :
+
+class bcolors:
     """color and font style definitions for changing output appearance"""
+
     # fmt: off
     # Reset (user after applying a color to return to normal coloring)
     ENDC   ='\033[0m'
@@ -40,34 +42,44 @@ class bcolors :
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-def cyan(text) : # noqa: D103 Missing docstring in public function
-    return bcolors.CYAN+text+bcolors.ENDC
 
-def pink(text) : # noqa: D103
-    return bcolors.PINK+text+bcolors.ENDC
+def cyan(text):  # noqa: D103 Missing docstring in public function
+    return bcolors.CYAN + text + bcolors.ENDC
 
-def purple(text) : # noqa: D103
-    return bcolors.PURPLE+text+bcolors.ENDC
 
-def lightred(text) : # noqa: D103
-    return bcolors.LIGHTRED+text+bcolors.ENDC
+def pink(text):  # noqa: D103
+    return bcolors.PINK + text + bcolors.ENDC
 
-def red(text) : # noqa: D103
-    return bcolors.RED+text+bcolors.ENDC
 
-def green(text) : # noqa: D103
-    return bcolors.GREEN+text+bcolors.ENDC
+def purple(text):  # noqa: D103
+    return bcolors.PURPLE + text + bcolors.ENDC
 
-def blue(text) : # noqa: D103
-    return bcolors.BLUE+text+bcolors.ENDC
 
-def yellow(text) : # noqa: D103
-    return bcolors.YELLOW+text+bcolors.ENDC
+def lightred(text):  # noqa: D103
+    return bcolors.LIGHTRED + text + bcolors.ENDC
+
+
+def red(text):  # noqa: D103
+    return bcolors.RED + text + bcolors.ENDC
+
+
+def green(text):  # noqa: D103
+    return bcolors.GREEN + text + bcolors.ENDC
+
+
+def blue(text):  # noqa: D103
+    return bcolors.BLUE + text + bcolors.ENDC
+
+
+def yellow(text):  # noqa: D103
+    return bcolors.YELLOW + text + bcolors.ENDC
+
 
 def indent(text, amount, ch=' '):
     """Indent text line by amount times a white space"""
     padding = amount * 2 * ch
-    return ''.join(padding+line for line in text.splitlines(True))
+    return ''.join(padding + line for line in text.splitlines(True))
+
 
 def setup_logger(debug_level):
     """
@@ -79,74 +91,76 @@ def setup_logger(debug_level):
         1 : print information messages (i.e. print all messages invoked with "log.info(message)")
         2 : print debug + information messages (i.e. print all messages invoked with "log.info(message)" or "log.debug(message)")
     """
-    if debug_level == 0   : # no logging
+    if debug_level == 0:  # no logging
         formatter = logging.Formatter()
-    elif debug_level == 1 : # info
+    elif debug_level == 1:  # info
         formatter = logging.Formatter(fmt='%(message)s')
-    elif debug_level == 2 : # debug
+    elif debug_level == 2:  # debug
         formatter = logging.Formatter(fmt='%(levelname)s - %(module)s: %(message)s')
 
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
 
     logger = logging.getLogger('logger')
-    if debug_level == 0 :   # no logging
+    if debug_level == 0:  # no logging
         logger.setLevel(0)
-    elif debug_level == 1 : # info
+    elif debug_level == 1:  # info
         logger.setLevel(logging.INFO)
-    elif debug_level == 2 : # debug
+    elif debug_level == 2:  # debug
         logger.setLevel(logging.DEBUG)
 
     logger.addHandler(handler)
     return logger
 
-def find_basedir(basedir) :
+
+def find_basedir(basedir):
     """
     Search 'CMakeLists.txt' in directories above current working directory.
 
     The directory containing the 'CMakeLists.txt' is the 'basedir'.
     """
-    found = os.path.exists(os.path.join(basedir, "CMakeLists.txt")) # check if actual directory is the basedir
-    if found :
+    found = os.path.exists(os.path.join(basedir, "CMakeLists.txt"))  # check if actual directory is the basedir
+    if found:
         basedir = os.path.abspath(basedir)
-    while not found :                                               # look upwards until basedir found
-        basedir = os.path.dirname(basedir)                              # basedir = basedir/..
-        found = os.path.exists(os.path.join(basedir, "CMakeLists.txt")) # check if actual directory is the basedir
-        if basedir == "/": # check if root of filesystem is reached
+    while not found:  # look upwards until basedir found
+        basedir = os.path.dirname(basedir)  # basedir = basedir/..
+        found = os.path.exists(os.path.join(basedir, "CMakeLists.txt"))  # check if actual directory is the basedir
+        if basedir == "/":  # check if root of filesystem is reached
             break
 
-    if not found :
+    if not found:
         raise Exception("No basedir found. Started searching for 'CMakeLists.txt' in '%s'" % os.getcwd())
 
     return basedir
 
 
-def remove_folder(path) : # noqa: D103 Missing docstring in public function
+def remove_folder(path):  # noqa: D103 Missing docstring in public function
     print("deleting folder '%s'" % path)
-    shutil.rmtree(path,ignore_errors=True)
-    #shutil.rmtree(path)
+    shutil.rmtree(path, ignore_errors=True)
+    # shutil.rmtree(path)
 
-def create_folder(path): # noqa: D103 Missing docstring in public function
-    if not os.path.exists(path) :
-        i=0
+
+def create_folder(path):  # noqa: D103 Missing docstring in public function
+    if not os.path.exists(path):
+        i = 0
         # try multiple times to create the directory (on some systems a
         # race condition might occur between creation and checking)
         while True:
             try:
-                i+=1
+                i += 1
                 os.makedirs(path)
-                if i>60:
+                if i > 60:
                     print(red("OutputDirectory() : Tried creating a directory more than 60 times. Stop."))
                     exit(1)
                 break
             except OSError as e:
                 if e.errno != os.errno.EEXIST:
                     raise
-                time.sleep(1) # wait 1 second before next try
+                time.sleep(1)  # wait 1 second before next try
                 pass
 
 
-def diff_lists(x,x_ref,tol,tol_type) :
+def diff_lists(x, x_ref, tol, tol_type):
     """
     determine diff of two lists of floats, either relative of absolute
 
@@ -157,27 +171,28 @@ def diff_lists(x,x_ref,tol,tol_type) :
     tol_type : tolerance type, relative or absolute
     """
     # check tolerance type: absolute/relative (is the reference value is zero, absolute comparison is used)
-    if tol_type == 'absolute' :
-        diff = [abs(a-b) for (a,b) in zip(x,x_ref)]
+    if tol_type == 'absolute':
+        diff = [abs(a - b) for (a, b) in zip(x, x_ref)]
         executed_tol_type = ['absolute' for (b) in x_ref]
-    else : # relative comparison
+    else:  # relative comparison
         # if the reference value is zero, use absolute comparison
-        diff = [abs(a/b-1.0) if abs(b) > 0.0 else abs(a) for (a,b) in zip(x,x_ref) ]
+        diff = [abs(a / b - 1.0) if abs(b) > 0.0 else abs(a) for (a, b) in zip(x, x_ref)]
         executed_tol_type = ['relative' if abs(b) > 0.0 else 'absolute' for (b) in x_ref]
 
     # determie success logical list for return variable
     success = [d <= tol for d in diff]
 
     # display information when a diff is not successful, display value+reference+difference
-    if not all(success) :
+    if not all(success):
         print("Differences in vector comparison:")
-        print(5*"%25s" % ("x","x_ref","diff","tolerance","type"))
-        for i in range(len(diff)) :
-            if not success[i] :
-                print(4*"%25.14e" % (x[i],x_ref[i],diff[i],tol), "%24s" % (executed_tol_type[i]))
+        print(5 * "%25s" % ("x", "x_ref", "diff", "tolerance", "type"))
+        for i in range(len(diff)):
+            if not success[i]:
+                print(4 * "%25.14e" % (x[i], x_ref[i], diff[i], tol), "%24s" % (executed_tol_type[i]))
     return success
 
-def diff_value(x,x_ref,tol,tol_type) :
+
+def diff_value(x, x_ref, tol, tol_type):
     """
     determine diff of two floats, either relative of absolute
 
@@ -188,32 +203,33 @@ def diff_value(x,x_ref,tol,tol_type) :
     tol_type : tolerance type, relative or absolute
     """
     # check tolerance type: absolute/relative (is the reference value is zero, absolute comparison is used)
-    if tol_type == 'absolute' :
-        diff = abs(x-x_ref)
-    else : # relative comparison
+    if tol_type == 'absolute':
+        diff = abs(x - x_ref)
+    else:  # relative comparison
         # if the reference value is zero, use absolute comparison
-        if abs(x_ref) > 0.0 :
-            diff = abs(x/x_ref-1.0)
-        else :
+        if abs(x_ref) > 0.0:
+            diff = abs(x / x_ref - 1.0)
+        else:
             diff = x
 
     # determie success logical list for return variable
     success = diff <= tol
 
     # display information when a diff is not successful, display value+reference+difference
-    if not success :
+    if not success:
         print("\nDifferences in vector comparison:")
-        print(5*"%25s   " % ("x","x_ref","diff","tolerance","type"))
-        print(4*"%25.14e   " % (x,x_ref,diff,tol), "%24s" % (tol_type))
+        print(5 * "%25s   " % ("x", "x_ref", "diff", "tolerance", "type"))
+        print(4 * "%25.14e   " % (x, x_ref, diff, tol), "%24s" % (tol_type))
 
     return success
 
-def isKeyOf(a,key_IN) :
+
+def isKeyOf(a, key_IN):
     """Check if the dictionary 'a' contains a key 'key_IN'"""
     found = False
     number = 0
-    for key in a.keys() :
-        if key == key_IN :
+    for key in a.keys():
+        if key == key_IN:
             number += 1
             found = True
     return found, number
