@@ -19,17 +19,19 @@ from timeit import default_timer as timer
 import sys
 import glob
 
-def replace_wild_cards_recursive(cmd,workingDir):
+def replace_wild_cards_recursive(cmd,workingDir): # noqa: D103 Missing docstring in public function
     # Check each cmd list entry for a wild card and exchange this entry with the globbed items
     for i in enumerate(cmd):
         # Check for wild cards
         if "*" in i[1]:
+            # fmt: off
             absolutePath     = os.path.join(workingDir,i[1])
             files            = sorted(glob.glob(absolutePath), key = lambda x: os.path.splitext(os.path.basename(x))[0])
             files            = [sub.replace(workingDir+'/', '') for sub in files]
             cmd[i[0]:i[0]+1] = files
             # call function recursively to replace multiple wild cards
             cmd = replace_wild_cards_recursive(cmd,workingDir)
+            # fmt: on
     return cmd
 
 class ExternalCommand :
@@ -43,9 +45,10 @@ class ExternalCommand :
         self.walltime = 0
 
     def execute_cmd(self, cmd, target_directory, name="std", string_info = None, environment = None, displayOnFailure = True):
-        """Execute an external program specified by 'cmd'. The working directory of this program is set to target_directory.
-        Returns the return_code of the external program.
+        """
+        Execute an external program specified by 'cmd'. The working directory of this program is set to target_directory.
 
+        Returns the return_code of the external program.
         cmd                                       : command given as list of strings (the command is split at every white space occurrence)
         target_directory                          : path to directory where the cmd command is to be executed
         name (optional, default="std")            : [name].std and [name].err files are created for storing the std and err output of the job
@@ -84,6 +87,7 @@ class ExternalCommand :
         cmd = replace_wild_cards_recursive(cmd,workingDir)
 
         # Check if an environment is used and load it into the subprocess if required
+        # fmt: off
         if environment is None :
             self.process = subprocess.Popen(cmd, \
                                             stdout             = pipeOut_w, \
@@ -97,6 +101,7 @@ class ExternalCommand :
                                             universal_newlines = True, \
                                             cwd                = workingDir, \
                                             env                = environment)
+        # fmt: on
 
         # .poll() is None means that the child is still running
         while self.process.poll() is None:

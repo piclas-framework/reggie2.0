@@ -33,6 +33,7 @@ from combinations import isKeyOf
 class bcolors :
     """color and font style definitions for changing output appearance"""
     # Reset (user after applying a color to return to normal coloring)
+    # fmt: off
     ENDC   ='\033[0m'
 
     # Regular Colors
@@ -46,17 +47,20 @@ class bcolors :
     WHITE  ='\033[0;37m'
 
     # Text Style
-    BOLD = '\033[1m'
+    BOLD      = '\033[1m'
     UNDERLINE = '\033[4m'
+    # fmt: on
 
 class Case(ExternalCommand) :
 
     def __init__(self, cwd, command,names_file,names2_file,parameter_file) :
         ExternalCommand.__init__(self)
+        # fmt: off
         self.target_directory = cwd
         self.nErrors          = 0
         self.command          = command
         self.failed           = False
+        # fmt: on
 
         self.names_file       = os.path.join(cwd,names_file)
         # check if file exists

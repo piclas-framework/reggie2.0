@@ -11,31 +11,36 @@
 # You should have received a copy of the GNU General Public License along with reggie2.0. If not, see <http://www.gnu.org/licenses/>.
 #==================================================================================================================================
 # import general functions
-import os
-import logging
 import argparse
+import logging
+import os
 import re
-from sys import platform
 import socket
+from sys import platform
 
 # import reggie source code
 # use reggie2.0 functions by adding the path
 import settings
+
+
 settings.init() # Call only once
-import sys # noqa: E402: Module level import not at top of file
+import sys  # noqa: E402: Module level import not at top of file
+
+
 sys.path.append(settings.absolute_reggie_path)
 reggie_exe_path = os.path.join(settings.absolute_reggie_path,'reggie.py')
 if not os.path.exists(reggie_exe_path) :
     print("Reggie main file not found in reggie repository under: '%s'" % reggie_exe_path)
     exit(1)
 
-from repas_tools import finalize # noqa: E402
-import repas_tools # noqa: E402
+from timeit import default_timer as timer  # noqa: E402
 
-from combinations import getCombinations # noqa: E402
-from timeit import default_timer as timer # noqa: E402
+import repas_tools  # noqa: E402
+from repas_tools import finalize  # noqa: E402
 
-import tools # noqa: E402
+import tools  # noqa: E402
+from combinations import getCombinations  # noqa: E402
+
 
 """
 General workflow:
@@ -51,33 +56,35 @@ General workflow:
 print('')
 print(tools.red('=============================================================================================================================='))
 print(tools.red('         _____                    _____                    _____                    _____                    _____            '))
-print(tools.red('         /\    \                  /\    \                  /\    \                  /\    \                  /\    \          ')) # noqa W605 invalid escape sequence
-print(tools.red('        /::\    \                /::\    \                /::\    \                /::\    \                /::\    \         ')) # noqa W605
-print(tools.red('       /::::\    \              /::::\    \              /::::\    \              /::::\    \              /::::\    \        ')) # noqa W605
-print(tools.red('      /::::::\    \            /::::::\    \            /::::::\    \            /::::::\    \            /::::::\    \       ')) # noqa W605
-print(tools.red('     /:::/\:::\    \          /:::/\:::\    \          /:::/\:::\    \          /:::/\:::\    \          /:::/\:::\    \      ')) # noqa W605
-print(tools.red('    /:::/__\:::\    \        /:::/__\:::\    \        /:::/__\:::\    \        /:::/__\:::\    \        /:::/__\:::\    \     ')) # noqa W605
-print(tools.red('   /::::\   \:::\    \      /::::\   \:::\    \      /::::\   \:::\    \      /::::\   \:::\    \       \:::\   \:::\    \    ')) # noqa W605
-print(tools.red('  /::::::\   \:::\    \    /::::::\   \:::\    \    /::::::\   \:::\    \    /::::::\   \:::\    \    ___\:::\   \:::\    \   ')) # noqa W605
-print(tools.red(' /:::/\:::\   \:::\____\  /:::/\:::\   \:::\    \  /:::/\:::\   \:::\____\  /:::/\:::\   \:::\    \  /\   \:::\   \:::\    \  ')) # noqa W605
-print(tools.red('/:::/  \:::\   \:::|    |/:::/__\:::\   \:::\____\/:::/  \:::\   \:::|    |/:::/  \:::\   \:::\____\/::\   \:::\   \:::\____\ ')) # noqa W605
-print(tools.red('\::/   |::::\  /:::|____|\:::\   \:::\   \::/    /\::/    \:::\  /:::|____|\::/    \:::\  /:::/    /\:::\   \:::\   \::/    / ')) # noqa W605
-print(tools.red(' \/____|:::::\/:::/    /  \:::\   \:::\   \/____/  \/_____/\:::\/:::/    /  \/____/ \:::\/:::/    /  \:::\   \:::\   \/____/  ')) # noqa W605
-print(tools.red('       |:::::::::/    /    \:::\   \:::\    \               \::::::/    /            \::::::/    /    \:::\   \:::\    \      ')) # noqa W605
-print(tools.red('       |::|\::::/    /      \:::\   \:::\____\               \::::/    /              \::::/    /      \:::\   \:::\____\     ')) # noqa W605
-print(tools.red('       |::| \::/____/        \:::\   \::/    /                \::/____/               /:::/    /        \:::\  /:::/    /     ')) # noqa W605
-print(tools.red('       |::|  ~|               \:::\   \/____/                  ~~                    /:::/    /          \:::\/:::/    /      ')) # noqa W605
-print(tools.red('       |::|   |                \:::\    \                                           /:::/    /            \::::::/    /       ')) # noqa W605
-print(tools.red('       \::|   |                 \:::\____\                                         /:::/    /              \::::/    /        ')) # noqa W605
-print(tools.red('        \:|   |                  \::/    /                                         \::/    /                \::/    /         ')) # noqa W605
-print(tools.red('         \|___|                   \/____/                                           \/____/                  \/____/          ')) # noqa W605
+print(tools.red('         /\    \                  /\    \                  /\    \                  /\    \                  /\    \          ')) # noqa: W605 invalid escape sequence
+print(tools.red('        /::\    \                /::\    \                /::\    \                /::\    \                /::\    \         ')) # noqa: W605
+print(tools.red('       /::::\    \              /::::\    \              /::::\    \              /::::\    \              /::::\    \        ')) # noqa: W605
+print(tools.red('      /::::::\    \            /::::::\    \            /::::::\    \            /::::::\    \            /::::::\    \       ')) # noqa: W605
+print(tools.red('     /:::/\:::\    \          /:::/\:::\    \          /:::/\:::\    \          /:::/\:::\    \          /:::/\:::\    \      ')) # noqa: W605
+print(tools.red('    /:::/__\:::\    \        /:::/__\:::\    \        /:::/__\:::\    \        /:::/__\:::\    \        /:::/__\:::\    \     ')) # noqa: W605
+print(tools.red('   /::::\   \:::\    \      /::::\   \:::\    \      /::::\   \:::\    \      /::::\   \:::\    \       \:::\   \:::\    \    ')) # noqa: W605
+print(tools.red('  /::::::\   \:::\    \    /::::::\   \:::\    \    /::::::\   \:::\    \    /::::::\   \:::\    \    ___\:::\   \:::\    \   ')) # noqa: W605
+print(tools.red(' /:::/\:::\   \:::\____\  /:::/\:::\   \:::\    \  /:::/\:::\   \:::\____\  /:::/\:::\   \:::\    \  /\   \:::\   \:::\    \  ')) # noqa: W605
+print(tools.red('/:::/  \:::\   \:::|    |/:::/__\:::\   \:::\____\/:::/  \:::\   \:::|    |/:::/  \:::\   \:::\____\/::\   \:::\   \:::\____\ ')) # noqa: W605
+print(tools.red('\::/   |::::\  /:::|____|\:::\   \:::\   \::/    /\::/    \:::\  /:::|____|\::/    \:::\  /:::/    /\:::\   \:::\   \::/    / ')) # noqa: W605
+print(tools.red(' \/____|:::::\/:::/    /  \:::\   \:::\   \/____/  \/_____/\:::\/:::/    /  \/____/ \:::\/:::/    /  \:::\   \:::\   \/____/  ')) # noqa: W605
+print(tools.red('       |:::::::::/    /    \:::\   \:::\    \               \::::::/    /            \::::::/    /    \:::\   \:::\    \      ')) # noqa: W605
+print(tools.red('       |::|\::::/    /      \:::\   \:::\____\               \::::/    /              \::::/    /      \:::\   \:::\____\     ')) # noqa: W605
+print(tools.red('       |::| \::/____/        \:::\   \::/    /                \::/____/               /:::/    /        \:::\  /:::/    /     ')) # noqa: W605
+print(tools.red('       |::|  ~|               \:::\   \/____/                  ~~                    /:::/    /          \:::\/:::/    /      ')) # noqa: W605
+print(tools.red('       |::|   |                \:::\    \                                           /:::/    /            \::::::/    /       ')) # noqa: W605
+print(tools.red('       \::|   |                 \:::\____\                                         /:::/    /              \::::/    /        ')) # noqa: W605
+print(tools.red('        \:|   |                  \::/    /                                         \::/    /                \::/    /         ')) # noqa: W605
+print(tools.red('         \|___|                   \/____/                                           \/____/                  \/____/          ')) # noqa: W605
 print(tools.red('=============================================================================================================================='))
 print('')
 
 start = timer()
 
+# fmt: off
 # argument parser
-parser = argparse.ArgumentParser(description='DESCRIPTION:\nScript for executing the regression checker for NRG codes multiple times with for parameter studies.', formatter_class=argparse.RawTextHelpFormatter)
+parser = argparse.ArgumentParser(description='DESCRIPTION:\nScript for executing the regression checker for NRG codes multiple times with for parameter studies.',
+                                 formatter_class=argparse.RawTextHelpFormatter)
 #parser.add_argument('gitlab_ci', help='Path to gitlab-ci.yml which also contains a /regressioncheck/checks/... structure')
 parser.add_argument('-c', '--case', default='.', help='Path to casedir, where repas should be executed.')
 #parser.add_argument('-b', '--begin', type=int, default=1,  help='Number of the case: where to start with the run (from the list that this tools creates)')
@@ -88,6 +95,7 @@ parser.add_argument('-x', '--dummy', action='store_true',help='Run repas without
 parser.add_argument('-n', '--dryrun', action='store_true',help='Simply list all possible cases without performing any run.')
 parser.add_argument('-a', '--hlrs', action='store_true', help='Run on with aprun (hlrs system).')
 parser.add_argument('exe', help='Path to executable of code that should be tested.')
+# fmt: on
 
 # get reggie command line arguments
 args = parser.parse_args()

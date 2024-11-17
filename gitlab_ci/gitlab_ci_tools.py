@@ -16,6 +16,7 @@ from timeit import default_timer as timer
 class bcolors :
     """color and font style definitions for changing output appearance"""
     # Reset (user after applying a color to return to normal coloring)
+    # fmt: off
     ENDC   ='\033[0m'
 
     # Regular Colors
@@ -29,8 +30,9 @@ class bcolors :
     WHITE  ='\033[0;37m'
 
     # Text Style
-    BOLD = '\033[1m'
+    BOLD      = '\033[1m'
     UNDERLINE = '\033[4m'
+    # fmt: on
 
 class Case(ExternalCommand) :
 

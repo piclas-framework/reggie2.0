@@ -18,7 +18,7 @@ from outputdirectory import OutputDirectory
 import check
 import tools
 
-def StartsWithCMD(pathSplit,iDir):
+def StartsWithCMD(pathSplit,iDir): # noqa: D103 Missing docstring in public function
     try:
         if pathSplit[iDir+1].startswith('cmd_'):
             return True
@@ -29,6 +29,8 @@ def StartsWithCMD(pathSplit,iDir):
 
 def SummaryOfErrors(builds, args) :
     """
+    Display a summary table with information for each build, run and analyze
+
     General workflow:
     1. loop over all builds, examples, command_lines, runs and for every run set the output strings
        and get the maximal lengths of those strings
@@ -42,10 +44,11 @@ def SummaryOfErrors(builds, args) :
              run.globalnumber, run.parameters[0] (the one not printed in 3.2.2), run.target_directory, MPI, run.walltime, run.result
     3.2.4  print the analyze results line by line
     """
-
+    # fmt: off
     param_str_old    = ""
     str_MPI_old      = "-"
     restart_file_old = "-"
+    # fmt: on
 
     # 1. loop over all runs and set output strings
     max_lens = collections.OrderedDict([ ("#run",4) , ("options",7) , ("path",4) , ("MPI",3), ("time",4) , ("Info",4) ])
@@ -53,9 +56,11 @@ def SummaryOfErrors(builds, args) :
         for example in build.examples :
             for command_line in example.command_lines :
                 for run in command_line.runs :
-                    run.output_strings = {}
+                    # fmt: off
+                    run.output_strings            = {}
                     run.output_strings['#run']    = str(run.globalnumber)
                     run.output_strings['options'] = ""
+                    # fmt: on
                     # Check number of variations in parameter list(run.digits.items())[0][1]
                     restart_file = command_line.parameters.get('restart_file', None)
                     run.restart_file_used = False
@@ -67,11 +72,13 @@ def SummaryOfErrors(builds, args) :
                             run.output_strings['options'] += "%s=%s"%('restart_file',restart_file) # print parameter and value as [parameter]=[value]
                             restart_file_old = restart_file
 
+                    # fmt: off
                     run.output_strings['path']    = os.path.relpath(run.target_directory,OutputDirectory.output_dir)
                     run.output_strings['MPI']     = command_line.parameters.get('MPI', '-')
                     run.output_strings['time']    = "%2.1f" % run.walltime
                     run.output_strings['Info']    = run.result
                     run.outputMPIyellow = False
+                    # fmt: on
                     # Coloured path name
                     try:
                         pathSplit = run.output_strings['path'].split('/')
@@ -206,11 +213,13 @@ def finalize(start, build_errors, run_errors, external_run_errors, analyze_error
         return_code = 0
 
     if start > 0 : # only calculate run time and display output when start > 0
+        # fmt: off
         end = timer()
         sec = end - start
         minutes , seconds = divmod(sec     , 60.0)
         hours   , minutes = divmod(minutes , 60.0)
         days    , hours   = divmod(hours   , 24.0)
+        # fmt: on
         print("in [%2.2f sec] [ %02d:%02d:%02d:%02d ]" % (sec,days,hours,minutes,seconds))
     else :
         print("")

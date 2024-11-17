@@ -31,11 +31,13 @@ except ImportError :
 class Build(OutputDirectory,ExternalCommand) :
 
     def __init__(self, basedir, source_directory,configuration, number, name='build', binary_path=None) :
+        # fmt: off
         self.basedir          = basedir
         self.source_directory = source_directory
         self.configuration    = configuration
         OutputDirectory.__init__(self, None, name, number)
         ExternalCommand.__init__(self)
+        # fmt: on
 
         # initialize result as empty list
         self.result = tools.yellow("skipped building")
@@ -44,7 +46,7 @@ class Build(OutputDirectory,ExternalCommand) :
         self.examples = []
 
         # set path to binary/executable
-        if binary_path :
+        if binary_path : # fmt: skip
             self.binary_path = binary_path
             head, tail       = os.path.split(binary_path)
             self.binary_dir  = head
@@ -82,8 +84,10 @@ class Build(OutputDirectory,ExternalCommand) :
         print("building")
 
         # CMAKE: execute cmd in build directory
+        # fmt: off
         s_Color   = "C-making with [%s] ..." % (" ".join(self.cmake_cmd_color))
         s_NoColor = "C-making with [%s] ..." % (" ".join(self.cmake_cmd))
+        # fmt: on
 
         if self.execute_cmd(self.cmake_cmd, self.target_directory, string_info = s_Color) != 0 : # use uncolored string for cmake
             raise BuildFailedException(self) # "CMAKE failed"
@@ -126,7 +130,7 @@ class Standalone(Build) :
         return s
 
 def StandaloneAutomaticMPIDetection(binary_path) :
-    '''Try and find CMake option specifying if the executable was built with MPI=ON or without any MPI libs'''
+    """Try and find CMake option specifying if the executable was built with MPI=ON or without any MPI libs"""
     # Default (per definition)
     MPIifOFF = False
     userblockChecked = False
@@ -148,9 +152,11 @@ def StandaloneAutomaticMPIDetection(binary_path) :
                     if checkCMAKELine:
                         Parentheses = re.search(r'\((.+)\)', line)
                         if Parentheses:
+                            # fmt: off
                             text = Parentheses.group(0) # get text
                             text = text[1:-1]           # remove opening and closing parentheses
                             text = re.sub(r'".*"', '', text) # remove double quotes and their content
+                            # fmt: on
                             parameters = text.split()
                             MPI_built_flags = [os.path.basename(binary_path).upper()+"_MPI", 'LIBS_USE_MPI']
                             if any(parameters[0] == flag for flag in MPI_built_flags):
@@ -221,7 +227,7 @@ def StandaloneAutomaticMPIDetection(binary_path) :
     if not MPIifOFF and not userblockChecked:
         # Use try/except here, but don't terminate the program when try fails
         try :
-            cmd=['ldd',binary_path,'|','grep','-i','"libmpi\.\|\<libmpi_"'] # noqa W605 invalid escape sequence
+            cmd=['ldd',binary_path,'|','grep','-i','"libmpi\.\|\<libmpi_"'] # noqa: W605 invalid escape sequence
             a=' '.join(cmd)
             pipe = subprocess.Popen(a, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             (std, err) = pipe.communicate()
@@ -240,7 +246,8 @@ def StandaloneAutomaticMPIDetection(binary_path) :
                 if 'not a dynamic executable' in err:
                     err = err.rstrip('\n')
                     err = err.lstrip()
-                    print(tools.yellow("Automatically determined that the executable was compiled with MPI libs (because file is not a dynamic executable)\n  File: %s\n  Test: %s -> returned '%s'" % (binary_path,a,err)))
+                    print(tools.yellow("Automatically determined that the executable was compiled with MPI libs (because file is not a dynamic executable)\n  File: "
+                                       "%s\n  Test: %s -> returned '%s'" % (binary_path,a,err)))
                 else:
                     print(tools.yellow("Automatically determined that the executable was compiled with MPI libs\n  File: %s\n  Test: %s -> returned '%s'" % (binary_path,a,std)))
             else:
@@ -252,22 +259,14 @@ def StandaloneAutomaticMPIDetection(binary_path) :
 
     return MPIifOFF
 
-def getBuilds(basedir, source_directory, CMAKE_BUILD_TYPE, singledir) :
-    # builds = []
-    # i = 1
+def getBuilds(basedir, source_directory, CMAKE_BUILD_TYPE, singledir) : # noqa: D103 Missing docstring in public function
     combis, digits = combinations.getCombinations(os.path.join(source_directory, 'builds.ini'),OverrideOptionKey='CMAKE_BUILD_TYPE',OverrideOptionValue=CMAKE_BUILD_TYPE)
 
     # create Builds
     if singledir :
         builds = [Build(basedir, source_directory, b, 0) for b in combis]
-        # TODO
-        # for b in combis :
-            # builds.append(Build(basedir, source_directory,b,0))
     else :
         builds = [Build(basedir, source_directory, b, i) for i, b in enumerate(combis, start=1)]
-        # for b in combis :
-            # builds.append(Build(basedir, source_directory,b, i))
-            # i += 1
     return builds
 
 class BuildFailedException(Exception) :
@@ -287,7 +286,7 @@ class Example(OutputDirectory) :
         s = tools.yellow("EXAMPLE in: " + self.source_directory)
         return tools.indent(s,1)
 
-def getExamples(path, build, log) :
+def getExamples(path, build, log) : # noqa: D103 Missing docstring in public function
     # checks directory with 'builds.ini'
     if os.path.exists(os.path.join(build.source_directory, 'builds.ini')) :
         example_paths = [os.path.join(path,p) for p in sorted(os.listdir(path)) \
@@ -329,7 +328,7 @@ class Command_Lines(OutputDirectory) :
         s += ",".join(["%s: %s" % (k,v) for k,v in self.parameters.items()])
         return tools.indent(s,2)
 
-def getCommand_Lines(path, example, MPIbuilt, MaxCoresMPICH) :
+def getCommand_Lines(path, example, MPIbuilt, MaxCoresMPICH) : # noqa: D103 Missing docstring in public function
     command_lines = []
     i = 1
     # If single execution is to be performed, remove "MPI =! 1" from command line list
@@ -344,7 +343,7 @@ def getCommand_Lines(path, example, MPIbuilt, MaxCoresMPICH) :
 
     return command_lines
 
-def getRestartFileList(example) :
+def getRestartFileList(example) : # noqa: D103 Missing docstring in public function
     options_list, _, _ = combinations.readKeyValueFile(os.path.join(example.source_directory,'command_line.ini'))
     options = {} # dict
     for option in options_list :
@@ -361,8 +360,7 @@ def getRestartFileList(example) :
 
 #==================================================================================================
 def SetMPIrun(build, args, MPIthreads) :
-    ''' check MPI built binary (only possible for reggie-compiled binaries) '''
-
+    """Check MPI built binary (only possible for reggie-compiled binaries)"""
     # Check for variable MPI_built_flag=PICLAS_MPI (or FLEXI_MPI, depending on the executable name)
     MPI_built_flag=os.path.basename(build.binary_path).upper()+"_MPI"
     MPIbuilt = build.configuration.get(MPI_built_flag,'ON')
@@ -392,9 +390,9 @@ def SetMPIrun(build, args, MPIthreads) :
             # Check whether the compiled executable was created with MPI=ON
             if MPIbuilt == "ON" :
                 if args.hlrs :
-                    if int(MPIthreads) < 24 :
+                    if int(MPIthreads) < 24 : # fmt: skip
                         cmd = ["aprun","-n",MPIthreads,"-N",MPIthreads]
-                    else :
+                    else : # fmt: skip
                         cmd = ["aprun","-n",MPIthreads,"-N","24"]
                 else :
                     if args.MPIexe == 'mpirun':
@@ -411,8 +409,9 @@ def SetMPIrun(build, args, MPIthreads) :
                     else:
                         # Something else
                         cmd = [args.MPIexe]
-            else :
-                print(tools.indent(tools.yellow("Found %s=%s (binary has been built with MPI=OFF) with external setting MPIthreads=%s, running case in single (without 'mpirun -np')" % (MPI_built_flag,MPIbuilt,MPIthreads)),3))
+            else : # fmt: skip
+                print(tools.indent(tools.yellow("Found %s=%s (binary has been built with MPI=OFF) with external setting "
+                                                "MPIthreads=%s, running case in single (without 'mpirun -np')" % (MPI_built_flag, MPIbuilt, MPIthreads)),3))
                 build.MPIrunDeactivated = True
                 cmd = []
     else :
@@ -422,7 +421,7 @@ def SetMPIrun(build, args, MPIthreads) :
 
 #==================================================================================================
 def copyRestartFile(path,path_target) :
-    '''  Copy new restart file into example folder'''
+    """Copy new restart file into example folder"""
     # Check whether the file for copying exists
     if not os.path.exists(path) :
         s = tools.red("copyRestartFile: Could not find file=[%s] for copying" % path)
@@ -443,7 +442,7 @@ def copyRestartFile(path,path_target) :
 #==================================================================================================
 class Externals(OutputDirectory) :
 
-    def __init__(self, parameters, example, number) :
+    def __init__(self, parameters, example, number) : # noqa: ARG002
         self.parameters = parameters
         OutputDirectory.__init__(self, example, '', -1)
 
@@ -452,10 +451,12 @@ class Externals(OutputDirectory) :
         s += ",".join(["%s: %s" % (k,v) for k,v in self.parameters.items()])
         return tools.indent(s,2)
 
-def getExternals(path, example, build) :
+def getExternals(path, example, build) : # noqa: D103 Missing docstring in public function
+    # fmt: off
     externals_pre    = []
     externals_post   = []
     externals_errors = []
+    # fmt: on
 
     # Get combinations from externals.ini
     if not os.path.exists(path) :
@@ -513,8 +514,10 @@ def getExternals(path, example, build) :
                         binary_path  = hopr_path
                         binary_found = True
                         combi['externalbinary'] = binary # over-write user-defined path
-                    else:
-                        s = 'Tried loading hopr binary path from environment variable $HOPR_PATH=[%s] as the supplied path does not exist.\nAdd the binary path via \"export HOPR_PATH=/opt/hopr/1.X/bin/hopr\"\n' % hopr_path
+                    else: # fmt: skip
+                        s = ('Tried loading hopr binary path from environment variable '
+                            '$HOPR_PATH=[%s] as the supplied path does not exist.\n'
+                            'Add the binary path via "export HOPR_PATH=/opt/hopr/1.X/bin/hopr"\n') % hopr_path
 
                 # Display error if no binary is found
                 if not binary_found:
@@ -546,7 +549,8 @@ class ExternalRun(OutputDirectory,ExternalCommand) :
     total_errors = 0
     total_number_of_runs = 0
 
-    def __init__(self, parameters, parameterfilepath, external, number, digits, externalruns = True) :
+    def __init__(self, parameters, parameterfilepath, external, number, digits, externalruns = True) : # noqa: ARG002
+        # fmt: off
         self.successful         = True
         self.globalnumber       = -1
         self.analyze_results    = []
@@ -554,6 +558,7 @@ class ExternalRun(OutputDirectory,ExternalCommand) :
         self.parameters         = parameters
         self.digits             = digits
         self.source_directory   = os.path.dirname(parameterfilepath)
+        # fmt: on
 
         OutputDirectory.__init__(self, external, '', -1, mkdir=False)
         ExternalCommand.__init__(self)
@@ -652,6 +657,7 @@ class Run(OutputDirectory, ExternalCommand) :
     total_number_of_runs = 0
 
     def __init__(self, parameters, path, command_line, number, digits) :
+        # fmt: off
         self.successful         = True
         self.globalnumber       = -1
         self.analyze_results    = []
@@ -659,6 +665,7 @@ class Run(OutputDirectory, ExternalCommand) :
         self.parameters         = parameters
         self.digits             = digits
         self.source_directory   = os.path.dirname(path)
+        # fmt: on
 
         OutputDirectory.__init__(self, command_line, 'run', number, mkdir=False)
         ExternalCommand.__init__(self)
@@ -685,8 +692,11 @@ class Run(OutputDirectory, ExternalCommand) :
               else:
                   shutil.copyfile(src, dst) # copy file
     def rename_failed(self) :
-        """Rename failed run directories in order to repeat the run when the regression check is repeated.
-        This routine is called if either the execution fails or an analysis."""
+        """
+        Rename failed run directories in order to repeat the run when the regression check is repeated.
+
+        This routine is called if either the execution fails or an analysis.
+        """
         shutil.rmtree(self.target_directory+"_failed",ignore_errors=True)  # remove if exists
         shutil.move(self.target_directory,self.target_directory+"_failed") # rename folder (non-existent folder fails)
         self.target_directory = self.target_directory+"_failed" # set new name for summary of errors
@@ -860,6 +870,7 @@ def getRuns(path, command_line) :
 def PerformCheck(start,builds,args,log) :
     """
     General workflow:
+
     1.   loop over alls builds
     1.1    compile the build if args.run is false and the binary is non-existent
     1.1    read all example directories in the check directory
@@ -890,7 +901,6 @@ def PerformCheck(start,builds,args,log) :
     6.   rename all run directories for which the analyze step has failed for at least one test
     7.   perform analyze tests comparing corresponding runs from different commands
     """
-
     build_number=0
 
     # compile and run loop
@@ -1010,10 +1020,8 @@ def PerformCheck(start,builds,args,log) :
                                 external.directory  = run.target_directory + '/'+ externaldirectory
                                 external.parameterfiles = [i for i in os.listdir(external.directory) if i.endswith('.ini')]
 
-                            # TODO externalbinary = external.parameters.get("externalbinary")
-
                             # (pre) externals (2): loop over all parameterfiles available for the i'th external
-                            for external.parameterfile in external.parameterfiles : # noqa B020 loop control variable external overrides iterable it iterates
+                            for external.parameterfile in external.parameterfiles : # noqa: B020 loop control variable external overrides iterable it iterates
                                 # (pre) externals (2.1): consider combinations
                                 external.runs = \
                                         getExternalRuns(os.path.join(external.directory,external.parameterfile), external)
@@ -1073,10 +1081,8 @@ def PerformCheck(start,builds,args,log) :
                                 external.directory  = run.target_directory + '/'+ externaldirectory
                                 external.parameterfiles = [i for i in os.listdir(external.directory) if i.endswith('.ini')]
 
-                            # TODO externalbinary = external.parameters.get("externalbinary")
-
                             # (post) externals (2): loop over all parameterfiles available for the i'th external
-                            for external.parameterfile in external.parameterfiles : # noqa B020 loop control variable external overrides iterable it iterates
+                            for external.parameterfile in external.parameterfiles : # noqa: B020 loop control variable external overrides iterable it iterates
 
                                 # (post) externals (2.1): consider combinations
                                 external.runs = \
@@ -1111,7 +1117,7 @@ def PerformCheck(start,builds,args,log) :
                     runs_successful = [run for run in command_line.runs if run.successful]
                     if runs_successful : # do analysis only if runs_successful is not empty
                         for analyze in example.analyzes :
-                            if isinstance(analyze,Clean_up_files) or isinstance(analyze,Analyze_compare_across_commands) :
+                            if isinstance(analyze, (Clean_up_files, Analyze_compare_across_commands)) :
                                 # skip because either already called in the "run" loop under 4.2 or called later under cross-command comparisons in 7.
                                 continue
                             # Set the restart file index in case of one diff per restart file (from command line)

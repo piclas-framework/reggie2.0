@@ -24,14 +24,14 @@ import gitlab_ci_tools
 # use reggie2.0 functions by adding the path
 import settings
 settings.init() # Call only once
-import sys # noqa: E402: Module level import not at top of file
+import sys # noqa: E402 Module level import not at top of file
 sys.path.append(settings.absolute_reggie_path)
 reggie_exe_path = os.path.join(settings.absolute_reggie_path,'reggie.py')
 if not os.path.exists(reggie_exe_path) :
     print("Reggie main file not found in reggie repository under: '%s'" % reggie_exe_path)
     exit(1)
 
-def CheckBinaryCall(c) :
+def CheckBinaryCall(c) : # noqa: D103 Missing docstring in public function
     if c.find("-e") >= 0 :    # find lines which contain "-e"
         c=c[:c.find("-e")]    # remove everything after "-e"
 
@@ -54,7 +54,7 @@ def CheckBinaryCall(c) :
 
     return c.strip()
 
-def DisplayInitMessage(Bool,Message) :
+def DisplayInitMessage(Bool,Message) : # noqa: D103 Missing docstring in public function
     if Bool :
         print("\n%s\n" % Message)
         Bool=False
@@ -75,16 +75,18 @@ General workflow:
 print(132*'='+"\n"+"gitlab-ci processing tool, add nice ASCII art here"+"\n"+132*'=')
 start = timer()
 
+# fmt: off
 # argument parser
-parser = argparse.ArgumentParser(description='DESCRIPTION:\nScript for executing the regression checker for NRG codes multiple times with information from a gitlab-ci.yml runner file (the relevant python calls will be extracted).\nSupply the path to the gitlab-ci.yml of the repository that also contains a /regressioncheck/checks structure supporting reggie2.0 and multiple tests can automatically be performed.\nThe output will be stored in the top repository directory under /output_dir_gitlab_tool/.', formatter_class=argparse.RawTextHelpFormatter)
+parser = argparse.ArgumentParser(description='DESCRIPTION:\nScript for executing the regression checker for NRG codes multiple times with information from a gitlab-ci.yml runner file (the relevant python calls will be extracted).\nSupply the path to the gitlab-ci.yml of the repository that also contains a /regressioncheck/checks structure supporting reggie2.0 and multiple tests can automatically be performed.\nThe output will be stored in the top repository directory under /output_dir_gitlab_tool/.', formatter_class=argparse.RawTextHelpFormatter) # noqa: E501 line too long
 parser.add_argument('gitlab_ci', help='Path to gitlab-ci.yml which also contains a /regressioncheck/checks/... structure')
-parser.add_argument('-s', '--stage', default='full', help='Gitlab-ci execution stage: Supply DO_NIGHTLY, DO_WEEKLY, DO_CHECKIN, etc. flag for extracting the relevant cases from gitlab-ci.yml. Default executes all stages.')
+parser.add_argument('-s', '--stage', default='full', help='Gitlab-ci execution stage: Supply DO_NIGHTLY, DO_WEEKLY, DO_CHECKIN, etc. flag for extracting the relevant cases from gitlab-ci.yml. Default executes all stages.') # noqa: E501
 parser.add_argument('-b', '--begin', type=int, default=1,  help='Number of the case: where to start with the run (from the list that this tools creates)')
 parser.add_argument('-d', '--debug', type=int, default=0, help='Debug level for this program. Dumps all info to the screen.')
 parser.add_argument('-i', '--info', type=int, default=1, help='Debug level for the subsequent program execution (e.g. flexi).')
 parser.add_argument('-o', '--only', action='store_true',help='Only run one case and exit afterwards (from the list that this tools creates).')
 parser.add_argument('-n', '--dryrun', action='store_true',help='Simply list all possible cases without performing any run.')
 parser.add_argument('-t', '--compiletype', help='Override all CMAKE_BUILD_TYPE settings by ignoring the value set in builds.ini (e.g. DEBUG or RELEASE).')
+# fmt: on
 
 # get reggie command line arguments
 args = parser.parse_args()
@@ -199,13 +201,8 @@ for case in cases :
         print(tools.red("case directory not found under: '%s'" % case_dir))
         exit(1)
 
-    cmd = ["python", reggie_path] + [str(x).strip() for x in c.split(" ")]
-    # TODO
     # set the command line "cmd"
-    # cmd=["python", reggie_path]
-    #cmd=["python2.7", reggie_path]
-    # for x in c.split(" ") :
-        # cmd.append(str(x).strip())
+    cmd = ["python", reggie_path] + [str(x).strip() for x in c.split(" ")]
 
     # add debug level to gitlab-ci command line
     if args.info :

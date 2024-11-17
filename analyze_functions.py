@@ -13,8 +13,11 @@
 import math
 
 def get_last_L2_error(lines,name,LastLines=35) :
-   """Get L_2 eror value from a set of lines for the last timestep.
-   The set of lines correspond to the output-lines of a flexi-run"""
+   """
+   Get L_2 eror value from a set of lines for the last timestep.
+
+   The set of lines correspond to the output-lines of a flexi-run
+   """
    for line in lines[-LastLines:] : # read the last XX lines (default is 35)
        # search for name, e.g., "L2_Part" or "L_2"
        if name in line :
@@ -22,8 +25,11 @@ def get_last_L2_error(lines,name,LastLines=35) :
    return [float(x) for x in tmp.split()]
 
 def get_last_number_of_timesteps(lines,name,LastLines=35) :
-   """Get the number of total timesteps used for the simulation.
-   The set of lines correspond to the output-lines of a flexi-run"""
+   """
+   Get the number of total timesteps used for the simulation.
+
+   The set of lines correspond to the output-lines of a flexi-run
+   """
    for line in lines[-LastLines:] : # read the last XX lines (default is 35)
        # search for name, e.g., "#Timesteps"
        if name in line :
@@ -31,8 +37,11 @@ def get_last_number_of_timesteps(lines,name,LastLines=35) :
    return [float(x) for x in tmp.split()]
 
 def get_initial_timesteps(lines,name) :
-   """Get the initial timestep used for the simulation.
-   The set of lines correspond to the output-lines of a flexi-run"""
+   """
+   Get the initial timestep used for the simulation.
+
+   The set of lines correspond to the output-lines of a flexi-run
+   """
    for line in lines: # read all
        # search for name, e.g., "#Timesteps"
        if name in line :
@@ -40,25 +49,31 @@ def get_initial_timesteps(lines,name) :
    return [float(x) for x in tmp.split()]
 
 def get_last_Linf_error(lines,LastLines=35) :
-   """Get L_inf eror value from a set of lines for the last timestep
-   The set of lines correspond to the output-lines of a flexi-run"""
+   """
+   Get L_inf eror value from a set of lines for the last timestep
+
+   The set of lines correspond to the output-lines of a flexi-run
+   """
    for line in lines[-LastLines:] : # read the last XX lines (default is 35)
        if "L_inf" in line :
            tmp = line.split(":")[1]
            return [float(x) for x in tmp.split()]
 
-def get_last_number(lines) :
+def get_last_number(lines) : # noqa: D103 Missing docstring in public function
    for line in reversed(lines) :
        tmp = line.split(' ')
        for t in reversed(tmp) :
            try :
                return float(t)
-           except Exception: # noqa PERF203 `try`-`except` within a loop incurs performance overhead
+           except Exception: # noqa: PERF203 `try`-`except` within a loop incurs performance overhead
                pass
 
 def get_cpu_per_dof(lines) :
-   """Get the PID value from a set of lines
-   The set of lines correspond to the output-lines of a flexi-run"""
+   """
+   Get the PID value from a set of lines
+
+   The set of lines correspond to the output-lines of a flexi-run
+   """
    for line in reversed(lines) :
         if "CALCULATION TIME PER TSTEP/DOF: [" in line :
            return float(line.split("[")[1].split("sec")[0])

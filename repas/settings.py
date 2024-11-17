@@ -13,7 +13,7 @@
 # settings.py
 import os
 
-def init():
+def init(): # noqa: D103 Missing docstring in public function
     global absolute_reggie_path
     absolute_reggie_path=os.path.abspath(os.path.join(__file__ ,"../.."))
     if not os.path.exists(absolute_reggie_path) :

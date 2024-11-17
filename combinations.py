@@ -17,14 +17,13 @@ import os
 import tools
 
 class Option :
-    """Create an option object with a "name" and "values" similar to dict """
+    """Create an option object with a "name" and "values" similar to dict"""
     def __init__(self, name, values) :
         self.name = name
         self.values = values
 
 def splitValues(s) :
-    """ split string of values at ',' but not inside brackets, since a value can be
-     an array, which is written as '(/ a, b, c /)'  """
+    """Split string of values at ',' but not inside brackets, since a value can be an array, which is written as '(/ a, b, c /)'"""
     # This is done with a regular expression. Explanation:
     #   ,       : matches comma ','
     #   \s*     : match 0 or more whitespaces (actually not necessary, since we already removed all whitespaces)
@@ -57,7 +56,7 @@ def anyIsSubset(alist, b) :
     tmp = [isSubset(a, b) for a in alist] # build a list of booleans, that contains for every 'a' in alist if 'a' is a subset of 'b'
     return any(tmp)                       # return True, if any 'a' of alist is a subset of 'b'
 
-def readValueFromFile(filename,key) :
+def readValueFromFile(filename,key) : # noqa: D103 Missing docstring in public function
     # Read the value of a single key from a file. Workflow:
     # 1.  Read file line by line:
     # 1.1   ignore exclusion (if line starts with 'exclude:')
@@ -93,10 +92,10 @@ def readValueFromFile(filename,key) :
                 else:
                     continue                                   # better luck in the next line
 
-
     return currentValue
 
-def readKeyValueFile(filename) :
+def readKeyValueFile(filename) : # noqa: D103 Missing docstring in public function
+    # fmt: off
     # General workflow:
     # 1.  Read file line by line:
     # 1.1   get exclusion from line (if line starts with 'exclude:')
@@ -143,7 +142,7 @@ def readKeyValueFile(filename) :
             if '=' in line :
                 # Catch special variables
                 # DEFVAR=(INT):i0 = 1, 2
-                if "DEFVAR" in line and ("INT" or "REAL" in line) :
+                if "DEFVAR" in line and ("INT" in line or "REAL" in line) :
                     splitline = line.split('=',2)
                     key       = "=".join(splitline[:2])
                     values    = splitline[2]
@@ -152,12 +151,13 @@ def readKeyValueFile(filename) :
                 option = Option(key,splitValues(values)) # generate new Option with a list of values (splitted at ',' but not inside brackets)
                 options.append(option)                   # append option to options list, where
                 continue                                 # reading of option finished -> go on with next line
+            # fmt: on
 
     options.sort(key=lambda option: len(option.values), reverse=True) # sort list in order to have the most varying option at the beginning
 
     return options, exclusions, noCrossCombinations
 
-def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None, OverrideOptionValue=None, MaxCoresMPICH=0) :
+def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None, OverrideOptionValue=None, MaxCoresMPICH=0) : # noqa: D103
     # 1. get the key-value list from file
     # 1.1   get exclusion from line (if line starts with 'exclude:')
     # 1.2   get noCrossCombination from line (if line starts with 'nocrosscombination:')
@@ -253,7 +253,10 @@ def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None
                 found, number = isKeyOf(combination,option.name)
                 if found :
                     new_key = "MULTIPLE_KEY:"+option.name
-                    logging.getLogger('logger').info(tools.yellow(str(option.name))+" is already in list (found "+str(number)+" times). Adding new key/value as "+tools.yellow(new_key)+" with value="+option.values[digits[option.name]])
+                    logging.getLogger('logger').info(tools.yellow(str(option.name)) +
+                                                    " is already in list (found " + str(number) + " times). " +
+                                                    "Adding new key/value as " + tools.yellow(new_key) +
+                                                    " with value=" + option.values[digits[option.name]])
                     # create list for value in key/value pair for the new re-named option "MULTIPLE_KEY+X"
                     combination.setdefault(new_key, []).append(option.values[digits[option.name]])
                     digits[new_key] = -100 # default value for special key
@@ -271,7 +274,8 @@ def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None
         for noCrossCombination in noCrossCombinations :
             # Check if the parameter exists in the list
             if digits.get(noCrossCombination[0],None) is None:
-                print(tools.red("nocrosscombination [%s] not found in list of parameters given in [%s].\nOnly parameters that are read can be considered for nocrosscombination." % (noCrossCombination[0], filename)))
+                print(tools.red("nocrosscombination [%s] not found in list of parameters given in [%s].\nOnly parameters that are read can be considered for nocrosscombination."
+                                % (noCrossCombination[0], filename)))
                 exit(1)
 
             # Check all noCrossCombinations and skip them is they already were added to the list
@@ -291,7 +295,8 @@ def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None
     return combinations, digits
 
 
-def writeCombinationsToFile(combinations, path) : # write one set of parameters to a file, e.g., parameter.ini
+def writeCombinationsToFile(combinations, path) : # noqa: D103 Missing docstring in public function
+    # write one set of parameters to a file, e.g., parameter.ini
     with open(path, 'w') as f :
         for key, value in combinations.items() :
             # check if multiple parameters with the exact same name are used within parameter.ini (examples are BoundaryName or RefState)

@@ -63,7 +63,7 @@ except AttributeError:
         def __eq__ (self, other):
             return self.__dict__ == other.__dict__
 
-def displayTable(mylist,nVar,nRuns) :
+def displayTable(mylist,nVar,nRuns) : # noqa: D103 Missing docstring in public function
     # mylist = [ [1 2 3] [1 2 3] [1 2 3] [1 2 3] ] example with 4 nVar and 3 nRuns
     print(" nRun   "+"   ".join(7*" "+"nVar=["+str(i).rjust(4)+"]" for i in range(nVar)))
     for j in range(nRuns) :
@@ -72,7 +72,7 @@ def displayTable(mylist,nVar,nRuns) :
             print("%20.12e" % mylist[i][j], end=' ') # skip linebreak
         print("")
 
-def writeTableToFile(mylist,nVar,nRuns,firstColumn,path,name) :
+def writeTableToFile(mylist,nVar,nRuns,firstColumn,path,name) : # noqa: D103 Missing docstring in public function
     # if a path is supplied, create a .csv file with the data
     if path is not None :
         myfile = os.path.join(path,name)
@@ -82,12 +82,12 @@ def writeTableToFile(mylist,nVar,nRuns,firstColumn,path,name) :
                 line += ",".join("%20.12e" % mylist[i][j] for i in range(nVar))
                 f.write(line+"\n")
 
-def displayVector(vector,nVar) :
+def displayVector(vector,nVar) : # noqa: D103 Missing docstring in public function
     print(8*" "+"   ".join(7*" "+"nVar=["+str(i).rjust(4)+"]" for i in range(nVar)))
     print(6*" "+" ".join("%20.12e" % vector[i] for i in range(nVar)))
 
-# Copy new reference file: This is completely independent of the outcome of the current compare data file
 def copyReferenceFile(run,path,path_ref_source) :
+    """Copy new reference file: This is completely independent of the outcome of the current compare data file"""
     # Check whether the file for copying exists
     if not os.path.exists(path) :
         s = tools.red("copyReferenceFile: Could not find file=[%s] for copying" % path)
@@ -111,25 +111,25 @@ def copyReferenceFile(run,path,path_ref_source) :
 #==================================================================================================
 
 def getAnalyzes(path, example, args) :
-    global pyplot_module_loaded
-    """For every example a list of analyzes is built from the specified anaylzes in 'analyze.ini'.
-    The anaylze list is performed after a set of runs is completed.
-
-     General workflow:
-     1.  Read the analyze options from file 'path' into dict 'options'
-     1.1   Check for general analyze options
-     2.  Initialize analyze functions
-     2.0   L2 error from file
-     2.1   L2 error upper limit
-     2.2   h-convergence test
-     2.3   p-convergence test
-     2.4   t-convergence test
-     2.5   h5diff (relative or absolute HDF5-file comparison of an output file with a reference file)
-     2.6   check array bounds in hdf5 file
-     2.7   check data file row
-     2.8   integrate data file column
-     2.9   compare data file column
     """
+    For every example a list of analyzes is built from the specified anaylzes in 'analyze.ini'. The anaylze list is performed after a set of runs is completed.
+
+    General workflow:
+    1.  Read the analyze options from file 'path' into dict 'options'
+    1.1   Check for general analyze options
+    2.  Initialize analyze functions
+    2.0   L2 error from file
+    2.1   L2 error upper limit
+    2.2   h-convergence test
+    2.3   p-convergence test
+    2.4   t-convergence test
+    2.5   h5diff (relative or absolute HDF5-file comparison of an output file with a reference file)
+    2.6   check array bounds in hdf5 file
+    2.7   check data file row
+    2.8   integrate data file column
+    2.9   compare data file column
+    """
+    global pyplot_module_loaded
 
     # 1.  Read the analyze options from file 'path'
     analyze = [] # list
@@ -162,11 +162,13 @@ def getAnalyzes(path, example, args) :
         analyze.append(Clean_up_files(clean_up_files))
 
     # 2.0   L2 error from file
+    # fmt: off
     L2ErrorFile = SimpleNamespace( \
                   file           =       options.get('analyze_l2_file',None), \
                   tolerance      = float(options.get('analyze_l2_file_tolerance',1.0e-5)), \
                   tolerance_type =       options.get('analyze_l2_file_tolerance_type','absolute'), \
                   error_name     =       options.get('L2_file_error_name','L_2') )
+    # fmt: on
     if L2ErrorFile.file :
         if L2ErrorFile.tolerance_type in ('absolute', 'delta', '--delta') :
             L2ErrorFile.tolerance_type = "absolute"
@@ -184,20 +186,24 @@ def getAnalyzes(path, example, args) :
         analyze.append(Analyze_L2(L2Error))
 
     # 2.2   h-convergence test
+    # fmt: off
     ConvtestH = SimpleNamespace( \
                 cells      = [float(cell) for cell in options.get('analyze_convtest_h_cells',['-1.'])], \
                 tolerance  = float(options.get('analyze_convtest_h_tolerance',1e-2)), \
                 rate       = float(options.get('analyze_convtest_h_rate',1)), \
                 error_name =       options.get('analyze_convtest_h_error_name','L_2') )
+    # fmt: on
     # only do convergence test if supplied cells count > 0
     if min(ConvtestH.cells) > 0 and ConvtestH.tolerance > 0 and 0.0 <= ConvtestH.rate <= 1.0:
         analyze.append(Analyze_Convtest_h(ConvtestH))
 
     # 2.3   p-convergence test
+    # fmt: off
     ConvtestP = SimpleNamespace( \
                 rate       = float(options.get('analyze_convtest_p_rate',-1)), \
                 percentage = float(options.get('analyze_convtest_p_percentage',0.75)), \
                 error_name = options.get('analyze_convtest_p_error_name','L_2') )
+    # fmt: on
     # only do convergence test if convergence rate and tolerance >0
     if 0.0 <= ConvtestP.rate <= 1.0:
         analyze.append(Analyze_Convtest_p(ConvtestP))
@@ -210,6 +216,7 @@ def getAnalyzes(path, example, args) :
     #   timesteps        = [-1.]
 
     # 2.4.1   must have the following form: "Initial Timestep  :    1.8503722E-01"
+    # fmt: off
     ConvtestTime = SimpleNamespace( \
                    initial_timestep = options.get('analyze_convtest_t_initial_timestep',None), \
                    tolerance        = float(options.get('analyze_convtest_t_tolerance',1e-2)), \
@@ -247,17 +254,19 @@ def getAnalyzes(path, example, args) :
     else :
         ConvtestTime.method      = 1
         ConvtestTime.method_name = 'initial_timestep ['+ConvtestTime.initial_timestep+']'
+    # fmt: on
 
     # only do convergence test if supplied cells count > 0
     if ConvtestTime.tolerance > 0 and 0.0 <= ConvtestTime.rate <= 1.0 and ConvtestTime.method_name and ConvtestTime.order > -1000:
         logging.getLogger('logger').info("t-convergence test: Choosing "+ConvtestTime.method_name+" (method = "+str(ConvtestTime.method)+")")
         analyze.append(Analyze_Convtest_t(ConvtestTime))
 
-        #analyze.append(Analyze_Convtest_t(convtest_t_order , convtest_t_error_name , convtest_t_tolerance , convtest_t_rate , convtest_t_method , convtest_t_name , convtest_t_initial_timestep , convtest_t_timestep_factor , convtest_t_total_timesteps , convtest_t_timesteps))
-        #def __init__(                                order , name                  , tolerance            , rate            , method            , method_name     , ini_timestep                , timestep_factor            , total_iter                 , iters) :
+        #analyze.append(Analyze_Convtest_t(convtest_t_order , convtest_t_error_name , convtest_t_tolerance , convtest_t_rate , convtest_t_method , convtest_t_name , convtest_t_initial_timestep , convtest_t_timestep_factor , convtest_t_total_timesteps , convtest_t_timesteps)) # noqa: E501
+        #def __init__(                                order , name                  , tolerance            , rate            , method            , method_name     , ini_timestep                , timestep_factor            , total_iter                 , iters) : # noqa: E501
 
     # 2.5   h5diff (relative or absolute HDF5-file comparison of an output file with a reference file)
     # options can be read in multiple times to realize multiple compares for each run
+    # fmt: off
     h5diff = SimpleNamespace( \
              one_diff_per_run = options.get('h5diff_one_diff_per_run',False), \
              reference_file   = options.get('h5diff_reference_file',None), \
@@ -274,12 +283,14 @@ def getAnalyzes(path, example, args) :
              flip             = options.get('h5diff_flip',False), \
              max_differences  = options.get('h5diff_max_differences',0), \
              referencescopy   = args.referencescopy )
+    # fmt: on
     # only do h5diff test if all variables are defined
     if h5diff.reference_file and h5diff.file and h5diff.data_set :
         analyze.append(Analyze_h5diff(h5diff))
 
     # 2.6   check array bounds in hdf5 file
     # check_hdf5_span: use row or column (default is column)
+    # fmt: off
     CheckHDF5 = SimpleNamespace( \
                 file           = options.get('check_hdf5_file',None), \
                 data_set       = options.get('check_hdf5_data_set',None), \
@@ -376,6 +387,7 @@ def getAnalyzes(path, example, args) :
         else :
             raise Exception(tools.red("initialization of compare across commands failed. compare_across_commands_tolerance_type '%s' not accepted." % CompareAcrossCommands.tolerance_type))
         analyze.append(Analyze_compare_across_commands(CompareAcrossCommands))
+    # fmt: on
 
     return analyze
 
@@ -392,17 +404,16 @@ class Clean_up_files() :
     def __init__(self, clean_up_files) :
         self.files = clean_up_files
 
-    def perform(self,runs) :
+    def perform(self,runs) : # noqa: ARG002
         return # do nothing
 
     def execute(self,run) :
-
         """
         General workflow:
+
         1.  Iterate over all runs
         1.1   remove all files that are specified (if they exist)
         """
-
         # 1.1   remove all files that are specified (if they exist)
         for remove_file in self.files :
             path = os.path.join(run.target_directory,remove_file)
@@ -436,9 +447,9 @@ class Analyze_L2_file(Analyze) :
         self.error_name        = L2ErrorFile.error_name     # string name of the L2 error in the std.out file (default is "L_2")
 
     def perform(self,runs) :
-
         """
         General workflow:
+
         1.  Iterate over all runs
         1.1   read the reference L2 errors from the std.out
         1.1.1   append info for summary of errors
@@ -448,7 +459,6 @@ class Analyze_L2_file(Analyze) :
         1.3   Check length of L2 errors in std out and reference file
         1.4   calculate difference and determine compare with tolerance
         """
-
         LastLines = 2000  # search the last X lines in the std.out file for the L2 error
         # 1.  Iterate over all runs
         for run in runs :
@@ -539,9 +549,9 @@ class Analyze_L2(Analyze) :
         self.error_name   = L2Error.error_name # string name of the L2 error in the std.out file (default is "L_2")
 
     def perform(self,runs) :
-
         """
         General workflow:
+
         1.  Iterate over all runs
         1.1   read L2 errors from 'std.out' file
         1.1.1   append info for summary of errors
@@ -550,7 +560,6 @@ class Analyze_L2(Analyze) :
         1.3   append info for summary of errors
         1.4   set analyzes to fail
         """
-
         LastLines = 2000 # search the last X lines in the std.out file for the L2 error
         # 1.  Iterate over all runs
         for run in runs :
@@ -592,16 +601,21 @@ class Analyze_L2(Analyze) :
 #==================================================================================================
 
 class Analyze_Convtest_h(Analyze) :
-    """Convergence test for a fixed polynomial degree and different meshes defined in 'parameter.ini'
+    """
+    Convergence test for a fixed polynomial degree and different meshes defined in 'parameter.ini'
+
     The analyze routine read the L2 error norm from a set of runs and determines the order of convergence
-    between the runs and averages the values. The average is compared with the polynomial degree p+1."""
+    between the runs and averages the values. The average is compared with the polynomial degree p+1.
+    """
     def __init__(self, ConvtestH) :
+        # fmt: off
         self.cells = ConvtestH.cells           # number of cells used for h-convergence calculation (only the ratio of two
                                                # consecutive values is important for the EOC calcultion)
         self.tolerance = ConvtestH.tolerance   # determine success rate by comparing the relative convergence error with a tolerance
         self.rate = ConvtestH.rate             # success rate: for each nVar, the EOC is determined (the number of successful EOC vs.
                                                # the number of total EOC tests determines the success rate which is compared with this rate)
         self.error_name = ConvtestH.error_name # string name of the L2 error in the std.out file (default is "L_2")
+        # fmt: on
 
     def perform(self,runs) :
         global pyplot_module_loaded
@@ -647,8 +661,8 @@ class Analyze_Convtest_h(Analyze) :
             except Exception:
                 for run in runs : # find out exactly which L2 error could not be read
                     try :
-                        L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name,LastLines)) # noqa F841 local variable 'test' is assigned to but never used
-                    except Exception: # noqa PERF203 `try`-`except` within a loop incurs performance
+                        L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name,LastLines)) # noqa: F841 local variable 'test' is assigned to but never used
+                    except Exception: # noqa: PERF203 `try`-`except` within a loop incurs performance
                         s = tools.red("h-convergence failed: L2 error could not be read from %s (searching for %s in the last %s lines)" % ('std.out',self.error_name,LastLines) )
                         print(s)
 
@@ -696,7 +710,8 @@ class Analyze_Convtest_h(Analyze) :
                     plt.cla()
                 plt.close(f)
             else :
-                print(tools.yellow('Could not import matplotlib.pyplot module. This is required for creating plots under "Analyze_Convtest_h(Analyze)". \nSet "use_matplot_lib=True" in analyze.ini in order to activate plotting.'))
+                print(tools.yellow('Could not import matplotlib.pyplot module. '
+                                   'This is required for creating plots under "Analyze_Convtest_h(Analyze)". \nSet "use_matplot_lib=True" in analyze.ini in order to activate plotting.'))
 
             # 1.4.2   write L2 error data to file
             writeTableToFile(L2_errors,nVar,nRuns,self.cells,os.path.dirname(runs[0].target_directory),"L2_error_order%.2f.csv" % mean[0])
@@ -713,7 +728,7 @@ class Analyze_Convtest_h(Analyze) :
             # 1.6   compare success rate with pre-defined rate, fails if not reached
             if float(sum(success))/nVar >= self.rate :
                 print(tools.blue("h-convergence successful"))
-            else :
+            else : # fmt: skip
                 print(tools.red("h-convergence failed"+"\n"+\
                         "success rate="+str(float(sum(success))/nVar)+\
                         " tolerance rate="+str(self.rate)))
@@ -744,10 +759,14 @@ class Analyze_Convtest_h(Analyze) :
 #==================================================================================================
 
 class Analyze_Convtest_t(Analyze) :
-    """Convergence test for different time steps defined in 'parameter.ini' (e.g. CFLScale)
+    """
+    Convergence test for different time steps defined in 'parameter.ini' (e.g. CFLScale)
+
     The analyze routine read the L2 error norm from a set of runs and determines the order of convergence
-    between the runs and averages the values. The average is compared with the temporal order supplied by the user."""
+    between the runs and averages the values. The average is compared with the temporal order supplied by the user.
+    """
     def __init__(self, ConvtestTime) :
+        # fmt: off
         # 1.   set the order of convergence, tolerance, rate and error name (name of the error in the std.out)
         self.order      = ConvtestTime.order      # user-supplied convergence order
         self.tolerance  = ConvtestTime.tolerance  # determine success rate by comparing the relative convergence error with a tolerance
@@ -778,6 +797,7 @@ class Analyze_Convtest_t(Analyze) :
                 self.get_x_values   = self.ini_timestep
             else :
                 self.get_x_values   = self.total_iter
+        # fmt: off
 
 
     def perform(self,runs) :
@@ -822,7 +842,7 @@ class Analyze_Convtest_t(Analyze) :
                         for run in runs : # find out exactly which L2 error could not be read
                             try :
                                 self.x_values_test = np.array(analyze_functions.get_initial_timesteps(run.stdout,self.get_x_values))
-                            except Exception: # noqa PERF203 `try`-`except` within a loop incurs performance
+                            except Exception: # noqa: PERF203 `try`-`except` within a loop incurs performance
                                 s = tools.red("t-convergence failed: could not read [%s] from output (searching in all lines)" % self.get_x_values)
                                 print(s)
 
@@ -840,7 +860,7 @@ class Analyze_Convtest_t(Analyze) :
                         for run in runs : # find out exactly which L2 error could not be read
                             try :
                                 self.x_values_test = np.array(analyze_functions.get_last_number_of_timesteps(run.stdout,self.get_x_values,LastLines))
-                            except Exception: # noqa PERF203 `try`-`except` within a loop incurs performance
+                            except Exception: # noqa: PERF203 `try`-`except` within a loop incurs performance
                                 s = tools.red("t-convergence failed: could not read [%s] from %s (searching in the last %s lines)" % ('std.out',self.get_x_values,LastLines) )
                                 print(s)
 
@@ -863,8 +883,8 @@ class Analyze_Convtest_t(Analyze) :
             except Exception:
                 for run in runs : # find out exactly which L2 error could not be read
                     try :
-                        L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name,LastLines)) # noqa F841 local variable 'test' is assigned to but never used
-                    except Exception: # noqa PERF203 `try`-`except` within a loop incurs performance
+                        L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name,LastLines)) # noqa: F841 local variable 'test' is assigned to but never used
+                    except Exception: # noqa: PERF203 `try`-`except` within a loop incurs performance
                         s = tools.red("t-convergence failed: some L2 errors could not be read from %s (searching for '%s' in the last %s lines)" % ('std.out',self.error_name,LastLines) )
                         print(s)
 
@@ -915,7 +935,8 @@ class Analyze_Convtest_t(Analyze) :
                     plt.cla()
                 plt.close(f)
             else :
-                print(tools.yellow('Could not import matplotlib.pyplot module. This is required for creating plots under "Analyze_Convtest_t(Analyze)". \nSet "use_matplot_lib=True" in analyze.ini in order to activate plotting.'))
+                print(tools.yellow('Could not import matplotlib.pyplot module. '
+                                   'This is required for creating plots under "Analyze_Convtest_t(Analyze)". \nSet "use_matplot_lib=True" in analyze.ini in order to activate plotting.'))
 
             # 1.4.2   write L2 error data to file
             writeTableToFile(L2_errors,nVar,nRuns,self.x_values,os.path.dirname(runs[0].target_directory),"L2_error_order%.2f.csv" % mean[0])
@@ -932,7 +953,7 @@ class Analyze_Convtest_t(Analyze) :
             # 1.6   compare success rate with pre-defined rate, fails if not reached
             if float(sum(success))/nVar >= self.rate :
                 print(tools.blue("t-convergence successful"))
-            else :
+            else : # fmt: skip
                 print(tools.red("t-convergence failed"+"\n"+\
                         "success rate="+str(float(sum(success))/nVar)+\
                         " tolerance rate="+str(self.rate)))
@@ -948,7 +969,7 @@ class Analyze_Convtest_t(Analyze) :
                     run.analyze_successful=False
                     Analyze.total_errors+=1
 
-        else :
+        else : # fmt: skip
             s="cannot perform t-convergence test, because number of successful runs must equal the number of supplied %s in the user-supplied list" % self.name
             print(tools.red(s))
             for run in runs :
@@ -963,15 +984,20 @@ class Analyze_Convtest_t(Analyze) :
 #==================================================================================================
 
 class Analyze_Convtest_p(Analyze) :
-    """Convergence test for a fixed mesh and different (increasing!) polynomial degrees defined in 'parameter.ini'
+    """
+    Convergence test for a fixed mesh and different (increasing!) polynomial degrees defined in 'parameter.ini'
+
     The analyze routine reads the L2 error norm from a set of runs and determines the order of convergence
-    between the runs and compares them. With increasing polynomial degree, the order of convergence must increase for this anaylsis to be successful."""
+    between the runs and compares them. With increasing polynomial degree, the order of convergence must increase for this anaylsis to be successful.
+    """
     def __init__(self, ConvtestP) :
+        # fmt: off
         self.rate       = ConvtestP.rate       # success rate: for each nVar, the EOC is determined (the number of successful EOC vs.
                                                # the number of total EOC tests determines the success rate which is compared with this rate)
         self.percentage = ConvtestP.percentage # for the p-convergence, the EOC must increase with p, hence the sloop must increase
                                                # percentage yields the minimum ratio of increasing EOC vs. the total number of EOC for each nVar
         self.error_name = ConvtestP.error_name # string name of the L2 error in the std.out file (default is "L_2")
+        # fmt: on
 
     def perform(self,runs) :
         global pyplot_module_loaded
@@ -1018,8 +1044,8 @@ class Analyze_Convtest_p(Analyze) :
             except Exception:
                 for run in runs : # find out exactly which L2 error could not be read
                     try :
-                        L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name,LastLines)) # noqa F841 local variable 'test' is assigned to but never used
-                    except Exception: # noqa PERF203 `try`-`except` within a loop incurs performance
+                        L2_errors_test = np.array(analyze_functions.get_last_L2_error(run.stdout,self.error_name,LastLines)) # noqa: F841 local variable 'test' is assigned to but never used
+                    except Exception: # noqa: PERF203 `try`-`except` within a loop incurs performance
                         s = tools.red("p-convergence failed: some L2 errors could not be read from %s (searching for '%s' in the last %s lines)" % ('std.out',self.error_name,LastLines) )
                         print(s)
 
@@ -1056,7 +1082,8 @@ class Analyze_Convtest_p(Analyze) :
                     plt.cla()
                 plt.close(f)
             else :
-                print(tools.yellow('Could not import matplotlib.pyplot module. This is required for creating plots under "Analyze_Convtest_p(Analyze)". \nSet "use_matplot_lib=True" in analyze.ini in order to activate plotting.'))
+                print(tools.yellow('Could not import matplotlib.pyplot module. '
+                                   'This is required for creating plots under "Analyze_Convtest_p(Analyze)". \nSet "use_matplot_lib=True" in analyze.ini in order to activate plotting.'))
 
             # 2.4   determine order of convergence between two runs
             L2_order = \
@@ -1069,11 +1096,6 @@ class Analyze_Convtest_p(Analyze) :
             increasing = []
             for j in range(nVar) :
                 increasing_run = [L2_order[j][i] > L2_order[j][i-1] for i in range(1, len(p)-1)] # check for increasing order of convergence
-                # TODO
-                # increasing_run = []
-                # for i in range(1,len(p)-1) :
-                    # increasing_run.append(L2_order[j][i]>L2_order[j][i-1]) # check for increasing order of convergence
-                    #print increasing_run,L2_order[j][i],L2_order[j][i-1]
                 print(increasing_run)
                 if 1==1 :
                     if abs(float(len(increasing_run))) > 0 :
@@ -1093,7 +1115,7 @@ class Analyze_Convtest_p(Analyze) :
             # 2.7   compare success rate with pre-defined rate, fails if not reached
             if float(sum(success))/nVar >= self.rate :
                 print(tools.blue("p-convergence successful"))
-            else :
+            else : # fmt: skip
                 print(tools.red("p-convergence failed"+"\n"+\
                         "success rate="+str(float(sum(success))/nVar)+\
                         " tolerance rate="+str(self.rate)))
@@ -1109,7 +1131,7 @@ class Analyze_Convtest_p(Analyze) :
                     Analyze.total_errors+=1
 
                     #global_errors+=1
-        else :
+        else : # fmt: skip
             s="cannot perform p-convergence test, because number of successful runs must equal the number of polynomial degrees p"
             print(tools.red(s))
             for run in runs :
@@ -1242,6 +1264,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
             n=0
             # Iterate over all comparisons for h5diff
             for compare in compares :
+                # fmt: off
                 n+=1
                 reference_file_loc   = self.prms["reference_file"][compare]
                 file_loc             = self.prms["file"][compare]
@@ -1261,6 +1284,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                 path            = os.path.join(run.target_directory,file_loc)
                 path_ref_target = os.path.join(run.target_directory,reference_file_loc)
                 path_ref_source = os.path.join(run.source_directory,reference_file_loc)
+                # fmt: on
 
                 # Copy new reference file: This is completely independent of the outcome of the current h5diff
                 if self.referencescopy :
@@ -1394,7 +1418,8 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                     elif reshape_dim_loc == 3:
                         b1_reshaped = b1[:                  , :                 , :                 , :reshape_value_loc]
                     else:
-                        s = tools.red("Analyze_h5diff: Reshaping is currently only implemented for specific arrays (dim 0 and 1 reshape 2D array) and dim 3 and 4 reshape the last dimension of 3D and 4D arrays. Use h5diff_reshape_dim=1 or 2)")
+                        s = tools.red("Analyze_h5diff: Reshaping is currently only implemented for specific arrays (dim 0 and 1 reshape 2D array) "
+                                      "and dim 3 and 4 reshape the last dimension of 3D and 4D arrays. Use h5diff_reshape_dim=1 or 2)")
                         print(s)
                         run.analyze_results.append(s)
                         run.analyze_successful=False
@@ -1420,14 +1445,16 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
 
                     # In the following, compare the reshaped array instead of the original one
                     str_1 = "'%s' (instead of '%s') from %s" % (data_set_loc_file_new , data_set_loc_file , file_loc)
-                    print(tools.yellow("    Reshaping dim=%s to value=%s (the old value was %s).\n    Now using: %s, which has a changed shape from %s to %s" % (reshape_dim_loc , reshape_value_loc , old_value, str_1, old_shape, newShape)))
+                    print(tools.yellow("    Reshaping dim=%s to value=%s (the old value was %s).\n"
+                                       "Now using: %s, which has a changed shape from %s to %s" % (reshape_dim_loc , reshape_value_loc , old_value, str_1, old_shape, newShape)))
 
                     data_set_loc_file = data_set_loc_file_new
 
 
                 # 1.1.2 compare shape of the dataset of both files, throw error if they do not coincide
                 if shape1 != shape2 : # e.g.: b1.shape = (48, 1, 1, 32)
-                    self.result=tools.red(tools.red("h5diff failed because datasets for [%s,%s] are not comparable due to different shapes: Files [%s] and [%s] have shapes [%s] and [%s]" % (data_set_loc_file,data_set_loc_ref,f1,f2,b1.shape,b2.shape)))
+                    self.result=tools.red(tools.red("h5diff failed because datasets for [%s,%s] are not comparable due to different shapes: "
+                                                    "Files [%s] and [%s] have shapes [%s] and [%s]" % (data_set_loc_file,data_set_loc_ref,f1,f2,b1.shape,b2.shape)))
                     print(" "+self.result)
 
                     # 1.1.3   add failed info if return a code != 0 to run
@@ -1450,7 +1477,8 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                             b1_sorted = b1[b1[:,sort_var_loc].argsort()]
                             b2_sorted = b2[b2[:,sort_var_loc].argsort()]
                         else :
-                            s = tools.red("Analyze_h5diff: Sorting failed, because currently only sorting of 2-dimensional arrays is implemented.\nThis means, that sorting by rows (dim=1) and columns (dim=2) is allowed. However, dim=[%s]" % sort_dim_loc)
+                            s = tools.red("Analyze_h5diff: Sorting failed, because currently only sorting of 2-dimensional arrays is implemented.\n"
+                                          "This means, that sorting by rows (dim=1) and columns (dim=2) is allowed. However, dim=[%s]" % sort_dim_loc)
                             print(s)
                             run.analyze_results.append(s)
                             run.analyze_successful=False
@@ -1550,7 +1578,8 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
 
                         # 1.3.1   Add failed info if return a code != 0 to run
                         run.analyze_results.append(tools.red("h5diff failed. (Exception="+str(ex)+")"))
-                        run.analyze_results.append(tools.red("Maybe h5diff is not found automatically. Find it with \"locate -b '\h5diff'\" and add the corresponding path, e.g., \"export PATH=/opt/hdf5/1.X/bin/:$PATH\"")) # noqa W605 invalid escape sequence
+                        run.analyze_results.append(tools.red("Maybe h5diff is not found automatically. "
+                                                             "Find it with \"locate -b '\h5diff'\" and add the corresponding path, e.g., \"export PATH=/opt/hdf5/1.X/bin/:$PATH\"")) # noqa: W605 invalid escape sequence
 
                         # 1.3.2   Set analyzes to fail if return a code != 0
                         run.analyze_successful=False
@@ -1563,11 +1592,13 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
 
 class Analyze_check_hdf5(Analyze) :
     def __init__(self, CheckHDF5 ) :
+        # fmt: off
         self.file                = CheckHDF5.file
         self.data_set            = CheckHDF5.data_set
         self.span                = int(CheckHDF5.span)
         (self.dim1, self.dim2)   = [int(x)   for x in CheckHDF5.dimension.split(":")]
         (self.lower, self.upper) = [float(x) for x in CheckHDF5.limits.split(":")]
+        # fmt: on
 
     def perform(self,runs) :
         global h5py_module_loaded
@@ -1641,7 +1672,8 @@ class Analyze_check_hdf5(Analyze) :
                     lower_test = any([x < self.lower for x in b[i,:]])
                     upper_test = any([x > self.upper for x in b[i,:]])
                 else :
-                    s = tools.red("Analyze_check_hdf5: Bounding box check failed for i=%s, because currently only sorting of 2-dimensional arrays is implemented.\nThis means, that sorting by rows (dim=1) and columns (dim=2) is allowed. However, dim=[%s] (parameter: check_hdf5_span)" % (i, self.span))
+                    s = tools.red("Analyze_check_hdf5: Bounding box check failed for i=%s, because currently only sorting of 2-dimensional arrays is implemented.\nThis means, "
+                                  "that sorting by rows (dim=1) and columns (dim=2) is allowed. However, dim=[%s] (parameter: check_hdf5_span)" % (i, self.span))
                     print(s)
                     run.analyze_results.append(s)
                     run.analyze_successful=False
@@ -1744,9 +1776,9 @@ class Analyze_compare_data_file(Analyze) :
         self.referencescopy = CompareDataFile.referencescopy
 
     def perform(self,runs) :
-
-        '''
+        """
         General workflow:
+
         1.  iterate over all runs
         1.1   Set the file and reference file for comparison
         1.2   Check existence the file and reference values
@@ -1754,8 +1786,7 @@ class Analyze_compare_data_file(Analyze) :
         1.3.2   read reference file
         1.3.3   check length of vectors
         1.3.4   calculate difference and determine compare with tolerance
-        '''
-
+        """
         if self.one_diff_per_run and ( self.nCompares != len(runs) ) and self.nCompares > 1 :
             s=tools.red("Number of compare_data_file tests and runs is inconsistent."+ \
                     "Please ensure all options have the same length or set compare_data_file_one_diff_per_run=F. Nbr. of comparisons: %s, Nbr. of runs: %s" % (self.nCompares, len(runs)) )
@@ -1783,6 +1814,7 @@ class Analyze_compare_data_file(Analyze) :
 
             # Iterate over all comparisons for h5diff
             for compare in compares :
+                # fmt: off
                 reference_file_loc   = self.prms["reference_file"][compare]
                 file_loc             = self.prms["file"][compare]
                 tolerance_value_loc  = float(self.prms["tolerance_value"][compare])
@@ -1795,6 +1827,7 @@ class Analyze_compare_data_file(Analyze) :
                 path            = os.path.join(run.target_directory,file_loc)
                 path_ref_target = os.path.join(run.target_directory,reference_file_loc)
                 path_ref_source = os.path.join(run.source_directory,reference_file_loc)
+                # fmt: on
 
                 # Copy new reference file: This is completely independent of the outcome of the current compare data file
                 if self.referencescopy :
@@ -1840,7 +1873,7 @@ class Analyze_compare_data_file(Analyze) :
                     line_len = len(line)
 
                 # 1.3.2   read reference file
-                # TODO: this always extracts the last line from the reference file - you probably want to compare against same line as in data file, i.e. 'line_loc'?
+                # TODO: this always extracts the last line from the reference file - you probably want to compare against same line as in data file, i.e. 'line_loc'?  # noqa: TD003 existed before ruff integration
                 line_ref = []
                 with open(path_ref_target, 'r') as csvfile:
                     line_str = csv.reader(csvfile, delimiter=delimiter_loc, quotechar='!')
@@ -1849,7 +1882,7 @@ class Analyze_compare_data_file(Analyze) :
                         try :
                             # This will fail for header lines, but not for '-0.102704038304E-10, 0.190378371853E-10,-0.299883576917E+10'
                             line_ref = np.array([float(x) for x in row])
-                        except Exception: # noqa PERF203 `try`-`except` within a loop incurs performance
+                        except Exception: # noqa: PERF203 `try`-`except` within a loop incurs performance
                             try:
                                 # Try and convert rows like this: ' -0.102704038304E-10   0.190378371853E-10  -0.299883576917E+10' because when "," is the delimiter they are read into a single element
                                 line_ref = np.array([float(x) for x in row[0].split()])
@@ -1874,7 +1907,7 @@ class Analyze_compare_data_file(Analyze) :
                 if NbrOfDifferences > 0 :
                     s = "Comparison failed for [%s] with [%s] due to %s differences\n" % (path, reference_file_loc, NbrOfDifferences)
                     try:
-                        test = header_line[len(success)-1] # dummy variable to test if the header can be accessed for the last possibly entry or not, # noqa F841 local variable 'test' is assigned to but never used
+                        test = header_line[len(success)-1] # dummy variable to test if the header can be accessed for the last possibly entry or not, # noqa: F841 local variable 'test' is assigned to but never used
                         s = s+"Mismatch in columns: "+", ".join([str(header_line[i]).strip() for i in range(len(success)) if not success[i]])
                     except Exception:
                         # When the header is not in the same structure as the data itself, simply output the number of the column
@@ -1912,6 +1945,7 @@ class Analyze_compare_data_file(Analyze) :
 
 class Analyze_integrate_line(Analyze) :
     def __init__(self, IntegrateLine) :
+        # fmt: off
         self.file                = IntegrateLine.file
         self.delimiter           = IntegrateLine.delimiter
         (self.dim1, self.dim2)   = [int(x) for x in IntegrateLine.columns.split(":")]
@@ -1920,11 +1954,12 @@ class Analyze_integrate_line(Analyze) :
         self.tolerance_type      = IntegrateLine.tolerance_type
         self.option              = IntegrateLine.option
         self.multiplier          = float(IntegrateLine.multiplier)
+        # fmt: on
 
     def perform(self,runs) :
-
-        '''
+        """
         General workflow:
+
         1.  iterate over all runs
         1.2   Check existence the file and reference values
         1.3.1   read data file
@@ -1933,8 +1968,7 @@ class Analyze_integrate_line(Analyze) :
         1.3.4   split the data array and set the two column vector x and y for integration
         1.3.5   Check the number of data points: Integration can only be performed if at least two points exist
         1.4   integrate values numerically
-        '''
-
+        """
         # 1.  iterate over all runs
         for run in runs :
             # 1.2   Check existence the file and reference values
@@ -2140,9 +2174,9 @@ class Analyze_compare_column(Analyze) :
         self.referencescopy = CompareColumn.referencescopy
 
     def perform(self,runs) :
-
-        '''
+        """
         General workflow:
+
         * Iterate over all successful runs
           * Set compares in case of one_diff_per_*
           * Iterate over all compares
@@ -2154,7 +2188,7 @@ class Analyze_compare_column(Analyze) :
               * Check dimensions of the arrays
               * Check the number of data points: Comparison can only be performed if at least one point exists
               * calculate difference and determine compare with tolerance
-        '''
+        """
         if self.one_diff_per_restart_file and ( self.nCompares < self.iRestartFile+1 ) and self.nCompares > 1 :
             s=tools.red("Number of compare_column tests and command line runs is inconsistent."+ \
                     " Please ensure all options have the same length or set compare_column_one_diff_per_restart_file=F. Nbr. of comparisons: %s, Nbr. of command line runs: %s" % (self.nCompares, self.iRestartFile+1) )
@@ -2200,6 +2234,7 @@ class Analyze_compare_column(Analyze) :
 
             # Iterate over all comparisons
             for compare in compares :
+                # fmt: off
                 reference_file_loc   = self.prms["reference_file"][compare]
                 file_loc             = self.prms["file"][compare]
                 tolerance_value_loc  = float(self.prms["tolerance_value"][compare])
@@ -2210,6 +2245,7 @@ class Analyze_compare_column(Analyze) :
                 path             = os.path.join(run.target_directory,file_loc)
                 path_ref_target  = os.path.join(run.target_directory,reference_file_loc)
                 path_ref_source  = os.path.join(run.source_directory,reference_file_loc)
+                # fmt: on
 
                 # Copy new reference file: This is completely independent of the outcome of the current compare data file
                 if self.referencescopy :
@@ -2254,7 +2290,8 @@ class Analyze_compare_column(Analyze) :
                         csvfile.seek(0)
                         # Sanity check: number of columns should not be smaller than the selected column
                         if column_count-1 < index_loc:
-                            s="Cannot perform analyze Analyze_compare_column, because the supplied column (%s) in %s exceeds the number of columns (%s) in the data file (the first column must start at 0)" % (index_loc, path, 0)
+                            s=("Cannot perform analyze Analyze_compare_column, because the supplied column (%s) in %s exceeds the number of "
+                               "columns (%s) in the data file (the first column must start at 0)") % (index_loc, path, 0)
                             print(tools.red(s))
                             run.analyze_results.append(s)
                             run.analyze_successful=False
@@ -2301,7 +2338,8 @@ class Analyze_compare_column(Analyze) :
                         elif column_count_ref-1 >= index_loc:
                             refDim = index_loc
                         elif column_count_ref-1 < index_loc:
-                            s="Cannot perform analyze Analyze_compare_column, because the supplied column (%s) in %s exceeds the number of columns (%s) in the reference file (the first column must start at 0)" % (index_loc, path_ref_target, 0)
+                            s=("Cannot perform analyze Analyze_compare_column, because the supplied column (%s) in %s exceeds the number of "
+                               "columns (%s) in the reference file (the first column must start at 0)") % (index_loc, path_ref_target, 0)
                             print(tools.red(s))
                             run.analyze_results.append(s)
                             run.analyze_successful=False
@@ -2339,7 +2377,8 @@ class Analyze_compare_column(Analyze) :
 
                     # Check dimensions of the arrays
                     if data.shape != data_ref.shape:
-                        s="cannot perform analyze Analyze_compare_column, because the shape of the data in file=[%s] is %s and that of the reference=[%s] is %s. They cannot be different!" % (path,data.shape,reference_file_loc,data_ref.shape)
+                        s=("cannot perform analyze Analyze_compare_column, because the shape of the data in file=[%s] is %s and that of the "
+                           "reference=[%s] is %s. They cannot be different!") % (path,data.shape,reference_file_loc,data_ref.shape)
                         print(tools.red(s))
                         run.analyze_results.append(s)
                         run.analyze_successful=False
@@ -2349,7 +2388,9 @@ class Analyze_compare_column(Analyze) :
 
                     # Check the number of data points: Comparison can only be performed if at least one point exists
                     if max_lines-header < 1 or max_lines_ref-header_ref < 1 or max_lines-header != max_lines_ref-header_ref:
-                        s="cannot perform analyze Analyze_compare_column, because there are not enough lines of data or different numbers of data points to perform the comparison. Number of lines = %s (file) and %s (reference file), which must be equal and at least one." % (max_lines-header,max_lines_ref-header_ref)
+                        s=("cannot perform analyze Analyze_compare_column, because there are not enough lines of data or different numbers of "
+                           "data points to perform the comparison. Number of lines = %s (file) and %s (reference file), which must be equal and "
+                           "at least one.") % (max_lines-header,max_lines_ref-header_ref)
                         print(tools.red(s))
                         run.analyze_results.append(s)
                         run.analyze_successful=False
@@ -2384,12 +2425,14 @@ class Analyze_compare_column(Analyze) :
 
 class Analyze_compare_across_commands(Analyze) :
     def __init__(self, CompareAcrossCommands) :
+        # fmt: off
         self.file                = CompareAcrossCommands.file
         self.delimiter           = CompareAcrossCommands.column_delimiter
         self.column_index        = int(CompareAcrossCommands.column_index)
         self.tolerance_value     = float(CompareAcrossCommands.tolerance_value)
         self.tolerance_type      = CompareAcrossCommands.tolerance_type
         self.reference           = int(CompareAcrossCommands.reference)
+        # fmt: on
 
         if CompareAcrossCommands.line_number == 'last':
             self.line_number = -1   # set to dummy value (and not to numeric infinity) for sanity check in 1.3
@@ -2397,9 +2440,9 @@ class Analyze_compare_across_commands(Analyze) :
             self.line_number = int(CompareAcrossCommands.line_number) # take actual line number
 
     def perform(self,runs) :
-
-        '''
+        """
         General workflow:
+
         1. iterate over all runs
         1.1   check existence of the data file
         1.2   read data file
@@ -2411,8 +2454,7 @@ class Analyze_compare_across_commands(Analyze) :
         2.1   check index of reference command (1-based indexing, in accordance with directory name pattern 'cmd_0001, cmd_0002, ...'), index 0 means average of all commands
         2.2   compute reference value based extracted results
         2.3   calculate deviation of each extracted value from average and compare with tolerance
-        '''
-
+        """
         # 1.  iterate over all runs
         x_run = []  # list collecting extracted result of each run
         for run in runs :
@@ -2456,7 +2498,8 @@ class Analyze_compare_across_commands(Analyze) :
             # 1.3   check number of lines in data file
             selected_line = i
             if selected_line < self.line_number :
-                s="cannot perform analyze Analyze_compare_across_commands, because the supplied line number [%s] in [%s] exceeds the number of lines [%s] in the data file (the first line has number 1)" % (self.line_number, path, selected_line)
+                s=("cannot perform analyze Analyze_compare_across_commands, because the supplied line number [%s] in [%s] exceeds the number of "
+                   "lines [%s] in the data file (the first line has number 1)") % (self.line_number, path, selected_line)
                 print(tools.red(s))
                 run.analyze_results.append(s)
                 run.analyze_successful=False
@@ -2466,7 +2509,8 @@ class Analyze_compare_across_commands(Analyze) :
             # 1.4  check number of columns in data file
             line_len = len(line) - 1
             if line_len < self.column_index :
-                s="cannot perform analyze Analyze_compare_across_commands, because the supplied column [%s] in [%s] exceeds the number of columns [%s] in the data file (the first column must start at 0)" % (self.column_index, path, line_len)
+                s=("cannot perform analyze Analyze_compare_across_commands, because the supplied column [%s] in [%s] exceeds the number of columns "
+                   "[%s] in the data file (the first column must start at 0)") % (self.column_index, path, line_len)
                 print(tools.red(s))
                 run.analyze_results.append(s)
                 run.analyze_successful=False
@@ -2485,7 +2529,8 @@ class Analyze_compare_across_commands(Analyze) :
         # 2. compare results of runs among eachother
         # 2.1   check index of reference command (1-based indexing, in accordance with directory name pattern 'cmd_0001, cmd_0002, ...'), index 0 means average of all commands
         if (self.reference > len(runs)) or (self.reference < 0) :
-            s="cannot perform analyze Analyze_compare_across_commands, because index of reference command [%s] exceeds number of executed commands [%s] (indexing starts at 1, use 0 for average of all commands)" % (self.reference, len(runs))
+            s=("cannot perform analyze Analyze_compare_across_commands, because index of reference command [%s] exceeds number of executed commands "
+               "[%s] (indexing starts at 1, use 0 for average of all commands)") % (self.reference, len(runs))
             print(tools.red(s))
             run.analyze_results.append(s)
             run.analyze_successful=False
@@ -2513,4 +2558,5 @@ class Analyze_compare_across_commands(Analyze) :
 
 
     def __str__(self) :
-        return "compare results of corresponding runs from different commands: file [%s] and comparison of value in line [%s] (first line = 1, last line = -1) and column [%s] (first column = 0)" % (self.file, self.line_number, self.column_index)
+        return ("compare results of corresponding runs from different commands: file [%s] and comparison "
+        "of value in line [%s] (first line = 1, last line = -1) and column [%s] (first column = 0)") % (self.file, self.line_number, self.column_index)

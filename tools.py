@@ -14,11 +14,12 @@ from __future__ import print_function # required for print() function with line 
 import logging
 import shutil
 import os
-from timeit import default_timer as timer # noqa: F401: imported but unused (kept for performance measurements)
+from timeit import default_timer as timer # noqa: F401 imported but unused (kept for performance measurements)
 import time
 
 class bcolors :
     """color and font style definitions for changing output appearance"""
+    # fmt: off
     # Reset (user after applying a color to return to normal coloring)
     ENDC   ='\033[0m'
 
@@ -33,49 +34,51 @@ class bcolors :
     CYAN     = '\033[0;36m'
     WHITE    = '\033[0;37m'
     PINK     = '\033[95m'
+    # fmt: on
 
     # Text Style
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-def cyan(text) :
+def cyan(text) : # noqa: D103 Missing docstring in public function
     return bcolors.CYAN+text+bcolors.ENDC
 
-def pink(text) :
+def pink(text) : # noqa: D103
     return bcolors.PINK+text+bcolors.ENDC
 
-def purple(text) :
+def purple(text) : # noqa: D103
     return bcolors.PURPLE+text+bcolors.ENDC
 
-def lightred(text) :
+def lightred(text) : # noqa: D103
     return bcolors.LIGHTRED+text+bcolors.ENDC
 
-def red(text) :
+def red(text) : # noqa: D103
     return bcolors.RED+text+bcolors.ENDC
 
-def green(text) :
+def green(text) : # noqa: D103
     return bcolors.GREEN+text+bcolors.ENDC
 
-def blue(text) :
+def blue(text) : # noqa: D103
     return bcolors.BLUE+text+bcolors.ENDC
 
-def yellow(text) :
+def yellow(text) : # noqa: D103
     return bcolors.YELLOW+text+bcolors.ENDC
 
 def indent(text, amount, ch=' '):
-    """Indent text line by amount times a white space """
+    """Indent text line by amount times a white space"""
     padding = amount * 2 * ch
     return ''.join(padding+line for line in text.splitlines(True))
 
 def setup_logger(debug_level):
-    """Setups a global logger with the name 'logger'.
+    """
+    Setups a global logger with the name 'logger'.
+
     This logger can accessed in any function by "log = logging.getLogger('logger')".
     Three different logging levels:
         0 : print no logging messages
         1 : print information messages (i.e. print all messages invoked with "log.info(message)")
         2 : print debug + information messages (i.e. print all messages invoked with "log.info(message)" or "log.debug(message)")
     """
-
     if debug_level == 0   : # no logging
         formatter = logging.Formatter()
     elif debug_level == 1 : # info
@@ -98,8 +101,11 @@ def setup_logger(debug_level):
     return logger
 
 def find_basedir(basedir) :
-    """Search 'CMakeLists.txt' in directories above current working directory.
-    The directory containing the 'CMakeLists.txt' is the 'basedir'."""
+    """
+    Search 'CMakeLists.txt' in directories above current working directory.
+
+    The directory containing the 'CMakeLists.txt' is the 'basedir'.
+    """
     found = os.path.exists(os.path.join(basedir, "CMakeLists.txt")) # check if actual directory is the basedir
     if found :
         basedir = os.path.abspath(basedir)
@@ -115,12 +121,12 @@ def find_basedir(basedir) :
     return basedir
 
 
-def remove_folder(path) :
+def remove_folder(path) : # noqa: D103 Missing docstring in public function
     print("deleting folder '%s'" % path)
     shutil.rmtree(path,ignore_errors=True)
     #shutil.rmtree(path)
 
-def create_folder(path):
+def create_folder(path): # noqa: D103 Missing docstring in public function
     if not os.path.exists(path) :
         i=0
         # try multiple times to create the directory (on some systems a
@@ -143,13 +149,13 @@ def create_folder(path):
 def diff_lists(x,x_ref,tol,tol_type) :
     """
     determine diff of two lists of floats, either relative of absolute
+
     (if the reference value is zero, use absolute comparison)
     x        : vector of real values
     x_ref    : vector of real values (reference)
     tol      : tolerance value
     tol_type : tolerance type, relative or absolute
     """
-
     # check tolerance type: absolute/relative (is the reference value is zero, absolute comparison is used)
     if tol_type == 'absolute' :
         diff = [abs(a-b) for (a,b) in zip(x,x_ref)]
@@ -174,13 +180,13 @@ def diff_lists(x,x_ref,tol,tol_type) :
 def diff_value(x,x_ref,tol,tol_type) :
     """
     determine diff of two floats, either relative of absolute
+
     (if the reference value is zero, use absolute comparison)
     x        : scalar
     x_ref    : scalar (reference)
     tol      : tolerance value
     tol_type : tolerance type, relative or absolute
     """
-
     # check tolerance type: absolute/relative (is the reference value is zero, absolute comparison is used)
     if tol_type == 'absolute' :
         diff = abs(x-x_ref)
