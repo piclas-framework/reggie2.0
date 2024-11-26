@@ -1,6 +1,5 @@
 # ======================================================================================================================================================================= #
-# ruff linter and formater setup file reggie tool for NRG codes and PICLas
-# ruff can be installed with "pip install ruff"
+# ruff linter and formatter setup file for reggie2.0
 # ======================================================================================================================================================================= #
 line-length = 220
 indent-width = 4
@@ -44,14 +43,6 @@ ignore = ["TD002","D100","D101","D102","D105","D107","D212","D400","D415",
          "W191","E111","E114","E117","D206","D300","Q000","Q001","Q002","Q003","COM812","COM819","ISC001","ISC002"]
 # checks that should be ignored, always add the error which is suppressed below for faster understanding and possible re-evaluation
 
-#To suppress a violation inline, Ruff uses a noqa system similar to Flake8. To ignore an individual violation, add # noqa: {code} to the end of the line, like so:
-# Ignore F841.
-#x = 1  # noqa: F841
-# Ignore E741 and F841.
-#i = 1  # noqa: E741, F841
-# Ignore _all_ violations.
-#x = 1  # noqa
-
 # User excluded checks:
 # TD002  : Missing author in TODO; try: `# todo(<author_name>): ...` or `# todo @<author_name>: ...`
 # D100   : Checks for undocumented public module definitions
@@ -78,17 +69,12 @@ ignore = ["TD002","D100","D101","D102","D105","D107","D212","D400","D415",
 # COM819  : prohibited-trailing-comma
 # ISC001  : single-line-implicit-string-concatenation
 # ISC002  : multi-line-implicit-string-concatenation
-    
+
 extend-select = ["D213"]
 # checks that should be extensively selected
 # possible reasons: - only one check of rules group is wanted
 #                   - other options exclude this check (e.g. D213 is excluded by convention = "google", but should be included anyways)
 # D213: Checks for docstring summary lines that are not positioned on the second physical line of the docstring.
-
-# extend-unsafe-fixes = ["ALL"]
-# ruff labels fixes as "safe" and "unsafe". 
-# "The meaning and intent of your code will be retained when applying safe fixes, but the meaning could be changed when applying unsafe fixes."
-# Here all fixes are set to "unsafe", so all fixes have to be checked by hand or at least with an additional flag "--unsafe-fixes"!
 
 [lint.flake8-import-conventions.aliases] # corresponds to flake8-implicit-str-concat, ICN
 # Declare the default aliases
