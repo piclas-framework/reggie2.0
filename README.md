@@ -413,7 +413,7 @@ h5diff_var_name          = Spec001_ImpactNumber
 
 # vtudiff
 
-* Compares the point and cell data arrays of two .vtu files for each array element-by-element either with an absolute and relative difference.
+* Compares the point and cell data arrays of two .vtu files for each array element-by-element either with an absolute and/or relative difference (depending on which tolerance values are given).
 * Requires vtk for reading-in data to python.
 
   [https://pypi.org/project/vtk/](https://pypi.org/project/vtk/)

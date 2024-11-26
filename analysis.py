@@ -145,7 +145,7 @@ def getAnalyzes(path, example, args) :
     # 1.  Read the analyze options from file 'path'
     analyze = [] # list
     options_list, _, _ = combinations.readKeyValueFile(path)
-    
+
     options = {} # dict
     for option in options_list :
         # set all upper case characters to lower case
@@ -293,12 +293,13 @@ def getAnalyzes(path, example, args) :
 
     # 2.6   vtudiff (relative and/or absolute vtu-file comparison of an output file with a reference file)
     # options can be read in multiple times to realize multiple compares for each run
+    # default values for tolerance are set in the Analyze_vtudiff class, to enable only using one type but also both together
     vtudiff = SimpleNamespace( \
              one_diff_per_run     = options.get('vtudiff_one_diff_per_run',False), \
              reference_file       = options.get('vtudiff_reference_file',None), \
              file                 = options.get('vtudiff_file',None), \
-             abs_tolerance_value  = options.get('vtudiff_absolute_tolerance_value',1.0e-6), \
-             rel_tolerance_value  = options.get('vtudiff_relative_tolerance_value',1.0e-6), \
+             abs_tolerance_value  = options.get('vtudiff_absolute_tolerance_value',None), \
+             rel_tolerance_value  = options.get('vtudiff_relative_tolerance_value',None), \
              sort                 = options.get('vtudiff_sort',False), \
              sort_dim             = options.get('vtudiff_sort_dim',-1), \
              sort_var             = options.get('vtudiff_sort_var',-1), \
@@ -1281,7 +1282,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                 reference_file_loc   = self.prms["reference_file"][compare]
                 file_loc             = self.prms["file"][compare]
                 data_set_loc         = self.prms["data_set"][compare]
-                tolerance_value_loc  = self.prms["tolerance_value"][compare]
+                tolerance_value_loc  = float(self.prms["tolerance_value"][compare])
                 tolerance_type_loc   = self.prms["tolerance_type"][compare]
                 sort_loc             = self.prms["sort"][compare]
                 sort_dim_loc         = int(self.prms["sort_dim"][compare])
@@ -1449,7 +1450,7 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                         dset = f1.create_dataset(data_set_loc_file_new, shape=shape1, dtype=dtype1)
                     else:
                         dset = f1[data_set_loc_file_new]
-                        
+
                     # Write as C-continuous array via np.ascontiguousarray()
                     dset.write_direct(np.ascontiguousarray(b1_reshaped))
 
@@ -1527,8 +1528,8 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
 
                     # 1.2.1   Execute the command 'cmd' = 'h5diff -r [--type] [value] [.h5 file] [.h5 reference] [DataSetName_file] [DataSetName_reference]'
                     cmd = ["h5diff","-r",tolerance_type_loc,str(tolerance_value_loc),str(file_loc),str(reference_file_loc),str(data_set_loc_file),str(data_set_loc_ref)]
-                    try :
-                        if var_attribute_loc is not None and var_name_loc is not None:
+                    if var_attribute_loc is not None and var_name_loc is not None:
+                        try :
                             # Open datasets again to get dimension sizes
                             f1 = h5py.File(path,'r')
                             f2 = h5py.File(path_ref_target,'r')
@@ -1537,12 +1538,18 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                                 # Check if the dataset has attributes containing variable names for dimensions
                                 try:
                                     dataset = f
-                                    if variable_attribute in dataset.attrs:
-                                        variable_names = dataset.attrs[variable_attribute]
-                                        variable_names = [name.decode('utf-8') for name in dataset.attrs[variable_attribute]]
-                                        if variable_name in variable_names:
+                                    # check if attribute exists (case insensitive)
+                                    attrs = [attr for attr in dataset.attrs]
+                                    lower_attrs = [attr.lower() for attr in attrs]
+                                    if variable_attribute.lower() in lower_attrs:
+                                        variable_attribute_index = lower_attrs.index(variable_attribute.lower())
+                                        # attr_name is correctly spelled name of the attribute
+                                        attr_name = attrs[variable_attribute_index]
+                                        variable_names = [name.decode('utf-8').lower() for name in dataset.attrs[attr_name]]
+                                        # check if variable name exists (case insensitive)
+                                        if variable_name.lower() in variable_names:
                                             f.close()
-                                            return list(variable_names).index(variable_name)
+                                            return list(variable_names).index(variable_name.lower())
                                         else:
                                             print("Variable name '%s' not found in dimension names." % variable_name)
                                             return None
@@ -1562,17 +1569,18 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                             else:
                                 data1_slice = np.ravel(b1[...,dim1])
                                 data2_slice = np.ravel(b2[...,dim2])
-                            
-                            data1_slice = np.array([float(x) for x in data1_slice])
-                            data2_slice = np.array([float(x) for x in data2_slice])
+
+                            # Ensure data slices are converted to float
+                            data1_slice = np.array(data1_slice, dtype=float)
+                            data2_slice = np.array(data2_slice, dtype=float)
 
                             # np.isclose creates a boolean array with True for elements that are close to each other within a tolerance
-                            if tolerance_value_loc == '--delta':
+                            if tolerance_type_loc == '--delta':
                                 data_compare = np.isclose(data1_slice, data2_slice, atol=tolerance_value_loc)
                             else:
                                 data_compare = np.isclose(data1_slice, data2_slice, rtol=tolerance_value_loc)
                             NbrOfDifferences = np.sum(~data_compare)
-                            
+
                             if NbrOfDifferences > 0 :
                                 s = "Comparison failed for [%s] of [%s] with [%s] due to %s differences\n" % (var_name_loc, path, reference_file_loc, NbrOfDifferences)
                                 if NbrOfDifferences > max_differences_loc :
@@ -1618,76 +1626,89 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                                 else:
                                     s = tools.blue(tools.indent("Compared %s of %s with %s and got %s matching columns" % (var_name_loc, path, reference_file_loc,NbrOfMatches),2))
                                     print(s)
-                            
-                        else:
-                            s="Running [%s] ..." % ("  ".join(cmd))
-                            self.execute_cmd(cmd, run.target_directory,name="h5diff"+str(n), string_info = tools.indent(s, 2), displayOnFailure = False) # run the code
 
-                        # 1.2.2   Check maximum number of differences if user has selected h5diff_max_differences > 0
-                        try :
-                            if max_differences_loc > 0 and self.return_code != 0 :
-                                for line in self.stdout[-1:] : # check only the last line in std.out
-                                    lastline = line.rstrip()
-                                    idx=lastline.find('differences found') # the string should look something like "XX differences found"
-                                    if idx >= 0 :
-                                        NbrOfDifferences=int(lastline[:idx]) # get the number of differences that where identified by h5diff
-                                        if NbrOfDifferences <= max_differences_loc :
-                                            s = tools.indent("%s, but %s differences are allowed (given by h5diff_max_differences). The h5diff is therefore marked as passed." % (str(lastline),max_differences_loc), 2)
-                                            s = tools.purple(s)
-                                            print(s)
-                                            self.return_code = 0
-                        # If this try fails, just ignore it
-                        except :
-                            pass
-
-
-                        # 1.3   If the command 'cmd' returns a code != 0, set failed
-                        if self.return_code != 0 :
-                            print(tools.indent("tolerance_type       : "+tolerance_type_loc, 2))
-                            print(tools.indent("tolerance_value      : "+str(tolerance_value_loc), 2))
-                            print(tools.indent("file                 : "+str(file_loc), 2))
-                            print(tools.indent("reference            : "+str(reference_file_loc), 2))
-                            print(tools.indent("dataset in file      : "+str(data_set_loc_file), 2))
-                            print(tools.indent("dataset in reference : "+str(data_set_loc_ref), 2))
-                            #run.analyze_results.append("h5diff failed (self.return_code != 0) for [%s] vs. [%s] in [%s] vs. [%s]" % (str(data_set_loc_ref),str(data_set_loc_file),str(reference_file_loc),str(file_loc)))
-                            run.analyze_results.append("h5diff failed (self.return_code != 0) for [%s] vs. [%s] in [%s] vs. [%s]" % (data_set_loc_file, data_set_loc_ref, file_loc, reference_file_loc))
+                        # The python comparison of single variables could not be executed
+                        except Exception as ex :
+                            self.result=tools.red("h5diff failed. (Exception="+str(ex)+")")
+                            print(" "+self.result)
 
                             # 1.3.1   Add failed info if return a code != 0 to run
-                            print(" ")
-                            #print(tools.indent(10*" // h5diff // ",2))
-                            print(tools.indent(132*"–",2))
-                            print(tools.indent("| ",2)+tools.yellow("Note: First column corresponds to %s and second column to %s" % (file_loc, reference_file_loc)))
-                            if len(self.stdout) > 20 :
-                                for line in self.stdout[:10] : # print first 10 lines
-                                    print(tools.indent('| '+line.rstrip(),2))
-                                print(tools.indent("| ... leaving out intermediate lines",2))
-                                for line in self.stdout[-10:] : # print last 10 lines
-                                    print(tools.indent('| '+line.rstrip(),2))
-                            else :
-                                for line in self.stdout : # print all lines
-                                    print(tools.indent('| '+line.rstrip(),2))
-                                if len(self.stdout) == 1 :
-                                    run.analyze_results.append(str(self.stdout))
-                            #print(tools.indent(10*" // h5diff // ",2))
-                            print(tools.indent(132*"–",2))
-                            print(" ")
+                            run.analyze_results.append(tools.red("h5diff failed. Comparison of single variable %s failed with Exception=%s" % (var_name_loc, ex)))
 
                             # 1.3.2   Set analyzes to fail if return a code != 0
                             run.analyze_successful=False
                             Analyze.total_errors+=1
 
-                    # The tool h5diff could not be executed
-                    except Exception as ex :
-                        self.result=tools.red("h5diff failed. (Exception="+str(ex)+")") # print result here, because it was not added in "execute_cmd"
-                        print(" "+self.result)
+                    else:
+                        try:
+                            s="Running [%s] ..." % ("  ".join(cmd))
+                            self.execute_cmd(cmd, run.target_directory,name="h5diff"+str(n), string_info = tools.indent(s, 2), displayOnFailure = False) # run the code
 
-                        # 1.3.1   Add failed info if return a code != 0 to run
-                        run.analyze_results.append(tools.red("h5diff failed. (Exception="+str(ex)+")"))
-                        run.analyze_results.append(tools.red("Maybe h5diff is not found automatically. Find it with \"locate -b '\h5diff'\" and add the corresponding path, e.g., \"export PATH=/opt/hdf5/1.X/bin/:$PATH\""))
+                            # 1.2.2   Check maximum number of differences if user has selected h5diff_max_differences > 0
+                            try :
+                                if max_differences_loc > 0 and self.return_code != 0 :
+                                    for line in self.stdout[-1:] : # check only the last line in std.out
+                                        lastline = line.rstrip()
+                                        idx=lastline.find('differences found') # the string should look something like "XX differences found"
+                                        if idx >= 0 :
+                                            NbrOfDifferences=int(lastline[:idx]) # get the number of differences that where identified by h5diff
+                                            if NbrOfDifferences <= max_differences_loc :
+                                                s = tools.indent("%s, but %s differences are allowed (given by h5diff_max_differences). The h5diff is therefore marked as passed." % (str(lastline),max_differences_loc), 2)
+                                                s = tools.purple(s)
+                                                print(s)
+                                                self.return_code = 0
+                            # If this try fails, just ignore it
+                            except :
+                                pass
 
-                        # 1.3.2   Set analyzes to fail if return a code != 0
-                        run.analyze_successful=False
-                        Analyze.total_errors+=1
+
+                            # 1.3   If the command 'cmd' returns a code != 0, set failed
+                            if self.return_code != 0 :
+                                print(tools.indent("tolerance_type       : "+tolerance_type_loc, 2))
+                                print(tools.indent("tolerance_value      : "+str(tolerance_value_loc), 2))
+                                print(tools.indent("file                 : "+str(file_loc), 2))
+                                print(tools.indent("reference            : "+str(reference_file_loc), 2))
+                                print(tools.indent("dataset in file      : "+str(data_set_loc_file), 2))
+                                print(tools.indent("dataset in reference : "+str(data_set_loc_ref), 2))
+                                #run.analyze_results.append("h5diff failed (self.return_code != 0) for [%s] vs. [%s] in [%s] vs. [%s]" % (str(data_set_loc_ref),str(data_set_loc_file),str(reference_file_loc),str(file_loc)))
+                                run.analyze_results.append("h5diff failed (self.return_code != 0) for [%s] vs. [%s] in [%s] vs. [%s]" % (data_set_loc_file, data_set_loc_ref, file_loc, reference_file_loc))
+
+                                # 1.3.1   Add failed info if return a code != 0 to run
+                                print(" ")
+                                #print(tools.indent(10*" // h5diff // ",2))
+                                print(tools.indent(132*"–",2))
+                                print(tools.indent("| ",2)+tools.yellow("Note: First column corresponds to %s and second column to %s" % (file_loc, reference_file_loc)))
+                                if len(self.stdout) > 20 :
+                                    for line in self.stdout[:10] : # print first 10 lines
+                                        print(tools.indent('| '+line.rstrip(),2))
+                                    print(tools.indent("| ... leaving out intermediate lines",2))
+                                    for line in self.stdout[-10:] : # print last 10 lines
+                                        print(tools.indent('| '+line.rstrip(),2))
+                                else :
+                                    for line in self.stdout : # print all lines
+                                        print(tools.indent('| '+line.rstrip(),2))
+                                    if len(self.stdout) == 1 :
+                                        run.analyze_results.append(str(self.stdout))
+                                #print(tools.indent(10*" // h5diff // ",2))
+                                print(tools.indent(132*"–",2))
+                                print(" ")
+
+                                # 1.3.2   Set analyzes to fail if return a code != 0
+                                run.analyze_successful=False
+                                Analyze.total_errors+=1
+
+                        # The tool h5diff could not be executed
+                        except Exception as ex :
+                            self.result=tools.red("h5diff failed. (Exception="+str(ex)+")") # print result here, because it was not added in "execute_cmd"
+                            print(" "+self.result)
+
+                            # 1.3.1   Add failed info if return a code != 0 to run
+                            run.analyze_results.append(tools.red("h5diff failed. (Exception="+str(ex)+")"))
+                            run.analyze_results.append(tools.red("Maybe h5diff is not found automatically. Find it with \"locate -b '\h5diff'\" and add the corresponding path, e.g., \"export PATH=/opt/hdf5/1.X/bin/:$PATH\""))
+
+                            # 1.3.2   Set analyzes to fail if return a code != 0
+                            run.analyze_successful=False
+                            Analyze.total_errors+=1
 
     def __str__(self) :
         return "perform h5diff between two files: ["+str(self.prms["file"][0])+"] + reference ["+str(self.prms["reference_file"][0])+"]"
@@ -1730,7 +1751,7 @@ class Analyze_vtudiff(Analyze,ExternalCommand) :
 
         if any( [ (number != self.nCompares) for number in numbers.values() ] ) :
             raise Exception(tools.red("Number of multiple data sets for multiple vtudiffs is inconsistent. Please ensure all options have the same length or length=1."))
-        
+
         # Check dataset sorting
         for compare in range(self.nCompares) :
             sort_loc = self.prms["sort"][compare]
@@ -1771,15 +1792,20 @@ class Analyze_vtudiff(Analyze,ExternalCommand) :
             print(tools.red('Could not import vtk module. This is required for "Analyze_vtudiff". Aborting.'))
             Analyze.total_errors+=1
             return
+        # default values for tolerances
+        abs_default_tolerance = 1.0e-5
+        rel_default_tolerance = 1.0e-8
         '''
         General workflow:
         1.    iterate over all runs
         1.1.0 Check if files are found
         1.1.1 Setup reader to read data from the vtu file
         1.1.2 read in data and convert it to numpy array
-        1.1.3 Reshape the dataset if required (or transpose it when flip_loc=T)
-        1.2.0 sanity checks if data and reference data match
-        1.2.1 When sorting is used, the sorted array is written to a new .vtu file with a new name
+            ( not tested
+            1.1.3 Reshape the dataset if required (or transpose it when flip_loc=T)
+            1.2.0 sanity checks if data and reference data match
+            1.2.1 When sorting is used, the sorted array is written to a new .vtu file with a new name
+            ) not tested
         1.3   Compare the data with the reference data
         '''
         if self.one_diff_per_run and ( self.nCompares != len(runs)) :
@@ -1802,8 +1828,8 @@ class Analyze_vtudiff(Analyze,ExternalCommand) :
                 n+=1
                 reference_file_loc       = self.prms["reference_file"][compare]
                 file_loc                 = self.prms["file"][compare]
-                abs_tolerance_value_loc  = float(self.prms["absolute_tolerance_value"][compare])
-                rel_tolerance_value_loc  = float(self.prms["relative_tolerance_value"][compare])
+                abs_tolerance_value_loc  = self.prms["absolute_tolerance_value"][compare]
+                rel_tolerance_value_loc  = self.prms["relative_tolerance_value"][compare]
                 sort_loc                 = self.prms["sort"][compare]
                 sort_dim_loc             = int(self.prms["sort_dim"][compare])
                 sort_var_loc             = int(self.prms["sort_var"][compare])
@@ -1819,6 +1845,15 @@ class Analyze_vtudiff(Analyze,ExternalCommand) :
                 path_ref_target = os.path.join(run.target_directory,reference_file_loc)
                 path_ref_source = os.path.join(run.source_directory,reference_file_loc)
 
+                # abort for flip/reshape/sort since only core functionality is adapted from h5diff and not tested/optimized yet
+                if flip_loc or reshape_loc or sort_loc:
+                    s = tools.red("Analyze_vtudiff: flip, reshape, and sort are not yet tested for .vtu files. Please set vtudiff_flip, vtudiff_reshape, and/or vtudiff_sort to False.")
+                    print(s)
+                    run.analyze_results.append(s)
+                    run.analyze_successful=False
+                    Analyze.total_errors+=1
+                    continue
+
                 # Copy new reference file: This is completely independent of the outcome of the current vtudiff
                 if self.referencescopy :
                     run = copyReferenceFile(run,path,path_ref_source)
@@ -1829,7 +1864,7 @@ class Analyze_vtudiff(Analyze,ExternalCommand) :
                     Analyze.total_infos+=1
                     # do not skip the following analysis tests, because reference file will be created -> continue
                     continue
-                
+
                 if not os.path.exists(path) :
                     s = tools.red("Analyze_vtudiff: file does not exist, file=[%s]" % path)
                     print(s)
@@ -1844,12 +1879,12 @@ class Analyze_vtudiff(Analyze,ExternalCommand) :
                     run.analyze_successful=False
                     Analyze.total_errors+=1
                     continue
-                
+
                 # 1.1.1 Setup reader to read data from the vtu file
-                # generated file
+                # read in generated data as unstructured grid
                 reader = vtk.vtkXMLUnstructuredGridReader()
                 reader.SetFileName(path)
-                reader.GetOutputPort()      
+                reader.GetOutputPort()
                 reader.Update()
                 # Sanity check if file was read
                 if reader.CanReadFile(path) != 1:
@@ -1858,11 +1893,11 @@ class Analyze_vtudiff(Analyze,ExternalCommand) :
                     run.analyze_successful=False
                     Analyze.total_errors+=1
                     continue
-                
-                # read reference data
+
+                # read reference data as unstructured grid
                 reader_ref = vtk.vtkXMLUnstructuredGridReader()
                 reader_ref.SetFileName(path_ref_target)
-                reader_ref.GetOutputPort()                         
+                reader_ref.GetOutputPort()
                 reader_ref.Update()
                 # Sanity check if file was read
                 if reader.CanReadFile(path_ref_target) != 1:
@@ -1871,12 +1906,12 @@ class Analyze_vtudiff(Analyze,ExternalCommand) :
                     run.analyze_successful=False
                     Analyze.total_errors+=1
                     continue
-                
+
                 # 1.1.2 read in data and convert it to numpy array
                 def read_in_vtk_data(data_reader,single_array_name=None):
                     '''Function to read in data from vtk file and return numpy array
 
-                    Currently cell and/or point data is read in, but can be extended to read in other data types.
+                    Currently cell and/or point data is read in, but can be extended to read in other data types (mainly field data if needed).
 
                     Input arguments:
                     - data_reader: vtk reader object
@@ -1884,11 +1919,11 @@ class Analyze_vtudiff(Analyze,ExternalCommand) :
 
                     Return values:
                     - numpy_data: numpy array containing all data from the vtk file (stacked in columns)
-                    - array_names_dims: dictionary containing the names of the arrays and their number of columns (number of components)
+                    - array_names_dims: dictionary containing the names of the arrays and their number of columns (number of components, e.g. 3 for Velocity for x,y and z respectively)
                     '''
-                    num_arrays_per_type  = [data_reader.GetOutput().GetPointData().GetNumberOfArrays(), 
+                    num_arrays_per_type  = [data_reader.GetOutput().GetPointData().GetNumberOfArrays(),
                                             data_reader.GetOutput().GetCellData().GetNumberOfArrays()]
-                    data_getter_per_type = [data_reader.GetOutput().GetPointData, 
+                    data_getter_per_type = [data_reader.GetOutput().GetPointData,
                                             data_reader.GetOutput().GetCellData]
                     # number of arrays in the vtk file (return one for velocity, where 3 components will be added to the numpy array result)
                     vtk_num_arrays_total = 0
@@ -1897,30 +1932,28 @@ class Analyze_vtudiff(Analyze,ExternalCommand) :
                     # loop over cell and point data and read in all arrays, if existent
                     for data_getter, num_of_arrays in zip(data_getter_per_type,num_arrays_per_type):
                         if num_of_arrays > 0:
+                            array_names = [data_getter().GetArrayName(i) for i in range(num_of_arrays)]
+                            lower_names = [arr_name.lower() for arr_name in array_names]
                             # check if only given arrays are compared
-                            if single_array_name != None:
+                            if single_array_name is not None and single_array_name.lower() in lower_names:
+                                single_array_index = lower_names.index(single_array_name.lower())
                                 # try to read in specific array but skip if it is not found in the current type (point or cell data respectively)
-                                temp_array = np.array(data_getter().GetArray(single_array_name))
+                                temp_array = np.array(data_getter().GetArray(array_names[single_array_index]), dtype=float)
                                 # check if the array is a 1D array and reshape it to a 2D array to read in the dimensions correctly
                                 if temp_array.ndim == 1:
                                     temp_array = temp_array.reshape(-1, 1)
-                                if temp_array.any() == None:
-                                    continue
                                 vtk_num_arrays_total = 1
-                                array_names_dims[single_array_name] = temp_array.shape[1]
+                                array_names_dims[array_names[single_array_index]] = temp_array.shape[1]
                                 # only read in specific data
                                 data.append(temp_array)
 
                             else:
-                                vtk_num_arrays = data_getter().GetNumberOfArrays()
-                                vtk_num_arrays_total = vtk_num_arrays_total + vtk_num_arrays
+                                # add number of cell and point data arrays
+                                vtk_num_arrays_total = vtk_num_arrays_total + num_of_arrays
                                 array_dim = data_getter().GetArray(0).GetNumberOfTuples()
                                 # read in all data from vtk file
-                                for i in range(vtk_num_arrays):
-                                    vtk_array = data_getter().GetArray(i)
-                                    temp_array = np.array([vtk_array.GetTuple(j) for j in range(array_dim)])
-                                    array_names_dims[data_getter().GetArrayName(i)] = temp_array.shape[1]
-                                    data.append(temp_array)
+                                data = [np.array([data_getter().GetArray(i).GetTuple(j) for j in range(array_dim)]) for i in range(num_of_arrays)]
+                                array_names_dims = {data_getter().GetArrayName(i): data[i].shape[1] for i in range(num_of_arrays)}
 
                     # Convert the list to a single numpy array (concatenated along columns) for each data type (point or cell data respectively)
                     numpy_data = np.hstack(data) if data else np.array([])
@@ -1946,7 +1979,7 @@ class Analyze_vtudiff(Analyze,ExternalCommand) :
                     continue
 
                 # flip, reshape, and sort are not correctly implemented yet, since the operation is applied on the full numpy array which contains all vtu arrays stacked along columns
-                # so flipping/reshaping the array might cause errors, moreover another variable would be needed to specify which vtu array should be flipped/reshaped/sorted 
+                # so flipping/reshaping the array might cause errors, moreover another variable would be needed to specify which vtu array should be flipped/reshaped/sorted
                 # only allowed if a single array is compared! print statements for differences might not work correctly in this case
                 if (flip_loc or reshape_loc or sort_loc) and len(array_names_dims) > 1:
                     print(tools.red('Analyze_vtudiff: The options flip, reshape, and sort are currently only implemented for single arrays.'))
@@ -1967,7 +2000,7 @@ class Analyze_vtudiff(Analyze,ExternalCommand) :
 
                 data_shape = vtu_data.shape
                 data_shape_ref = vtu_data_ref.shape
-                
+
                 # Set default values, which are required if flip_loc=T
                 if not reshape_loc:
                     # Set values that effectively do not change the original shape if applied. The array has already been transposed in this case.
@@ -1976,7 +2009,7 @@ class Analyze_vtudiff(Analyze,ExternalCommand) :
 
                 # set name suffix for new file
                 name_suffix = ''
-                
+
                 # 1.1.3   Reshape the dataset if required (or transpose it when flip_loc=T)
                 if reshape_loc or flip_loc:
                     # Create new re-shaped array for storing to .h5
@@ -2032,7 +2065,7 @@ class Analyze_vtudiff(Analyze,ExternalCommand) :
                     continue
                 else:
                     print("\n",tools.yellow("Comparing %s vtk arrays with total of %s columns:") % (len(array_names_dims),data_shape[1]),list(array_names_dims.keys()))
-                
+
                 # 1.2.1 When sorting is used, the sorted array is written to a new .vtu file with a new name
                 if sort_loc :
                     # Sort by X
@@ -2059,8 +2092,8 @@ class Analyze_vtudiff(Analyze,ExternalCommand) :
                     str_1 = "'%s' (instead of '%s')" % (file_loc_new , file_loc)
                     str_2 = "'%s' (instead of '%s')" % (reference_file_loc_new  , reference_file_loc)
                     print(tools.yellow("    Sorting dim=%s by variable=%s (variable indexing begins at 0). Now comparing: %s with %s" % (sort_dim_loc , sort_var_loc , str_1, str_2)))
-                
-                # save new data if it was flipped, reshaped or sorted 
+
+                # save new data if it was flipped, reshaped or sorted
                 if sort_loc or flip_loc or reshape_loc:
                     vtk_data = vtk.vtkUnstructuredGrid()
                     # Extract points from the reader's output
@@ -2070,7 +2103,7 @@ class Analyze_vtudiff(Analyze,ExternalCommand) :
                                             reader.GetOutput().GetCellData().GetNumberOfArrays()]
                     data_getter_per_type = [reader.GetOutput().GetPointData,
                                             reader.GetOutput().GetCellData]
-                    data_writer_per_type = [vtk_data.GetPointData, 
+                    data_writer_per_type = [vtk_data.GetPointData,
                                             vtk_data.GetCellData]
                     # loop over cell and point data and read in all arrays, if existent
                     for data_writer, data_getter, num_of_arrays in zip(data_writer_per_type,data_getter_per_type,num_arrays_per_type):
@@ -2098,10 +2131,15 @@ class Analyze_vtudiff(Analyze,ExternalCommand) :
 
                 # 1.3   Compare the data
                 # np.isclose creates a boolean array with True for elements that are close to each other within a tolerance
-                if np.all(np.abs(vtu_data_ref) < 1):    # only use absolute tolerance if all values are close to zero
-                    data_compare = np.isclose(vtu_data, vtu_data_ref, atol=abs_tolerance_value_loc)
+                if abs_tolerance_value_loc and not rel_tolerance_value_loc:    # only use absolute tolerance
+                    data_compare = np.isclose(vtu_data, vtu_data_ref, atol=float(abs_tolerance_value_loc))
+                elif rel_tolerance_value_loc and not abs_tolerance_value_loc:  # only use relative tolerance
+                    data_compare = np.isclose(vtu_data, vtu_data_ref, rtol=float(rel_tolerance_value_loc))
                 else:   # use both absolute and relative tolerance otherwise
-                    data_compare = np.isclose(vtu_data, vtu_data_ref, atol=abs_tolerance_value_loc, rtol=rel_tolerance_value_loc)
+                    if abs_tolerance_value_loc is None and rel_tolerance_value_loc is None: # use default values since no were given
+                        data_compare = np.isclose(vtu_data, vtu_data_ref, atol=abs_default_tolerance, rtol=rel_default_tolerance)
+                    else: # both references were given
+                        data_compare = np.isclose(vtu_data, vtu_data_ref, atol=float(abs_tolerance_value_loc), rtol=float(rel_tolerance_value_loc))
                 NbrOfDifferences = np.sum(~data_compare)
 
                 if NbrOfDifferences > 0 :
@@ -2163,7 +2201,7 @@ class Analyze_vtudiff(Analyze,ExternalCommand) :
                         s2 = ", but %s difference(s) are allowed (given by compare_data_file_max_differences). This analysis is therefore marked as passed." % max_differences_loc
                         s2 = tools.pink(s+s2)
                         print(s2)
-                
+
                 else:
                     NbrOfMatches=np.sum(data_compare)
                     if NbrOfMatches==0:
