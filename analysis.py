@@ -1466,9 +1466,14 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
 
                     data_set_loc_file = data_set_loc_file_new
 
+                # Check whether a single variable or the complete dataset shall be compared
+                if var_attribute_loc is not None and var_name_loc is not None:
+                    compare_single_variable = True
+                else:
+                    compare_single_variable = False
 
                 # 1.1.2 compare shape of the dataset of both files, throw error if they do not coincide
-                if shape1 != shape2 : # e.g.: b1.shape = (48, 1, 1, 32)
+                if shape1 != shape2 and not compare_single_variable: # e.g.: b1.shape = (48, 1, 1, 32)
                     self.result=tools.red(tools.red("h5diff failed because datasets for [%s,%s] are not comparable due to different shapes: Files [%s] and [%s] have shapes [%s] and [%s]" % (data_set_loc_file,data_set_loc_ref,f1,f2,b1.shape,b2.shape)))
                     print(" "+self.result)
 
@@ -1525,10 +1530,8 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                         f1.close()
                         f2.close()
 
-
-                    # 1.2.1   Execute the command 'cmd' = 'h5diff -r [--type] [value] [.h5 file] [.h5 reference] [DataSetName_file] [DataSetName_reference]'
-                    cmd = ["h5diff","-r",tolerance_type_loc,str(tolerance_value_loc),str(file_loc),str(reference_file_loc),str(data_set_loc_file),str(data_set_loc_ref)]
-                    if var_attribute_loc is not None and var_name_loc is not None:
+                    # 1.2.1 Comparison of a single variable using NumPy's isclose or the complete dataset using h5diff
+                    if compare_single_variable:
                         try :
                             # Open datasets again to get dimension sizes
                             f1 = h5py.File(path,'r')
@@ -1640,6 +1643,8 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                             Analyze.total_errors+=1
 
                     else:
+                        # Execute the command 'cmd' = 'h5diff -r [--type] [value] [.h5 file] [.h5 reference] [DataSetName_file] [DataSetName_reference]'
+                        cmd = ["h5diff","-r",tolerance_type_loc,str(tolerance_value_loc),str(file_loc),str(reference_file_loc),str(data_set_loc_file),str(data_set_loc_ref)]
                         try:
                             s="Running [%s] ..." % ("  ".join(cmd))
                             self.execute_cmd(cmd, run.target_directory,name="h5diff"+str(n), string_info = tools.indent(s, 2), displayOnFailure = False) # run the code
