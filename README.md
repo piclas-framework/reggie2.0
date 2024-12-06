@@ -404,6 +404,40 @@ h5diff_data_set        = DG_Solution\sField1
 ```
 where "DG\_Solution" corresponds to the dataset name in *h5diff_file* and "Field1" to the dataset in *h5diff_reference_file*.
 
+### Compare variables
+This option allows for comparison of a single column of the selected dataset to avoid unnecessary comparisons. Simply provide the name of the attribute of the hdf5 file, which contains all names of the different columns in the dataset and additionally the name of the column, which should be compared. For example
+```
+h5diff_var_attribute     = VarNamesSurface
+h5diff_var_name          = Spec001_ImpactNumber
+```
+
+# vtudiff
+
+* Compares the point and cell data arrays of two .vtu files for each array element-by-element either with an absolute and/or relative difference (depending on which tolerance values are given).
+* Requires vtk for reading-in data to python.
+
+  [https://pypi.org/project/vtk/](https://pypi.org/project/vtk/)
+
+Template for copying to **analyze.ini**
+
+```
+! vtu diff
+vtudiff_file                       =          single-particle_State_000.00000005000000000.h5
+vtudiff_reference_file             = single-particle_reference_State_000.0000000500000000.h5
+vtudiff_relative_tolerance_value   = 1.0e-2
+vtudiff_absolute_tolerance_value   = 1.0
+```
+
+## vtudiff (additional options)
+
+### Compare single array
+
+For comparison of only one array simply add the array name with
+'''
+vtudiff_array_name                 = Velocity
+'''
+,where "Velocity" is the array name in the .vtu file.
+
 
 # h5 array bounds check
 * Check if all elements of a h5 array are within a supplied interval
