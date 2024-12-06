@@ -16,6 +16,7 @@ from reggie import tools
 from reggie import check
 from reggie import args_parser
 from reggie import summary
+import sys
 """
 General workflow:
 1.  get the command line arguments 'args' and all valid build combinations in the check directory from 'builds.ini'
@@ -39,25 +40,26 @@ def main():
     print(tools.red(r'    ooo   oo   ooo                       ')+tools.yellow(r'                                     ')+tools.green(r'                       ooo   oo   ooo    '))
     print(tools.red(r'       oooooooo      ====================')+tools.yellow(r'=====================================')+tools.green(r'====================      oooooooo       '))
     print('')
-    
-    
+
+
     start = timer()
-    
+    print(sys.version_info)
+
     # 1.  get the command line arguments 'args' and all valid build combinations in the check directory from 'builds.ini'
     args, builds = args_parser.getArgsAndBuilds()
-    
+
     # 2.  set the logger 'log' with the debug level from 'args' to determine the level of logging which displays output to the user
     tools.setup_logger(args.debug)
     log = logging.getLogger('logger')
-    
+
     # 3.  perform the regression check by a) building executables
     #                                     b) running the code
     #                                     c) performing the defined analyzes
     check.PerformCheck(start,builds,args,log)
-    
+
     # 4.  display the summary table with information for each build, run and analysis step
     summary.SummaryOfErrors(builds, args)
-    
+
     # 5.  display if regression check was successful or not and return the corresponding error code
     summary.finalize(start, 0, check.Run.total_errors, check.ExternalRun.total_errors, check.Analyze.total_errors, check.Analyze.total_infos)
 
