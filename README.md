@@ -151,6 +151,10 @@ gitlab-ci.py
     - [Dataset Sorting](#dataset-sorting)
     - [Dataset Re-Shaping](#dataset-re-shaping)
     - [Multiple dataset names](#multiple-dataset-names)
+    - [Compare variables](#compare-variables)
+- [vtudiff](#vtudiff)
+    - [vtudiff (additional options)](#vtudiff-additional-options)
+      - [Compare single array](#Compare-single-array)
 - [h5 array bounds check](#h5-array-bounds-check)
 - [Data file line comparison](#data-file-line-comparison)
     - [Example 1 of 4](#example-1-of-4)
@@ -205,6 +209,13 @@ The intention of a white space must be stated explicitly.
 |                          | h5diff\_reshape\_value                             | 11                                    | -1                 | Value to which the selected dimension is to be changed (decreased)                                                                                                                                                                       |
 |                          | h5diff\_flip                                       | True                                  | False              | Re-shape the h5 array before comparing it with the reference by transposing the array. This is currently only implemented for 2-dimensional m x n arrays.                                                                                |
 |                          | h5diff\_max\_differences                           | 15                                    | 0                  | Maximum number of allowed differences that are detected by h5diff for the test to pass without failure                                                                                                                                   |
+|                          | h5diff\_var\_attribute                             | VarNamesSurface                       | None               | name of attribute in the h5 file containing the column names of the given dataset                                                                                                                                                        |
+|                          | h5diff\_var\_name                                  | Spec001_ImpactNumber                  | None               | name of column containing the data which should be compared                                                                                                                                                                              |
+|          vtudiff         | vtudiff\_file                                      | particle\_Solution\_00.0000.vtu       | None               | name of calculated .vtu file (output from current run)                                                                                                                                                                                    |
+|                          | vtudiff\_reference\_file                           | particle\_Solution\_00.0000\_ref.vtu  | None               | reference .vtu file (must be placed in repository) for comparing with the calculated one                                                                                                                                                  |
+|                          | vtudiff\_relative\_tolerance\_value                | 1.0e-5                                | 1e-2               | relative deviation between two elements in a .vtu array                                                                                                                                                                          |
+|                          | vtudiff\_absolute\_tolerance\_value                | 1.0e-8                                | 1e-5               | absolute deviation between two elements in a .vtu array                                                                                                                                                                          |
+|                          | vtudiff\_array\_name                               | DG\_Solution or DG\_Solution\\sField1 | None               | name of .vtu array for comparing (e.g. DG\_Solution or DG\_Solution vs. Field1 when the datasets in the two files have different names)                                                                                                     |
 |  h5 array bounds check   | check\_hdf5\_file                                  | tildbox_State_01.0000.h5              | None               | name of calculated .h5 file (output from current run)                                                                                                                                                                                    |
 |                          | check\_hdf5\_data\_set                             | PartData                              | None               | name of data set for comparing (e.g. DG\_Solution)                                                                                                                                                                                       |
 |                          | check\_hdf5\_span                                  | 1                                     | 2                  | Checks elements of a 2-dimensional m x n array (1: check array elements by rows, 2: check array elements by columns)                                                                                                                     |
@@ -405,15 +416,23 @@ h5diff_data_set        = DG_Solution\sField1
 where "DG\_Solution" corresponds to the dataset name in *h5diff_file* and "Field1" to the dataset in *h5diff_reference_file*.
 
 ### Compare variables
-This option allows for comparison of a single column of the selected dataset to avoid unnecessary comparisons. Simply provide the name of the attribute of the hdf5 file, which contains all names of the different columns in the dataset and additionally the name of the column, which should be compared. For example
+This option allows for comparison of a single column of the selected dataset to avoid unnecessary computation. Simply provide the name of the attribute of the hdf5 file, which contains all names of the different columns in the dataset and additionally the name of the column, which should be compared.
+
+Template for copying to **analyze.ini**
 ```
-h5diff_var_attribute     = VarNamesSurface
-h5diff_var_name          = Spec001_ImpactNumber
+! hdf5 diff
+h5diff_file             = sphere_PartStateBoundary_000.00000010000000000.h5
+h5diff_reference_file   = sphere_PartStateBoundary_000.00000010000000000_ref.h5
+h5diff_data_set         = PartData
+h5diff_tolerance_value  = 1.0e-2
+h5diff_tolerance_type   = relative
+h5diff_var_attribute    = VarNamesSurface
+h5diff_var_name         = Spec001_ImpactNumber
 ```
 
 # vtudiff
 
-* Compares the point and cell data arrays of two .vtu files for each array element-by-element either with an absolute and/or relative difference (depending on which tolerance values are given).
+* Compares the point and cell data arrays of two .vtu files for each array element-by-element either with an absolute and/or relative difference (depending on which tolerance values are given - if no tolerance is given both default values are used).
 * Requires vtk for reading-in data to python.
 
   [https://pypi.org/project/vtk/](https://pypi.org/project/vtk/)
@@ -422,7 +441,7 @@ Template for copying to **analyze.ini**
 
 ```
 ! vtu diff
-vtudiff_file                       =          single-particle_State_000.00000005000000000.h5
+vtudiff_file                       = single-particle_State_000.00000005000000000.h5
 vtudiff_reference_file             = single-particle_reference_State_000.0000000500000000.h5
 vtudiff_relative_tolerance_value   = 1.0e-2
 vtudiff_absolute_tolerance_value   = 1.0
@@ -433,11 +452,21 @@ vtudiff_absolute_tolerance_value   = 1.0
 ### Compare single array
 
 For comparison of only one array simply add the array name with
-'''
-vtudiff_array_name                 = Velocity
-'''
-,where "Velocity" is the array name in the .vtu file.
+```
+vtudiff_array_name                 = DG_Solution
+```
+,where "DG\_Solution" is the array name in the .vtu file.
 
+Template for copying to **analyze.ini**
+
+```
+! vtu diff
+vtudiff_file                       = single-particle_State_000.00000005000000000.h5
+vtudiff_reference_file             = single-particle_reference_State_000.0000000500000000.h5
+vtudiff_relative_tolerance_value   = 1.0e-2
+vtudiff_absolute_tolerance_value   = 1.0
+vtudiff_array_name                 = DG_Solution
+```
 
 # h5 array bounds check
 * Check if all elements of a h5 array are within a supplied interval

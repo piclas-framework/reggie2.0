@@ -1799,7 +1799,7 @@ class Analyze_vtudiff(Analyze,ExternalCommand) :
             return
         # default values for tolerances
         abs_default_tolerance = 1.0e-5
-        rel_default_tolerance = 1.0e-8
+        rel_default_tolerance = 1.0e-2
         '''
         General workflow:
         1.    iterate over all runs
