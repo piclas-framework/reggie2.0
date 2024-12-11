@@ -28,15 +28,15 @@ General workflow:
 """
 
 print('')
-print(tools.red('       oooooooo      ====================')+tools.yellow('=====================================')+tools.green('====================      oooooooo       '))
-print(tools.red('    ooo   oo   ooo      _____    ______  ')+tools.yellow('  _____    _____   _____   ______    ')+tools.green(' ___         ___       ooo   oo   ooo    '))
-print(tools.red('   oo     oo     oo    |  __ \  |  ____| ')+tools.yellow(' / ____|  / ____| |_   _| |  ____|   ')+tools.green('|__ \       / _ \     oo     oo     oo   '))
-print(tools.red('  oo      oo      oo   | |__) | | |__    ')+tools.yellow('| |  __  | |  __    | |   | |__      ')+tools.green('   ) |     | | | |   oo      oo      oo  '))
-print(tools.red('  oo     oooo     oo   |  _  /  |  __|   ')+tools.yellow('| | |_ | | | |_ |   | |   |  __|     ')+tools.green('  / /      | | | |   oo     oooo     oo  '))
-print(tools.red('  oo    oooooo    oo   | | \ \  | |____  ')+tools.yellow('| |__| | | |__| |  _| |_  | |____    ')+tools.green(' / /_   _  | |_| |   oo    oooooo    oo  '))
-print(tools.red('   oo oo  oo  oo oo    |_|  \_\ |______| ')+tools.yellow(' \_____|  \_____| |_____| |______|   ')+tools.green('|____| (_)  \___/     oo oo  oo  oo oo   '))
-print(tools.red('    ooo   oo   ooo                       ')+tools.yellow('                                     ')+tools.green('                       ooo   oo   ooo    '))
-print(tools.red('       oooooooo      ====================')+tools.yellow('=====================================')+tools.green('====================      oooooooo       '))
+print(tools.red(r'       oooooooo      ====================')+tools.yellow(r'=====================================')+tools.green(r'====================      oooooooo       '))
+print(tools.red(r'    ooo   oo   ooo      _____    ______  ')+tools.yellow(r'  _____    _____   _____   ______    ')+tools.green(r' ___         ___       ooo   oo   ooo    '))
+print(tools.red(r'   oo     oo     oo    |  __ \  |  ____| ')+tools.yellow(r' / ____|  / ____| |_   _| |  ____|   ')+tools.green(r'|__ \       / _ \     oo     oo     oo   '))
+print(tools.red(r'  oo      oo      oo   | |__) | | |__    ')+tools.yellow(r'| |  __  | |  __    | |   | |__      ')+tools.green(r'   ) |     | | | |   oo      oo      oo  '))
+print(tools.red(r'  oo     oooo     oo   |  _  /  |  __|   ')+tools.yellow(r'| | |_ | | | |_ |   | |   |  __|     ')+tools.green(r'  / /      | | | |   oo     oooo     oo  '))
+print(tools.red(r'  oo    oooooo    oo   | | \ \  | |____  ')+tools.yellow(r'| |__| | | |__| |  _| |_  | |____    ')+tools.green(r' / /_   _  | |_| |   oo    oooooo    oo  '))
+print(tools.red(r'   oo oo  oo  oo oo    |_|  \_\ |______| ')+tools.yellow(r' \_____|  \_____| |_____| |______|   ')+tools.green(r'|____| (_)  \___/     oo oo  oo  oo oo   '))
+print(tools.red(r'    ooo   oo   ooo                       ')+tools.yellow(r'                                     ')+tools.green(r'                       ooo   oo   ooo    '))
+print(tools.red(r'       oooooooo      ====================')+tools.yellow(r'=====================================')+tools.green(r'====================      oooooooo       '))
 print('')
 
 
