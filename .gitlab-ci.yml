@@ -18,8 +18,8 @@ stages:
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 # Stage "checkin": Run reggie wiht -h
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
-checkin:
-  stage: deploy
+build:
+  stage: checkin
   script:
     - if [ -x "$(command -v python2)" ]; then echo "Testing python 2"; python2 -m pip install . --break-system-packages; reggie -h; fi
     - if [ -x "$(command -v python3)" ]; then echo "Testing python 3"; python3 -m pip install . --break-system-packages; reggie -h; fi
