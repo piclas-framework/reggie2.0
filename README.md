@@ -24,74 +24,17 @@ python reggie.py --help
 python gitlab-ci.py --help
 ```
 
-## Python version compatibility
-Reggie2.0 was originally desinged to be executed with Python 2, however, Python 3 is now mandated.
-The following two versions of Python 2 and 3 are recommended
-
-| **Version** |
-| :---------: |
-|   2.7.18    |
-|    3.9.7    |
-
-The following versions are known to cause problems
-
-| **Version** |                  **Problem**                   |
-| :---------: | :--------------------------------------------: |
-|   3.8.10    | subprocess.Popen cannot run *mpirun* correctly |
-
-For the sake of backward-compatibility, the following remarks should be considered.
-
-### print() function
-In Python 3, print() is a function and if the line break is to be omitted, simply add `, end='')` to the `print()` call. In order for this command to work with Python 2, the following line must be added as the very first line of code in the file
+## Installation
+Installation can be done either done with the current workflow to keep an editable package for development, i.e.
 ```
-from __future__ import print_function
+git clone git@XXXXXXXX
+cd reggie2.0
+pip install -e .
 ```
-### Python 3 can't concat bytes to str
-In Python 2
+Or without editing possibility directly via `pip` and `git` with
 ```
-bufOut = bufOut + os.read(pipeOut_r, 1024)
+pip install git+https://github.com/XXXXXXXX
 ```
-is a valid command, where `bufOut` is of type `str` and `os.read(pipeOut_r, 1024)` is of type `byte`, however, in Python 3 the following line of code must be used
-```
-    out_s = os.read(pipeOut_r, 1024)
-    if not isinstance(out_s, str):
-        out_s = out_s.decode("utf-8")
-    bufOut = bufOut + out_s
-```
-### Lists of (key, value) pairs
-In Python 2, `.items()` returned a list of (key, value) pairs. In Python 3, `.items()` is now an itemview object, which behaves different.
-Therefore it has to be iterated over (or materialised), which requires `list(dict.items())`. In Python 2
-```
-for key, value in parameters.items():
-```
-is valid, however, in Python 3 the following must be used
-```
-for key, value in list(parameters.items()):
-```
-### Integer division
-In Python 2
-```
-j = (i / option.base) % len(option.values)
-```
-returns an integer, however, in Python 3 a float is returned. Use
-```
-j = int((i / option.base) % len(option.values))
-```
-if an integer is required.
-
-
-### Items
-
-In python3, use dict.items() instead of dict.iteritems() because  iteritems() was removed in python3, so this method cannot be used anymore.
-
-Take a look at Python 3.0 Wiki Built-in Changes section, where it is stated:
-
-    Removed dict.iteritems(), dict.iterkeys(), and dict.itervalues().
-
-    Instead: use dict.items(), dict.keys(), and dict.values() respectively.
-
-
-
 
 ## Overview
  * [General file and directory hierarchy in Reggie2.0](#code-hierarchy-and-required-ini-files)
@@ -99,7 +42,6 @@ Take a look at Python 3.0 Wiki Built-in Changes section, where it is stated:
  * [Command line arguments for program execution in **command_line.ini**](#command-line)
  * [Compile flag combinations for c-make in **builds.ini**](#builds)
  * [Exclude runs in **parameter.ini**](#runs)
-
 
 ## Code hierarchy and required *.ini* files
 ```
@@ -124,18 +66,10 @@ gitlab-ci.py
         ...
 ```
 
-
-
-
 # Analyze routines for "analyze.ini"
 
 - [Reggie2.0 toolbox](#reggie20-toolbox)
-  - [Python version compatibility](#python-version-compatibility)
-    - [print() function](#print-function)
-    - [Python 3 can't concat bytes to str](#python-3-cant-concat-bytes-to-str)
-    - [Lists of (key, value) pairs](#lists-of-key-value-pairs)
-    - [Integer division](#integer-division)
-    - [Items](#items)
+  - [Installation](#installation)
   - [Overview](#overview)
   - [Code hierarchy and required *.ini* files](#code-hierarchy-and-required-ini-files)
 - [Analyze routines for "analyze.ini"](#analyze-routines-for-analyzeini)
