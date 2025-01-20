@@ -1,5 +1,5 @@
 #==================================================================================================================================
-# Copyright (c) 2017 - 2018 Stephen Copplestone
+# Copyright (c) 2017 - 2018 Stephen Copplestone and Matthias Sonntag
 #
 # This file is part of reggie2.0 (gitlab.com/reggie2.0/reggie2.0). reggie2.0 is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3
@@ -10,14 +10,31 @@
 #
 # You should have received a copy of the GNU General Public License along with reggie2.0. If not, see <http://www.gnu.org/licenses/>.
 #==================================================================================================================================
-# settings.py
 import os
-import sys
 
-def init():
-    global absolute_reggie_path
-    absolute_reggie_path=os.path.abspath(os.path.join(__file__ ,"../.."))
-    if not os.path.exists(absolute_reggie_path) :
-        print("Reggie repository not found under: '%s'" % absolute_reggie_path)
-        exit(1)
+from reggie import tools
+
+class OutputDirectory() :
+    output_dir = "output_dir"
+    def __init__(self, parent, name, number = -1, mkdir=True) :
+
+        self.number = number
+        self.parent = parent
+
+        # set parent directory for subfolder creation
+        if self.parent :
+            parent_dir = self.parent.target_directory
+        else :
+            parent_dir = OutputDirectory.output_dir
+
+        # numbering of directory (if a number is supplied)
+        if number >= 0 :
+            self.target_directory = os.path.join(parent_dir, "%s_%04d" %(name, number))
+        else :
+            self.target_directory = os.path.join(parent_dir, name)
+
+        # create directory if it is non-existent
+        if mkdir :
+            tools.create_folder(self.target_directory)
+
 

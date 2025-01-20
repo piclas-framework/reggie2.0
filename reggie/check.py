@@ -15,14 +15,15 @@ import os
 import re
 import shutil
 import collections
-import combinations
-from outputdirectory import OutputDirectory
-from externalcommand import ExternalCommand
-import tools
-from analysis import Analyze, getAnalyzes, Clean_up_files, Analyze_compare_across_commands
-import collections
 import subprocess
-import summary
+
+from reggie import combinations
+from reggie import tools
+from reggie import summary
+from reggie.analysis import Analyze, getAnalyzes, Clean_up_files, Analyze_compare_across_commands
+from reggie.outputdirectory import OutputDirectory
+from reggie.externalcommand import ExternalCommand
+
 # import h5 I/O routines
 try :
     import h5py

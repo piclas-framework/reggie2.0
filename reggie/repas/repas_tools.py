@@ -18,17 +18,11 @@ import logging
 
 # import reggie source code
 # use reggie2.0 functions by adding the path
-import settings
-import sys
-sys.path.append(settings.absolute_reggie_path)
-
-
-
-from combinations import getCombinations
-from externalcommand import ExternalCommand
-import tools
-from combinations import readKeyValueFile
-from combinations import isKeyOf
+import reggie.tools
+from reggie.combinations import getCombinations
+from reggie.combinations import readKeyValueFile
+from reggie.combinations import isKeyOf
+from reggie.externalcommand import ExternalCommand
 
 class bcolors :
     """color and font style definitions for changing output appearance"""

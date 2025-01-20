@@ -12,9 +12,6 @@
 #==================================================================================================================================
 import argparse
 import os
-import tools
-import check
-from outputdirectory import OutputDirectory
 from sys import platform
 import socket
 import re
@@ -59,6 +56,10 @@ def getMaxCPUCores():
     except Exception as e:
         pass
 
+
+from reggie import tools
+from reggie import check
+from reggie.outputdirectory import OutputDirectory
 
 def getArgsAndBuilds() :
     """get command line arguments and builds in check directory from 'builds.ini'"""
