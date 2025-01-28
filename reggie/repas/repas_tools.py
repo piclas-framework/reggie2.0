@@ -18,21 +18,15 @@ import logging
 
 # import reggie source code
 # use reggie2.0 functions by adding the path
-import settings
-import sys
-
-sys.path.append(settings.absolute_reggie_path)
-
-
-from combinations import getCombinations
-from externalcommand import ExternalCommand
-import tools
-from combinations import readKeyValueFile
-from combinations import isKeyOf
+import reggie.tools as tools
+from reggie.combinations import getCombinations
+from reggie.combinations import readKeyValueFile
+from reggie.combinations import isKeyOf
+from reggie.externalcommand import ExternalCommand
 
 
 class bcolors:
-    """color and font style definitions for changing output appearance"""
+    """Color and font style definitions for changing output appearance"""
 
     # Reset (user after applying a color to return to normal coloring)
     # fmt: off
@@ -49,7 +43,7 @@ class bcolors:
     WHITE  ='\033[0;37m'
 
     # Text Style
-    BOLD      = '\033[1m'
+    BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
     # fmt: on
 
@@ -204,7 +198,7 @@ class Case(ExternalCommand):
                 if file.endswith(".pdf"):
                     try:
                         if file.index('order') != -1:
-                            # order = file[file.index('order')+5:-4] # get string from 'order' + 5 to the end, but remove last 4 character ".pdf"
+                            # order = file[file.index('order') + 5 : -4]  # get string from 'order' + 5 to the end, but remove last 4 character ".pdf"
                             # new_name = "L2"+self.suffix+"_order%s.pdf" % order # add suffix to name
                             new_name = self.prefix + file
                     except Exception:
@@ -214,7 +208,7 @@ class Case(ExternalCommand):
                 if file.endswith(".csv"):
                     try:
                         if file.index('order') != -1:
-                            # order = file[file.index('order')+5:-4] # get string from 'order' + 5 to the end, but remove last 4 character ".pdf"
+                            # order = file[file.index('order') + 5 : -4]  # get string from 'order' + 5 to the end, but remove last 4 character ".pdf"
                             # new_name = "L2"+self.suffix+"_order%s.csv" % order # add suffix to name
                             new_name = self.prefix + file
                     except Exception:

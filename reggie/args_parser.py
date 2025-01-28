@@ -12,13 +12,13 @@
 # ==================================================================================================================================
 import argparse
 import os
-import tools
-import check
-from outputdirectory import OutputDirectory
 from sys import platform
 import socket
 import re
 import subprocess
+from reggie import tools
+from reggie import check
+from reggie.outputdirectory import OutputDirectory
 
 try:
     import commands
@@ -89,7 +89,6 @@ def getArgsAndBuilds():
     parser.add_argument('-p', '--stop'       , help='Stop on first error.', action='store_true')
     parser.add_argument('check', help='Path to check-/example-directory.')
     # fmt: on
-
     # parser.set_defaults(carryon=False)
     # parser.set_defaults(dummy=False)
     # parser.set_defaults(run=False)

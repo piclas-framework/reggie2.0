@@ -1,0 +1,55 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "reggie"
+version = "2.0.0"
+authors = [
+	"Stephen Copplestone"
+]
+description = ""
+license = "GPL-3.0"
+readme = "README.md"
+repository = "https://github.com/piclas-framework/reggie2.0"
+keywords = ["regression checks", "regression testing", "regression testing framework"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+
+[tool.poetry.dependencies]
+h5py = ">=2.10.0"
+matplotlib = ">=3.1.2"
+vtk = ">=9.4.0"
+
+[tool.poetry.scripts]
+reggie = "reggie.reggie:main"
+repas = "reggie.repas.repas:main"
+
+[tool.ruff]
+line-length = 220
+indent-width = 4
+force-exclude = true
+exclude = ["reggie/__init__.py"]
+required-version = ">=0.7.1"
+show-fixes = true
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", #"I", "D", "A", "ISC", "ICN", "ARG", "TD", "PERF", "RUF100"
+         ]
+ignore = ["TD002", "D100", "D101", "D102", "D105", "D107", "D212", "D400", "D415", "W191", "E111", "E114", "E117", "D206", "D300", "Q000",
+          "Q001", "Q002", "Q003", "COM812", "COM819", "ISC001", "ISC002"]
+extend-select = ["D213"]
+
+[tool.ruff.lint.isort]
+lines-after-imports = 2
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+indent-style = "space"
+quote-style = "preserve"

@@ -13,16 +13,18 @@
 # ==================================================================================================================================
 from __future__ import print_function  # required for print() function with line break via "end=' '"
 import os
-import numpy as np
-from externalcommand import ExternalCommand
-import analyze_functions
-import combinations
-import tools
 import csv
 import logging
 import glob
 import shutil
 import types
+
+import numpy as np
+
+from reggie.externalcommand import ExternalCommand
+from reggie import analyze_functions
+from reggie import combinations
+from reggie import tools
 
 # import h5 I/O routines
 try:
@@ -1879,7 +1881,7 @@ class Analyze_vtudiff(Analyze, ExternalCommand):
             return
         # default values for tolerances
         abs_default_tolerance = 1.0e-5
-        rel_default_tolerance = 1.0e-8
+        rel_default_tolerance = 1.0e-2
         '''
         General workflow:
         1.    iterate over all runs

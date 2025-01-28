@@ -11,13 +11,14 @@
 # You should have received a copy of the GNU General Public License along with reggie2.0. If not, see <http://www.gnu.org/licenses/>.
 # ==================================================================================================================================
 import os
-import subprocess
-import logging
-import tools
-import select
-from timeit import default_timer as timer
 import sys
 import glob
+import subprocess
+import logging
+import select
+from timeit import default_timer as timer
+
+from reggie import tools
 
 
 def replace_wild_cards_recursive(cmd, workingDir):  # noqa: D103 Missing docstring in public function

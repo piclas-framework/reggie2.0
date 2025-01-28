@@ -14,13 +14,14 @@ from __future__ import print_function  # required for print() function with line
 import os
 import re
 import shutil
-import combinations
-from outputdirectory import OutputDirectory
-from externalcommand import ExternalCommand
-import tools
-from analysis import Analyze, getAnalyzes, Clean_up_files, Analyze_compare_across_commands
 import subprocess
-import summary
+
+from reggie import combinations
+from reggie import tools
+from reggie import summary
+from reggie.analysis import Analyze, getAnalyzes, Clean_up_files, Analyze_compare_across_commands
+from reggie.outputdirectory import OutputDirectory
+from reggie.externalcommand import ExternalCommand
 
 # import h5 I/O routines
 try:
@@ -37,6 +38,7 @@ class Build(OutputDirectory, ExternalCommand):
         self.basedir          = basedir
         self.source_directory = source_directory
         self.configuration    = configuration
+        self.MPIbuilt         = False   # serial built as default
         OutputDirectory.__init__(self, None, name, number)
         ExternalCommand.__init__(self)
         # fmt: on
@@ -251,9 +253,7 @@ def StandaloneAutomaticMPIDetection(binary_path):
                     err = err.rstrip('\n')
                     err = err.lstrip()
                     print(
-                        tools.yellow(
-                            "Automatically determined that the executable was compiled with MPI libs (because file is not a dynamic executable)\n  File: " "%s\n  Test: %s -> returned '%s'" % (binary_path, a, err)
-                        )
+                        tools.yellow("Automatically determined that the executable was compiled with MPI libs (because file is not a dynamic executable)\n  File: %s\n  Test: %s -> returned '%s'" % (binary_path, a, err))
                     )
                 else:
                     print(tools.yellow("Automatically determined that the executable was compiled with MPI libs\n  File: %s\n  Test: %s -> returned '%s'" % (binary_path, a, std)))
@@ -376,22 +376,6 @@ def getRestartFileList(example):  # noqa: D103 Missing docstring in public funct
 # ==================================================================================================
 def SetMPIrun(build, args, MPIthreads):
     """Check MPI built binary (only possible for reggie-compiled binaries)"""
-    # Check for variable MPI_built_flag=PICLAS_MPI (or FLEXI_MPI, depending on the executable name)
-    MPI_built_flag = os.path.basename(build.binary_path).upper() + "_MPI"
-    MPIbuilt = build.configuration.get(MPI_built_flag, 'ON')
-
-    # If not explicitly set to OFF, check again for 2nd variable 'LIBS_USE_MPI'
-    if MPIbuilt == "ON":
-        try:
-            MPIbuilt = build.configuration.get('LIBS_USE_MPI', 'NOT FOUND')
-            if MPIbuilt == "NOT FOUND":
-                MPIbuilt = "ON"  # fall back and assume MPI=ON (this fill break if the executable is actually built MPI=OFF)
-            else:
-                MPI_built_flag = 'LIBS_USE_MPI'
-        except Exception:
-            pass
-
-    build.MPIbuilt = MPIbuilt
 
     if MPIthreads:
         # Check if single execution is wanted (independent of the compiled executable)
@@ -403,7 +387,7 @@ def SetMPIrun(build, args, MPIthreads):
             cmd = []
         else:
             # Check whether the compiled executable was created with MPI=ON
-            if MPIbuilt == "ON":
+            if build.MPIbuilt:
                 if args.hlrs:
                     if int(MPIthreads) < 24 :  # fmt: skip
                         cmd = ["aprun", "-n", MPIthreads, "-N", MPIthreads]
@@ -425,11 +409,7 @@ def SetMPIrun(build, args, MPIthreads):
                         # Something else
                         cmd = [args.MPIexe]
             else :  # fmt: skip
-                print(
-                    tools.indent(
-                        tools.yellow("Found %s=%s (binary has been built with MPI=OFF) with external setting " "MPIthreads=%s, running case in single (without 'mpirun -np')" % (MPI_built_flag, MPIbuilt, MPIthreads)), 3
-                    )
-                )
+                print(tools.indent(tools.yellow("Binary has been built with MPI=OFF with external setting MPIthreads=%s, running case in single (without 'mpirun -np')" % (MPIthreads)), 3))
                 build.MPIrunDeactivated = True
                 cmd = []
     else:
@@ -534,9 +514,7 @@ def getExternals(path, example, build):  # noqa: D103 Missing docstring in publi
                         binary_found = True
                         combi['externalbinary'] = binary  # over-write user-defined path
                     else:  # fmt: skip
-                        s = (
-                            'Tried loading hopr binary path from environment variable ' '$HOPR_PATH=[%s] as the supplied path does not exist.\n' 'Add the binary path via "export HOPR_PATH=/opt/hopr/1.X/bin/hopr"\n'
-                        ) % hopr_path
+                        s = 'Tried loading hopr binary path from environment variable $HOPR_PATH=[%s] as the supplied path does not exist.\nAdd the binary path via "export HOPR_PATH=/opt/hopr/1.X/bin/hopr"\n' % hopr_path
 
                 # Display error if no binary is found
                 if not binary_found:
@@ -891,10 +869,12 @@ def PerformCheck(start, builds, args, log):
 
     1.   loop over alls builds
     1.1    compile the build if args.run is false and the binary is non-existent
-    1.1    read all example directories in the check directory
+    1.2    check whether the build is using MPI
+    1.3    read all example directories in the check directory
     2.   loop over all example directories
     2.1    read the command line options in 'command_line.ini' for binary execution (e.g. number of threads for mpirun)
-    2.2    read the analyze options in 'analyze.ini' within each example directory (e.g. L2 error analyze)
+    2.2    read the restart file list
+    2.3    read the analyze options in 'analyze.ini' within each example directory (e.g. L2 error analyze)
     3.   loop over all command_line options
     3.1    read the executable parameter file 'parameter.ini' (e.g. flexi.ini with which flexi will be started)
     4.   loop over all parameter combinations supplied in the parameter file 'parameter.ini'
@@ -919,6 +899,7 @@ def PerformCheck(start, builds, args, log):
     6.   rename all run directories for which the analyze step has failed for at least one test
     7.   perform analyze tests comparing corresponding runs from different commands
     """
+
     build_number = 0
 
     # compile and run loop
@@ -935,7 +916,29 @@ def PerformCheck(start, builds, args, log):
             if not args.carryon:  # remove examples folder if not carryon, in order to re-run all examples
                 tools.remove_folder(os.path.join(build.target_directory, "examples"))
 
-            # 1.1    read the example directories
+            # 1.2    check whether the build is using MPI (either disabled for the whole reggie execution or because compiled without MPI)
+            if args.noMPI or args.noMPIautomatic:
+                MPIbuilt = False
+            else:
+                if args.run:
+                    # If code is not compiled (ie. an executable is provided, activating MPI)
+                    MPIbuilt = True
+                else:
+                    # Determining how the executable has been compiled
+                    LIBS_USE_MPI = build.configuration.get('LIBS_USE_MPI', 'OFF')
+                    if LIBS_USE_MPI == 'ON':
+                        MPIbuilt = True
+                    else:
+                        # Additionally check for variable MPI_built_flag=PICLAS_MPI (or FLEXI_MPI, depending on the executable name)
+                        MPI_built_flag = os.path.basename(build.binary_path).upper() + "_MPI"
+                        MPI_built_value = build.configuration.get(MPI_built_flag, 'OFF')
+                        if MPI_built_value == 'ON':  # PICLAS_MPI=ON specified
+                            MPIbuilt = True
+                        else:  # PICLAS_MPI=OFF or flag not specified (i.e. assuming LIBS_USE_MPI=OFF)
+                            MPIbuilt = False
+            build.MPIbuilt = MPIbuilt
+
+            # 1.3    read the example directories
             # get example folders: run_basic/example1, run_basic/example2 from check folder
             print(build)
             build.examples = getExamples(args.check, build, log)
@@ -945,33 +948,20 @@ def PerformCheck(start, builds, args, log):
                 s = tools.yellow("No matching examples found for this build!")
                 build.result += ", " + s
                 print(s)
+
             # 2.   loop over all example directories
             for example in build.examples:
                 log.info(str(example))
                 print(str(example))
-                # check whether the example is using MPI (either disabled for the whole reggie execution or because compiled without MPI)
-                if args.noMPI or args.noMPIautomatic:
-                    MPIbuilt = False
-                else:
-                    if args.run:
-                        # If code is not compiled (ie. an executable is provided, activating MPI)
-                        MPIbuilt = True
-                    else:
-                        # Determining how the executable has been compiled
-                        LIBS_USE_MPI = build.configuration.get('LIBS_USE_MPI', 'OFF')
-                        if LIBS_USE_MPI == 'ON':
-                            MPIbuilt = True
-                        else:
-                            MPIbuilt = False
 
                 # 2.1    read the command line options in 'command_line.ini' for binary execution
                 #        (e.g. number of threads for mpirun)
                 example.command_lines = getCommand_Lines(os.path.join(example.source_directory, 'command_line.ini'), example, MPIbuilt, MaxCoresMPICH=args.MaxCoresMPICH)
 
-                # 2.1b read-in restart_file parameter from command_line.ini separately
+                # 2.2   read-in restart_file parameter from command_line.ini separately
                 example.restart_file_list = getRestartFileList(example)
 
-                # 2.2    read the analyze options in 'analyze.ini' within each example directory (e.g. L2 error analyze)
+                # 2.3    read the analyze options in 'analyze.ini' within each example directory (e.g. L2 error analyze)
                 example.analyzes = getAnalyzes(os.path.join(example.source_directory, 'analyze.ini'), example, args)
 
                 # 3.   loop over all command_line options
@@ -1033,6 +1023,8 @@ def PerformCheck(start, builds, args, log):
                                 external.directory = run.target_directory + '/' + externaldirectory
                                 external.parameterfiles = [i for i in os.listdir(external.directory) if i.endswith('.ini')]
 
+                            # externalbinary = external.parameters.get("externalbinary")
+
                             # (pre) externals (2): loop over all parameterfiles available for the i'th external
                             for external.parameterfile in external.parameterfiles:  # noqa: B020 loop control variable external overrides iterable it iterates
                                 # (pre) externals (2.1): consider combinations
@@ -1092,6 +1084,8 @@ def PerformCheck(start, builds, args, log):
                                 external.directory = run.target_directory + '/' + externaldirectory
                                 external.parameterfiles = [i for i in os.listdir(external.directory) if i.endswith('.ini')]
 
+                            # externalbinary = external.parameters.get("externalbinary")
+
                             # (post) externals (2): loop over all parameterfiles available for the i'th external
                             for external.parameterfile in external.parameterfiles:  # noqa: B020 loop control variable external overrides iterable it iterates
                                 # (post) externals (2.1): consider combinations
@@ -1126,7 +1120,7 @@ def PerformCheck(start, builds, args, log):
                     runs_successful = [run for run in command_line.runs if run.successful]
                     if runs_successful:  # do analysis only if runs_successful is not empty
                         for analyze in example.analyzes:
-                            if isinstance(analyze, (Clean_up_files, Analyze_compare_across_commands)):
+                            if isinstance(analyze, Clean_up_files) or isinstance(analyze, Analyze_compare_across_commands):
                                 # skip because either already called in the "run" loop under 4.2 or called later under cross-command comparisons in 7.
                                 continue
                             # Set the restart file index in case of one diff per restart file (from command line)
