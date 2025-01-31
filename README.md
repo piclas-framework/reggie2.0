@@ -14,14 +14,9 @@ graph TD;
   A-->|read/write|parameter.ini;
 ```
 
-
-Try typing the following
+Show the available options of the regression checker
 ```
-python reggie.py --help
-```
-
-```
-python gitlab-ci.py --help
+reggie --help
 ```
 
 ## Installation
