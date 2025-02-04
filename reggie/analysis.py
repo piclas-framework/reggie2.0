@@ -304,7 +304,6 @@ def getAnalyzes(path, example, args):
              var_attribute    = options.get('h5diff_var_attribute',None), \
              var_name         = options.get('h5diff_var_name',None), \
              referencescopy   = args.referencescopy )
-    # fmt: on
     # only do h5diff test if all variables are defined
     if h5diff.reference_file and h5diff.file and h5diff.data_set:
         analyze.append(Analyze_h5diff(h5diff))
@@ -313,21 +312,21 @@ def getAnalyzes(path, example, args):
     # options can be read in multiple times to realize multiple compares for each run
     # default values for tolerance are set in the Analyze_vtudiff class, to enable only using one type but also both together
     vtudiff = SimpleNamespace(
-        one_diff_per_run=options.get('vtudiff_one_diff_per_run', False),
-        reference_file=options.get('vtudiff_reference_file', None),
-        file=options.get('vtudiff_file', None),
-        abs_tolerance_value=options.get('vtudiff_absolute_tolerance_value', None),
-        rel_tolerance_value=options.get('vtudiff_relative_tolerance_value', None),
-        sort=options.get('vtudiff_sort', False),
-        sort_dim=options.get('vtudiff_sort_dim', -1),
-        sort_var=options.get('vtudiff_sort_var', -1),
-        reshape=options.get('vtudiff_reshape', False),
-        reshape_dim=options.get('vtudiff_reshape_dim', -1),
-        reshape_value=options.get('vtudiff_reshape_value', -1),
-        flip=options.get('vtudiff_flip', False),
-        max_differences=options.get('vtudiff_max_differences', 0),
-        array_name=options.get('vtudiff_array_name', None),
-        referencescopy=args.referencescopy,
+             one_diff_per_run    =options.get('vtudiff_one_diff_per_run', False),
+             reference_file      =options.get('vtudiff_reference_file', None),
+             file                =options.get('vtudiff_file', None),
+             abs_tolerance_value =options.get('vtudiff_absolute_tolerance_value', None),
+             rel_tolerance_value =options.get('vtudiff_relative_tolerance_value', None),
+             sort                =options.get('vtudiff_sort', False),
+             sort_dim            =options.get('vtudiff_sort_dim', -1),
+             sort_var            =options.get('vtudiff_sort_var', -1),
+             reshape             =options.get('vtudiff_reshape', False),
+             reshape_dim         =options.get('vtudiff_reshape_dim', -1),
+             reshape_value       =options.get('vtudiff_reshape_value', -1),
+             flip                =options.get('vtudiff_flip', False),
+             max_differences     =options.get('vtudiff_max_differences', 0),
+             array_name          =options.get('vtudiff_array_name', None),
+             referencescopy      =args.referencescopy,
     )
     # only do vtudiff test if all variables are defined
     if vtudiff.reference_file and vtudiff.file:
@@ -335,7 +334,6 @@ def getAnalyzes(path, example, args):
 
     # 2.7   check array bounds in hdf5 file
     # check_hdf5_span: use row or column (default is column)
-    # fmt: off
     CheckHDF5 = SimpleNamespace( \
                 file           = options.get('check_hdf5_file',None), \
                 data_set       = options.get('check_hdf5_data_set',None), \
@@ -1767,9 +1765,9 @@ class Analyze_h5diff(Analyze, ExternalCommand):
                                 print(tools.indent(132 * "–", 2))
                                 print(" ")
 
-                            # 1.3.2   Set analyzes to fail if return a code != 0
-                            run.analyze_successful = False
-                            Analyze.total_errors += 1
+                                # 1.3.2   Set analyzes to fail if return a code != 0
+                                run.analyze_successful = False
+                                Analyze.total_errors += 1
 
                         # The tool h5diff could not be executed
                         except Exception as ex:
