@@ -563,7 +563,7 @@ class ExternalRun(OutputDirectory, ExternalCommand):
         # external folders already there
         self.skip = False
 
-    def execute(self, build, external, args):
+    def execute(self, build, external, args, meshes_directory=None):  # noqa: D103 Missing docstring in public function
         # set path to parameter file (single combination of values for execution "parameter.ini" for example)
         self.parameter_path = os.path.join(external.directory, external.parameterfile)
 
@@ -604,7 +604,14 @@ class ExternalRun(OutputDirectory, ExternalCommand):
         else:
             s = "Running [%s] ..." % cmdstr
             head, tail = os.path.split(binary_path)
-            self.execute_cmd(cmd, external.directory, name=tail, string_info=tools.indent(s, 3))  # run the code
+            # create meshes in separate directory to reuse same meshes with symbolic links, only if meshes_directory is not None and hopr is external
+            if meshes_directory is not None and 'hopr' in tail:
+                # copy hopr.ini file to meshes_directory
+                shutil.copy2(self.parameter_path, meshes_directory)
+                # execute hopr in meshes_directory
+                self.execute_cmd(cmd, meshes_directory, name=tail, string_info=tools.indent(s, 3))  # run the code
+            else:
+                self.execute_cmd(cmd, external.directory, name=tail, string_info=tools.indent(s, 3))  # run the code
 
         if self.return_code != 0:
             self.successful = False
@@ -868,9 +875,9 @@ def PerformCheck(start, builds, args, log):
     General workflow:
 
     1.   loop over alls builds
-    1.1    compile the build if args.run is false and the binary is non-existent
-    1.2    check whether the build is using MPI
-    1.3    read all example directories in the check directory
+    1.1    read all example directories in the check directory and exit if no examples are found
+    1.2    compile the build if args.run is false and the binary is non-existent
+    1.3    check whether the build is using MPI
     2.   loop over all example directories
     2.1    read the command line options in 'command_line.ini' for binary execution (e.g. number of threads for mpirun)
     2.2    read the restart file list
@@ -911,12 +918,25 @@ def PerformCheck(start, builds, args, log):
             print("Build Cmake Configuration ", build_number, " of ", len(builds), " ...", end=' ')  # skip linebreak
             log.info(str(build))
 
-            # 1.1    compile the build if args.run is false and the binary is non-existent
+            # 1.1    read the example directories
+            # get example folders: run_basic/example1, run_basic/example2 from check folder
+            build.examples = getExamples(args.check, build, log)
+            log.info("build.examples" + str(build.examples))
+
+            # check if no examples are found
+            if len(build.examples) == 0:
+                s1 = tools.red("No matching examples found for this build! Create an example or exclude this build combination")
+                s2 = build.configuration.items()
+                s = s1 + '\n' + str(s2)
+                print(s)
+                exit(1)
+
+            # 1.2    compile the build if args.run is false and the binary is non-existent
             build.compile(args.buildprocs)
             if not args.carryon:  # remove examples folder if not carryon, in order to re-run all examples
                 tools.remove_folder(os.path.join(build.target_directory, "examples"))
 
-            # 1.2    check whether the build is using MPI (either disabled for the whole reggie execution or because compiled without MPI)
+            # 1.3    check whether the build is using MPI (either disabled for the whole reggie execution or because compiled without MPI)
             if args.noMPI or args.noMPIautomatic:
                 MPIbuilt = False
             else:
@@ -965,6 +985,12 @@ def PerformCheck(start, builds, args, log):
                 example.analyzes = getAnalyzes(os.path.join(example.source_directory, 'analyze.ini'), example, args)
 
                 # 3.   loop over all command_line options
+                # //TODO reduce_hopr_runs as external variable
+                reduce_hopr_runs = True
+                # create directory containing mesh files to set symbolic links if mesh file is already created
+                if reduce_hopr_runs:
+                    meshes_dict = {}
+                    meshes_dir_path = os.path.join(example.target_directory, 'meshes')
                 for command_line in example.command_lines:
                     log.info(str(command_line))
                     database_path = command_line.parameters.get('database', None)
@@ -986,9 +1012,7 @@ def PerformCheck(start, builds, args, log):
                     command_line.runs = getRuns(os.path.join(example.source_directory, 'parameter.ini'), command_line)
 
                     # 4.   loop over all parameter combinations supplied in the parameter file 'parameter.ini'
-                    RunCount = 0
-                    for run in command_line.runs:
-                        RunCount += 1
+                    for RunCount, run in enumerate(command_line.runs, start=1):
                         print(tools.indent('Run %s of %s' % (RunCount, len(command_line.runs)), 1))
                         log.info(str(run))
                         if database_path is not None and os.path.exists(run.target_directory):
@@ -1023,7 +1047,7 @@ def PerformCheck(start, builds, args, log):
                                 external.directory = run.target_directory + '/' + externaldirectory
                                 external.parameterfiles = [i for i in os.listdir(external.directory) if i.endswith('.ini')]
 
-                            # externalbinary = external.parameters.get("externalbinary")
+                            externalbinary = external.parameters.get("externalbinary")
 
                             # (pre) externals (2): loop over all parameterfiles available for the i'th external
                             for external.parameterfile in external.parameterfiles:  # noqa: B020 loop control variable external overrides iterable it iterates
@@ -1031,11 +1055,44 @@ def PerformCheck(start, builds, args, log):
                                 external.runs = getExternalRuns(os.path.join(external.directory, external.parameterfile), external)
 
                                 # (pre) externals (3): loop over all combinations and parameterfiles for the i'th external
-                                for externalrun in external.runs:
+                                for externalrun_count, externalrun in enumerate(external.runs):
                                     log.info(str(externalrun))
 
                                     # (pre) externals (3.1): run the external binary
-                                    extermalcmd = externalrun.execute(build, external, args)
+                                    # check if meshes should be reused with symbolic links for each command line of example
+                                    if reduce_hopr_runs:
+                                        # get mesh name of current run
+                                        mesh_name = run.parameters['MeshFile']
+                                        # set symbolic links if meshes exist already and hopr is used as external
+                                        if 'hopr' in externalbinary:
+                                            if not os.path.exists(meshes_dir_path):
+                                                os.makedirs(meshes_dir_path)
+                                                print(tools.indent(tools.yellow(f'Meshes will be stored in directory: {meshes_dir_path}'), 3))
+                                            # mesh file of external run already exists, set symbolic link
+                                            if command_line.runs[externalrun_count].parameters['MeshFile'] in meshes_dict:
+                                                relative_source_path = os.path.relpath(meshes_dict[mesh_name], externalrun.target_directory)
+                                                target_mesh_path = os.path.join(externalrun.target_directory, mesh_name)
+                                                # Create symbolic link from mesh file in meshes_dir_path to target directory
+                                                if not os.path.exists(target_mesh_path):
+                                                    os.symlink(relative_source_path, target_mesh_path)
+                                                    print(tools.indent(tools.yellow(f'Mesh already exists - creating symbolic link from {relative_source_path} to {target_mesh_path}'), 3))
+                                            # mesh file does not exist, run hopr to create mesh
+                                            else:
+                                                extermalcmd = externalrun.execute(build, external, args, meshes_dir_path)
+                                                # save directory where mesh is stored for current externalrun to set symbolic link in next run/command_line
+                                                meshes_dict[command_line.runs[externalrun_count].parameters['MeshFile']] = os.path.join(meshes_dir_path, command_line.runs[externalrun_count].parameters['MeshFile'])
+                                                # set symbolic link for current mesh, since it is created at meshes_dir_path
+                                                if mesh_name == command_line.runs[externalrun_count].parameters['MeshFile']:
+                                                    relative_source_path = os.path.relpath(meshes_dict[mesh_name], externalrun.target_directory)
+                                                    target_mesh_path = os.path.join(externalrun.target_directory, mesh_name)
+                                                    # Create symbolic link
+                                                    os.symlink(relative_source_path, target_mesh_path)
+                                        # execute other externals normally
+                                        else:
+                                            extermalcmd = externalrun.execute(build, external, args)
+                                    # execute each external each run normally
+                                    else:
+                                        extermalcmd = externalrun.execute(build, external, args)
                                     if not externalrun.successful:
                                         external_failed = True
                                         s = tools.red('Execution (pre) external failed: %s' % extermalcmd)
