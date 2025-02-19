@@ -105,6 +105,11 @@ def getArgsAndBuilds():
     # Set default values
     args.noMPIautomatic = False
 
+    # ENV variable for meshesdir
+    meshesdir_env = os.getenv('MESHESDIR')
+    if meshesdir_env:
+        args.meshesdir = True
+
     # Check OS
     if re.search('^linux', platform):
         hostname = socket.gethostname()
