@@ -1061,30 +1061,35 @@ def PerformCheck(start, builds, args, log):
                                     # (pre) externals (3.1): run the external binary
                                     # check if meshes should be reused with symbolic links for each command line of example
                                     if reduce_hopr_runs:
-                                        # get mesh name of current run
-                                        mesh_name = run.parameters['MeshFile']
+                                        # get mesh name of current run, use split to catch meshes in separate dirs, e.g. /pre-hopr/hopr.ini
+                                        mesh_name_current_run = run.parameters['MeshFile'].split('/')[-1]
+                                        # get mesh name of current external run, this is used to create all meshes in the first run since the loop iterates over all externalruns
+                                        mesh_name_external_run = command_line.runs[externalrun_count].parameters['MeshFile'].split('/')[-1]
                                         # set symbolic links if meshes exist already and hopr is used as external
                                         if 'hopr' in externalbinary:
                                             if not os.path.exists(meshes_dir_path):
                                                 os.makedirs(meshes_dir_path)
                                                 print(tools.indent(tools.yellow(f'Meshes will be stored in directory: {meshes_dir_path}'), 3))
                                             # mesh file of external run already exists, set symbolic link
-                                            if command_line.runs[externalrun_count].parameters['MeshFile'] in meshes_dict:
-                                                relative_source_path = os.path.relpath(meshes_dict[mesh_name], externalrun.target_directory)
-                                                target_mesh_path = os.path.join(externalrun.target_directory, mesh_name)
+                                            if mesh_name_external_run in meshes_dict:
+                                                # use external.directory to also catch cases where hopr.ini file is stored in separate dir, e.g. /pre-hopr/hopr.ini
+                                                relative_source_path = os.path.relpath(meshes_dict[mesh_name_current_run], external.directory)
+                                                target_mesh_path = os.path.join(external.directory, mesh_name_current_run)
                                                 # Create symbolic link from mesh file in meshes_dir_path to target directory
                                                 if not os.path.exists(target_mesh_path):
                                                     os.symlink(relative_source_path, target_mesh_path)
                                                     print(tools.indent(tools.yellow(f'Mesh already exists - creating symbolic link from {relative_source_path} to {target_mesh_path}'), 3))
+                                                    externalrun.successful = True
                                             # mesh file does not exist, run hopr to create mesh
                                             else:
                                                 extermalcmd = externalrun.execute(build, external, args, meshes_dir_path)
-                                                # save directory where mesh is stored for current externalrun to set symbolic link in next run/command_line
-                                                meshes_dict[command_line.runs[externalrun_count].parameters['MeshFile']] = os.path.join(meshes_dir_path, command_line.runs[externalrun_count].parameters['MeshFile'])
+                                                # save directory where mesh is stored for current externalrun to set symbolic link in next run/command_line run
+                                                meshes_dict[mesh_name_external_run] = os.path.join(meshes_dir_path, mesh_name_external_run)
                                                 # set symbolic link for current mesh, since it is created at meshes_dir_path
-                                                if mesh_name == command_line.runs[externalrun_count].parameters['MeshFile']:
-                                                    relative_source_path = os.path.relpath(meshes_dict[mesh_name], externalrun.target_directory)
-                                                    target_mesh_path = os.path.join(externalrun.target_directory, mesh_name)
+                                                if mesh_name_current_run == mesh_name_external_run:
+                                                    # use external.directory to also catch cases where hopr.ini file is stored in separate dir
+                                                    relative_source_path = os.path.relpath(meshes_dict[mesh_name_current_run], external.directory)
+                                                    target_mesh_path = os.path.join(external.directory, mesh_name_current_run)
                                                     # Create symbolic link
                                                     os.symlink(relative_source_path, target_mesh_path)
                                         # execute other externals normally
