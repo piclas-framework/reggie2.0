@@ -77,7 +77,7 @@ Note that the flag `--unsafe-fixes` can change the functionality of the code, wh
 
 ### Ruff configuration
 
-Ruff's configuration is managed through the `.ruff.toml` file in the project root and specifies linting rules, checks, excludes, etc. When ignoring specific rules, please include a short description of the rule. This helps other developers understand which rules are ignored specifically and enables others to check if some rules might be necessary with new changes.
+Ruff's configuration is managed through the `pyproject.toml` file in the project root and specifies linting rules, checks, excludes, etc.
 
 To suppress a violation inline, Ruff uses a `noqa` system similar to Flake8. To ignore an individual violation, add `# noqa: {code}` to the end of the line, like so:
 ```
