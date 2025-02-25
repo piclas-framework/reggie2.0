@@ -591,6 +591,16 @@ class ExternalRun(OutputDirectory, ExternalCommand):
         if cmd_pre_execute:
             cmd_pre = cmd_pre_execute.split()
             s = "Running [%s] ..." % (" ".join(cmd_pre))
+            if args.meshesdir:
+                # if meshes are reused the 'cp' command needs to be adjusted to handle the symbolic links correctly
+                if 'cp' in cmd_pre:
+                    copy_index = cmd_pre.index('cp')
+                    if re.match(r'^-[a-zA-Z]+$', cmd_pre[copy_index + 1]) and 'L' not in cmd_pre[copy_index + 1]:
+                        # add -L to the options of the copy command
+                        cmd_pre[copy_index + 1] = cmd_pre[copy_index + 1] + 'L'
+                    else:
+                        # if not options are given, add -L to the copy command
+                        cmd_pre.insert(copy_index + 1, '-L')
             self.execute_cmd(cmd_pre, external.directory, name='pre-exec', string_info=tools.indent(s, 3))  # run something
 
         if self.return_code != 0:
@@ -971,17 +981,6 @@ def PerformCheck(start, builds, args, log):
                         else:  # PICLAS_MPI=OFF or flag not specified (i.e. assuming LIBS_USE_MPI=OFF)
                             MPIbuilt = False
             build.MPIbuilt = MPIbuilt
-
-            # 1.3    read the example directories
-            # get example folders: run_basic/example1, run_basic/example2 from check folder
-            print(build)
-            build.examples = getExamples(args.check, build, log)
-            log.info("build.examples" + str(build.examples))
-
-            if len(build.examples) == 0:
-                s = tools.yellow("No matching examples found for this build!")
-                build.result += ", " + s
-                print(s)
 
             # 2.   loop over all example directories
             for example in build.examples:

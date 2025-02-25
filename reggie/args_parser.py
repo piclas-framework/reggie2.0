@@ -88,7 +88,7 @@ def getArgsAndBuilds():
     parser.add_argument('-i', '--noMPI'      , help='Run program without "mpirun" (single thread execution).', action='store_true')
     parser.add_argument('-p', '--stop'       , help='Stop on first error.', action='store_true')
     parser.add_argument('check', help='Path to check-/example-directory.')
-    parser.add_argument('--meshesdir'        , help='Only run hopr once for each example, stores meshes in separate directory and use symbolic links.', action='store_true')
+    parser.add_argument('--meshesdir'        , help='Only run hopr once for each example, store meshes in separate directory and use symbolic links.', action='store_true')
     # fmt: on
     # parser.set_defaults(carryon=False)
     # parser.set_defaults(dummy=False)
