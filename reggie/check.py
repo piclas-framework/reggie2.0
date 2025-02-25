@@ -774,7 +774,8 @@ class Run(OutputDirectory, ExternalCommand):
         cmd = SetMPIrun(build, args, MPIthreads)
 
         cmd.append(build.binary_path)
-        cmd.append("parameter.ini")
+        if 'python' not in build.binary_path:
+            cmd.append("parameter.ini")
 
         # append suffix commands, e.g., a second parameter file 'DSMC.ini' or '-N 12'
         cmd_suffix = command_line.parameters.get('cmd_suffix')
