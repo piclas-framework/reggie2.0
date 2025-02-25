@@ -21,6 +21,33 @@ class bcolors:
     # fmt: off
     ENDC   ='\033[0m'
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     # Regular Colors
     BLACK  ='\033[0;30m'
     RED    ='\033[0;31m'
