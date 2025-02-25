@@ -54,7 +54,11 @@ and all hooks can be tested before commiting your changes with
 ```
 pre-commit run
 ```
-Note that all pre-commit hooks only run on files that have been staged.
+Note that all pre-commit hooks only run on files that have been staged. The pre-commit hooks can be ignored with
+```
+--no-verify
+```
+
 
 When creating a commit:
 1. The linter will display errors immediately
