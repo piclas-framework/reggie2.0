@@ -29,11 +29,11 @@ Installation can be done either done with the current workflow to keep an editab
 ```
 git clone git@XXXXXXXX
 cd reggie2.0
-pip install -e .
+pip install -e . && pre-commit install
 ```
 Or without editing possibility directly via `pip` and `git` with
 ```
-pip install git+https://github.com/XXXXXXXX
+pip install git+https://github.com/XXXXXXXX && pre-commit install
 ```
 ## Ruff linter and formatter
 
@@ -46,11 +46,7 @@ Ruff is integrated with [pre-commit](https://pre-commit.com/) to automatically c
 1. Ruff linter hook
 2. Ruff formatter hook
 
-Pre-commit can be installed with
-```
-pip install pre-commit
-```
-and all hooks can be tested before commiting your changes with
+All hooks can be tested with pre-commit before commiting your changes with
 ```
 pre-commit run
 ```
