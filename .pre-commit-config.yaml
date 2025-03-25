@@ -12,11 +12,3 @@ repos:
       - id: ruff-format
         name: ruff formatter
         alias: format
-  # only for print statements
-  - repo: meta
-    hooks:
-      - id: identity
-        name: Print troubleshooting commands for ruff
-        args: ['For displaying errors use "ruff check" for the linter and "ruff format --diff" for the formatter. Changes can be applied automatically with "ruff check --fix" and "ruff format" respectively.']
-        pass_filenames: false
-        verbose: true

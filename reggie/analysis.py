@@ -301,8 +301,13 @@ def getAnalyzes(path, example, args):
              reshape_value    = options.get('h5diff_reshape_value',-1), \
              flip             = options.get('h5diff_flip',False), \
              max_differences  = options.get('h5diff_max_differences',0), \
-             var_attribute    = options.get('h5diff_var_attribute',None), \
-             var_name         = options.get('h5diff_var_name',None), \
+             # both var_attribute and var_name take '_' as placeholder to check all variables (e.g. in first analyze all variables are checked and in second analyze only one variable)
+             # the option where var_attribute/var_name contains _ and is not a list does not make sense since for only one analyze just dont set var_attribute and var_name (but it is caught here
+             # anyways, note that if only one of both is None every variables are checked) if var_attribute/var_name is not '_' it is read in normally (with None as default)
+             var_attribute = ([None if item == '_' else item for item in options.get('h5diff_var_attribute')] if isinstance(options.get('h5diff_var_attribute'), list)
+                              else (None if options.get('h5diff_var_attribute') == '_' else options.get('h5diff_var_attribute',None))), \
+             var_name = ([None if item == '_' else item for item in options.get('h5diff_var_name')] if isinstance(options.get('h5diff_var_name'), list)
+                          else (None if options.get('h5diff_var_name') == '_' else options.get('h5diff_var_name',None))), \
              referencescopy   = args.referencescopy )
     # only do h5diff test if all variables are defined
     if h5diff.reference_file and h5diff.file and h5diff.data_set:
@@ -325,7 +330,9 @@ def getAnalyzes(path, example, args):
              reshape_value       =options.get('vtudiff_reshape_value', -1),
              flip                =options.get('vtudiff_flip', False),
              max_differences     =options.get('vtudiff_max_differences', 0),
-             array_name          =options.get('vtudiff_array_name', None),
+             # see defintion of var_attribute and var_name in h5diff
+             array_name          = ([None if item == '_' else item for item in options.get('vtudiff_array_name')] if isinstance(options.get('vtudiff_array_name'), list)
+                                    else (None if options.get('vtudiff_array_name') == '_' else options.get('vtudiff_array_name',None))), \
              referencescopy      =args.referencescopy,
     )
     # only do vtudiff test if all variables are defined
@@ -2008,8 +2015,12 @@ class Analyze_vtudiff(Analyze, ExternalCommand):
                     - numpy_data: numpy array containing all data from the vtk file (stacked in columns)
                     - array_names_dims: dictionary containing the names of the arrays and their number of columns (number of components, e.g. 3 for Velocity for x,y and z respectively)
                     '''
-                    num_arrays_per_type = [data_reader.GetOutput().GetPointData().GetNumberOfArrays(), data_reader.GetOutput().GetCellData().GetNumberOfArrays()]
-                    data_getter_per_type = [data_reader.GetOutput().GetPointData, data_reader.GetOutput().GetCellData]
+                    num_arrays_per_type = [
+                        data_reader.GetOutput().GetPointData().GetNumberOfArrays(),
+                        data_reader.GetOutput().GetCellData().GetNumberOfArrays(),
+                        data_reader.GetOutput().GetFieldData().GetNumberOfArrays(),
+                    ]
+                    data_getter_per_type = [data_reader.GetOutput().GetPointData, data_reader.GetOutput().GetCellData, data_reader.GetOutput().GetFieldData]
                     # number of arrays in the vtk file (return one for velocity, where 3 components will be added to the numpy array result)
                     vtk_num_arrays_total = 0
                     data = []
@@ -2163,7 +2174,7 @@ class Analyze_vtudiff(Analyze, ExternalCommand):
                     Analyze.total_errors += 1
                     continue
                 else:
-                    print("\n", tools.yellow("Comparing %s vtk arrays with total of %s columns:") % (len(array_names_dims), data_shape[1]), list(array_names_dims.keys()))
+                    print("\n", tools.indent(tools.yellow("Comparing %s vtk arrays with total of %s columns:"), 1) % (len(array_names_dims), data_shape[1]), list(array_names_dims.keys()))
 
                 # 1.2.1 When sorting is used, the sorted array is written to a new .vtu file with a new name
                 if sort_loc:
