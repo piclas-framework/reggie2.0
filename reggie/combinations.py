@@ -214,7 +214,22 @@ def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None
     combinations = []  # list of all VALID combinations
 
     NumOfCombinationsTotal = 1
+    # Test if any name has more than one value which would lead to at least 2 combinations, for sanity check later
+    only_one_combination = False
+    if not any([(len(option.values) > 1) for option in options]):
+        only_one_combination = True
     for option in options:
+        # Sanity check for names that have only one value, but are used in noCrossCombinations (if there is more than one combination)
+        if not only_one_combination:
+            for noCrossCombination in noCrossCombinations:
+                if option.name in noCrossCombination and len(option.values) < 2:
+                    print(
+                        tools.red(
+                            f'{option.name} has not more than one value ({option.values}), but is also included in noCrossCombinations,'
+                            + f'which could lead to some combinations which are not tested! Please add more values or remove {option.name} from noCrossCombinations.'
+                        )
+                    )
+                    exit(1)
         option.base = NumOfCombinationsTotal  # save total  number of combinations of all options before this option
         NumOfCombinationsTotal = NumOfCombinationsTotal * len(option.values)
 
