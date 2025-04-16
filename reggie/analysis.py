@@ -1468,16 +1468,35 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
 
                     data_set_loc_file = data_set_loc_file_new
 
+                # 1.1.2 compare shape of the dataset of both files
+                if shape1 != shape2:
+                    equal_shape = False
+                    # check if the shapes would be identical if both arrays are collapsed to 1D arrays (for backwards compatability if output format is adapted)
+                    # e.g.: b1.shape = (48, 2, 2, 4) and b2.shape = (192, 4), note that the default for flatten() is in row-major (C-style) order
+                    if b1.flatten().shape == b2.flatten().shape:
+                        flattened_shape = True
+                        # flattened arrays for comparison
+                        data1_slice = b1.flatten()
+                        data2_slice = b2.flatten()
+                else:
+                    equal_shape = True
+                    flattened_shape = False
+
                 # Check whether a single variable or the complete dataset shall be compared
                 if var_attribute_loc is not None and var_name_loc is not None:
                     compare_single_variable = True
                 else:
                     compare_single_variable = False
 
-                # 1.1.2 compare shape of the dataset of both files, throw error if they do not coincide
-                if shape1 != shape2 and not compare_single_variable: # e.g.: b1.shape = (48, 1, 1, 32)
-                    self.result=tools.red(tools.red("h5diff failed because datasets for [%s,%s] are not comparable due to different shapes: Files [%s] and [%s] have shapes [%s] and [%s]" % (data_set_loc_file,data_set_loc_ref,f1,f2,b1.shape,b2.shape)))
-                    print(" "+self.result)
+                # throw error if they do not coincide in any way and not only one variable is compared (since then the general shape might not matter)
+                if (not equal_shape) and (not compare_single_variable) and (not flattened_shape):  # e.g.: b1.shape = (48, 1, 1, 32)
+                    self.result = tools.red(
+                        tools.red(
+                            "h5diff failed because datasets for [%s,%s] are not comparable due to different shapes: Files [%s] and [%s] have shapes [%s] and [%s]"
+                            % (data_set_loc_file, data_set_loc_ref, f1, f2, b1.shape, b2.shape)
+                        )
+                    )
+                    print(" " + self.result)
 
                     # 1.1.3   add failed info if return a code != 0 to run
                     run.analyze_results.append(self.result)
@@ -1532,52 +1551,55 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                         f1.close()
                         f2.close()
 
-                    # 1.2.1 Comparison of a single variable using NumPy's isclose or the complete dataset using h5diff
-                    if compare_single_variable:
-                        try :
-                            # Open datasets again to get dimension sizes
-                            f1 = h5py.File(path,'r')
-                            f2 = h5py.File(path_ref_target,'r')
-                            def get_variable_dimension(f, dataset_path, variable_attribute, variable_name):
-                                '''Check dataset for variable names in attributes and return the index of the variable name (corresponds to the column of the hdf5 array)'''
-                                # Check if the dataset has attributes containing variable names for dimensions
-                                try:
-                                    dataset = f
-                                    # check if attribute exists (case insensitive)
-                                    attrs = [attr for attr in dataset.attrs]
-                                    lower_attrs = [attr.lower() for attr in attrs]
-                                    if variable_attribute.lower() in lower_attrs:
-                                        variable_attribute_index = lower_attrs.index(variable_attribute.lower())
-                                        # attr_name is correctly spelled name of the attribute
-                                        attr_name = attrs[variable_attribute_index]
-                                        variable_names = [name.decode('utf-8').lower() for name in dataset.attrs[attr_name]]
-                                        # check if variable name exists (case insensitive)
-                                        if variable_name.lower() in variable_names:
-                                            f.close()
-                                            return list(variable_names).index(variable_name.lower())
+                    # 1.2.1 Comparison of a single variable or flattened arrays using NumPy's isclose or the complete dataset using h5diff
+                    if compare_single_variable or flattened_shape:
+                        try:
+                            if compare_single_variable:
+                                # Open datasets again to get dimension sizes
+                                f1 = h5py.File(path, 'r')
+                                f2 = h5py.File(path_ref_target, 'r')
+
+                                def get_variable_dimension(f, dataset_path, variable_attribute, variable_name):
+                                    '''Check dataset for variable names in attributes and return the index of the variable name (corresponds to the column of the hdf5 array)'''
+                                    # Check if the dataset has attributes containing variable names for dimensions
+                                    try:
+                                        dataset = f
+                                        # check if attribute exists (case insensitive)
+                                        attrs = [attr for attr in dataset.attrs]
+                                        lower_attrs = [attr.lower() for attr in attrs]
+                                        if variable_attribute.lower() in lower_attrs:
+                                            variable_attribute_index = lower_attrs.index(variable_attribute.lower())
+                                            # attr_name is correctly spelled name of the attribute
+                                            attr_name = attrs[variable_attribute_index]
+                                            variable_names = [name.decode('utf-8').lower() for name in dataset.attrs[attr_name]]
+                                            # check if variable name exists (case insensitive)
+                                            if variable_name.lower() in variable_names:
+                                                f.close()
+                                                return list(variable_names).index(variable_name.lower())
+                                            else:
+                                                print("Variable name '%s' not found in dimension names." % variable_name)
+                                                return None
                                         else:
-                                            print("Variable name '%s' not found in dimension names." % variable_name)
+                                            print("No '%s' attribute found in dataset '%s'." % (variable_attribute, dataset_path))
                                             return None
-                                    else:
-                                        print("No '%s' attribute found in dataset '%s'." % (variable_attribute, dataset_path))
+                                    except KeyError:
+                                        print("Dataset '%s' not found in the file." % dataset_path)
                                         return None
-                                except KeyError:
-                                    print("Dataset '%s' not found in the file." % dataset_path)
-                                    return None
 
-                            dim1 = get_variable_dimension(f1, data_set_loc_file, var_attribute_loc, var_name_loc)
-                            dim2 = get_variable_dimension(f2, data_set_loc_ref, var_attribute_loc, var_name_loc)
-                            # Extract slices along the specified dimension from arrays b1 and b2 which are already reshaped/flipped so they have the same dimensions - if arrays were flipped dim1 and dim2 correspond to rows
-                            if flip_loc:
-                                data1_slice = np.ravel(b1[dim1,...])
-                                data2_slice = np.ravel(b2[dim2,...])
-                            else:
-                                data1_slice = np.ravel(b1[...,dim1])
-                                data2_slice = np.ravel(b2[...,dim2])
+                                dim1 = get_variable_dimension(f1, data_set_loc_file, var_attribute_loc, var_name_loc)
+                                dim2 = get_variable_dimension(f2, data_set_loc_ref, var_attribute_loc, var_name_loc)
+                                # Extract slices along the specified dimension from arrays b1 and b2 which are already reshaped/flipped so they have the same dimensions
+                                # if arrays were flipped dim1 and dim2 correspond to rows
+                                if flip_loc:
+                                    data1_slice = np.ravel(b1[dim1, ...])
+                                    data2_slice = np.ravel(b2[dim2, ...])
+                                else:
+                                    data1_slice = np.ravel(b1[..., dim1])
+                                    data2_slice = np.ravel(b2[..., dim2])
 
-                            # Ensure data slices are converted to float
-                            data1_slice = np.array(data1_slice, dtype=float)
-                            data2_slice = np.array(data2_slice, dtype=float)
+                                # Ensure data slices are converted to float
+                                data1_slice = np.array(data1_slice, dtype=float)
+                                data2_slice = np.array(data2_slice, dtype=float)
 
                             # np.isclose creates a boolean array with True for elements that are close to each other within a tolerance
                             if tolerance_type_loc == '--delta':
@@ -1616,29 +1638,32 @@ class Analyze_h5diff(Analyze,ExternalCommand) :
                                     Analyze.total_errors+=1
                                 else :
                                     s = s.replace("Comparison failed for", "Comparison ignored for")
-                                    s2 = ", but %s difference(s) are allowed (given by compare_data_file_max_differences). This analysis is therefore marked as passed." % max_differences_loc
-                                    s2 = tools.pink(s+s2)
+                                    s2 = ", but %s difference(s) are allowed (given by h5diff_max_differences). This analysis is therefore marked as passed." % max_differences_loc
+                                    s2 = tools.pink(s + s2)
                                     print(s2)
 
                             else:
-                                NbrOfMatches=np.sum(data_compare)
-                                if NbrOfMatches==0:
-                                    s=tools.red("Analyze_compare_data_file: Found zero matching values. Wrong data file under [%s] or format that could possibly not be read correctly" % (path))
+                                NbrOfMatches = np.sum(data_compare)
+                                if NbrOfMatches == 0:
+                                    s = tools.red("Analyze_h5diff: Found zero matching values. Wrong data file under [%s] or format that could possibly not be read correctly" % (path))
                                     print(s)
                                     run.analyze_results.append(s)
                                     run.analyze_successful=False
                                     Analyze.total_errors+=1
                                 else:
-                                    s = tools.blue(tools.indent("Compared %s of %s with %s and got %s matching columns" % (var_name_loc, path, reference_file_loc,NbrOfMatches),2))
+                                    if var_name_loc is not None:
+                                        s = tools.blue(tools.indent("Compared %s of %s with %s and got %s matching columns" % (var_name_loc, path, reference_file_loc, NbrOfMatches), 2))
+                                    else:
+                                        s = tools.blue(tools.indent("Compared %s with %s and got %s matching columns" % (path, reference_file_loc, NbrOfMatches), 2))
                                     print(s)
 
-                        # The python comparison of single variables could not be executed
-                        except Exception as ex :
-                            self.result=tools.red("h5diff failed. (Exception="+str(ex)+")")
-                            print(" "+self.result)
+                        # The python comparison could not be executed
+                        except Exception as ex:
+                            self.result = tools.red("Python array comparison failed. (Exception=" + str(ex) + ")")
+                            print(" " + self.result)
 
                             # 1.3.1   Add failed info if return a code != 0 to run
-                            run.analyze_results.append(tools.red("h5diff failed. Comparison of single variable %s failed with Exception=%s" % (var_name_loc, ex)))
+                            run.analyze_results.append(tools.red("Python array comparison failed. Comparison failed with Exception=%s" % (ex)))
 
                             # 1.3.2   Set analyzes to fail if return a code != 0
                             run.analyze_successful=False
