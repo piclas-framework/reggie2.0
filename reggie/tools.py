@@ -43,35 +43,35 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 
-def cyan(text):  # noqa: D103 Missing docstring in public function
+def cyan(text):
     return bcolors.CYAN + text + bcolors.ENDC
 
 
-def pink(text):  # noqa: D103
+def pink(text):
     return bcolors.PINK + text + bcolors.ENDC
 
 
-def purple(text):  # noqa: D103
+def purple(text):
     return bcolors.PURPLE + text + bcolors.ENDC
 
 
-def lightred(text):  # noqa: D103
+def lightred(text):
     return bcolors.LIGHTRED + text + bcolors.ENDC
 
 
-def red(text):  # noqa: D103
+def red(text):
     return bcolors.RED + text + bcolors.ENDC
 
 
-def green(text):  # noqa: D103
+def green(text):
     return bcolors.GREEN + text + bcolors.ENDC
 
 
-def blue(text):  # noqa: D103
+def blue(text):
     return bcolors.BLUE + text + bcolors.ENDC
 
 
-def yellow(text):  # noqa: D103
+def yellow(text):
     return bcolors.YELLOW + text + bcolors.ENDC
 
 
@@ -134,13 +134,13 @@ def find_basedir(basedir):
     return basedir
 
 
-def remove_folder(path):  # noqa: D103 Missing docstring in public function
+def remove_folder(path):
     print("deleting folder '%s'" % path)
     shutil.rmtree(path, ignore_errors=True)
     # shutil.rmtree(path)
 
 
-def create_folder(path):  # noqa: D103 Missing docstring in public function
+def create_folder(path):
     if not os.path.exists(path):
         i = 0
         # try multiple times to create the directory (on some systems a

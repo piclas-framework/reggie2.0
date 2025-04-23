@@ -64,7 +64,7 @@ def get_last_Linf_error(lines, LastLines=35):
             return [float(x) for x in tmp.split()]
 
 
-def get_last_number(lines):  # noqa: D103 Missing docstring in public function
+def get_last_number(lines):
     for line in reversed(lines):
         tmp = line.split(' ')
         for t in reversed(tmp):

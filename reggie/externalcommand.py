@@ -21,7 +21,7 @@ from timeit import default_timer as timer
 from reggie import tools
 
 
-def replace_wild_cards_recursive(cmd, workingDir):  # noqa: D103 Missing docstring in public function
+def replace_wild_cards_recursive(cmd, workingDir):
     # Check each cmd list entry for a wild card and exchange this entry with the globbed items
     for i in enumerate(cmd):
         # Check for wild cards

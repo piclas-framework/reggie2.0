@@ -64,7 +64,7 @@ def anyIsSubset(alist, b):
     return any(tmp)  # return True, if any 'a' of alist is a subset of 'b'
 
 
-def readValueFromFile(filename, key):  # noqa: D103 Missing docstring in public function
+def readValueFromFile(filename, key):
     # Read the value of a single key from a file. Workflow:
     # 1.  Read file line by line:
     # 1.1   ignore exclusion (if line starts with 'exclude:')
@@ -103,7 +103,7 @@ def readValueFromFile(filename, key):  # noqa: D103 Missing docstring in public 
     return currentValue
 
 
-def readKeyValueFile(filename):  # noqa: D103 Missing docstring in public function
+def readKeyValueFile(filename):
     # fmt: off
     # General workflow:
     # 1.  Read file line by line:
@@ -167,7 +167,7 @@ def readKeyValueFile(filename):  # noqa: D103 Missing docstring in public functi
     return options, exclusions, noCrossCombinations
 
 
-def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None, OverrideOptionValue=None, MaxCoresMPICH=0):  # noqa: D103
+def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None, OverrideOptionValue=None, MaxCoresMPICH=0):
     # 1. get the key-value list from file
     # 1.1   get exclusion from line (if line starts with 'exclude:')
     # 1.2   get noCrossCombination from line (if line starts with 'nocrosscombination:')
@@ -226,7 +226,7 @@ def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None
                     print(
                         tools.red(
                             f'{option.name} has not more than one value ({option.values}), but is also included in noCrossCombinations,'
-                            + f'which could lead to some combinations which are not tested! Please add more values or remove {option.name} from noCrossCombinations.'
+                            f'which could lead to some combinations which are not tested! Please add more values or remove {option.name} from noCrossCombinations.'
                         )
                     )
                     exit(1)
@@ -324,7 +324,7 @@ def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None
     return combinations, digits
 
 
-def writeCombinationsToFile(combinations, path):  # noqa: D103 Missing docstring in public function
+def writeCombinationsToFile(combinations, path):
     # write one set of parameters to a file, e.g., parameter.ini
     with open(path, 'w') as f:
         for key, value in combinations.items():

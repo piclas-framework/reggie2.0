@@ -267,7 +267,7 @@ def StandaloneAutomaticMPIDetection(binary_path):
     return MPIifOFF
 
 
-def getBuilds(basedir, source_directory, CMAKE_BUILD_TYPE, singledir):  # noqa: D103 Missing docstring in public function
+def getBuilds(basedir, source_directory, CMAKE_BUILD_TYPE, singledir):
     combis, digits = combinations.getCombinations(os.path.join(source_directory, 'builds.ini'), OverrideOptionKey='CMAKE_BUILD_TYPE', OverrideOptionValue=CMAKE_BUILD_TYPE)
 
     # create Builds
@@ -299,7 +299,7 @@ class Example(OutputDirectory):
         return tools.indent(s, 1)
 
 
-def getExamples(path, build, log):  # noqa: D103 Missing docstring in public function
+def getExamples(path, build, log):
     # checks directory with 'builds.ini'
     if os.path.exists(os.path.join(build.source_directory, 'builds.ini')):
         example_paths = [os.path.join(path, p) for p in sorted(os.listdir(path)) if os.path.isdir(os.path.join(path, p))]
@@ -341,7 +341,7 @@ class Command_Lines(OutputDirectory):
         return tools.indent(s, 2)
 
 
-def getCommand_Lines(path, example, MPIbuilt, MaxCoresMPICH):  # noqa: D103 Missing docstring in public function
+def getCommand_Lines(path, example, MPIbuilt, MaxCoresMPICH):
     command_lines = []
     i = 1
     # If single execution is to be performed, remove "MPI =! 1" from command line list
@@ -357,7 +357,7 @@ def getCommand_Lines(path, example, MPIbuilt, MaxCoresMPICH):  # noqa: D103 Miss
     return command_lines
 
 
-def getRestartFileList(example):  # noqa: D103 Missing docstring in public function
+def getRestartFileList(example):
     options_list, _, _ = combinations.readKeyValueFile(os.path.join(example.source_directory, 'command_line.ini'))
     options = {}  # dict
     for option in options_list:
@@ -376,7 +376,6 @@ def getRestartFileList(example):  # noqa: D103 Missing docstring in public funct
 # ==================================================================================================
 def SetMPIrun(build, args, MPIthreads):
     """Check MPI built binary (only possible for reggie-compiled binaries)"""
-
     if MPIthreads:
         # Check if single execution is wanted (independent of the compiled executable)
         if args.noMPI:
@@ -451,7 +450,7 @@ class Externals(OutputDirectory):
         return tools.indent(s, 2)
 
 
-def getExternals(path, example, build):  # noqa: D103 Missing docstring in public function
+def getExternals(path, example, build):
     # fmt: off
     externals_pre    = []
     externals_post   = []
@@ -563,7 +562,7 @@ class ExternalRun(OutputDirectory, ExternalCommand):
         # external folders already there
         self.skip = False
 
-    def execute(self, build, external, args, meshes_directory=None):  # noqa: D103 Missing docstring in public function
+    def execute(self, build, external, args, meshes_directory=None):
         # set path to parameter file (single combination of values for execution "parameter.ini" for example)
         self.parameter_path = os.path.join(external.directory, external.parameterfile)
 

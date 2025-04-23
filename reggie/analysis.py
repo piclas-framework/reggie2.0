@@ -79,7 +79,7 @@ except AttributeError:
             return self.__dict__ == other.__dict__
 
 
-def displayTable(mylist, nVar, nRuns):  # noqa: D103 Missing docstring in public function
+def displayTable(mylist, nVar, nRuns):
     # mylist = [ [1 2 3] [1 2 3] [1 2 3] [1 2 3] ] example with 4 nVar and 3 nRuns
     print(" nRun   " + "   ".join(7 * " " + "nVar=[" + str(i).rjust(4) + "]" for i in range(nVar)))
     for j in range(nRuns):
@@ -89,7 +89,7 @@ def displayTable(mylist, nVar, nRuns):  # noqa: D103 Missing docstring in public
         print("")
 
 
-def writeTableToFile(mylist, nVar, nRuns, firstColumn, path, name):  # noqa: D103 Missing docstring in public function
+def writeTableToFile(mylist, nVar, nRuns, firstColumn, path, name):
     # if a path is supplied, create a .csv file with the data
     if path is not None:
         myfile = os.path.join(path, name)
@@ -100,7 +100,7 @@ def writeTableToFile(mylist, nVar, nRuns, firstColumn, path, name):  # noqa: D10
                 f.write(line + "\n")
 
 
-def displayVector(vector, nVar):  # noqa: D103 Missing docstring in public function
+def displayVector(vector, nVar):
     print(8 * " " + "   ".join(7 * " " + "nVar=[" + str(i).rjust(4) + "]" for i in range(nVar)))
     print(6 * " " + " ".join("%20.12e" % vector[i] for i in range(nVar)))
 

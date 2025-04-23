@@ -39,17 +39,9 @@ required-version = ">=0.7.1"
 show-fixes = true
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "B", #"I", "D", "A", "ISC", "ICN", "ARG", "TD", "PERF", "RUF100"
+select = ["E", "F", "W", "B", "A", "ARG", "TD", "PERF", "RUF100"
          ]
-ignore = ["TD002", "D100", "D101", "D102", "D105", "D107", "D212", "D400", "D415", "W191", "E111", "E114", "E117", "D206", "D300", "Q000",
-          "Q001", "Q002", "Q003", "COM812", "COM819", "ISC001", "ISC002"]
-extend-select = ["D213"]
-
-[tool.ruff.lint.isort]
-lines-after-imports = 2
-
-[tool.ruff.lint.pydocstyle]
-convention = "google"
+ignore = ["E402","TD002"]
 
 [tool.ruff.format]
 indent-style = "space"

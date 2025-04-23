@@ -34,11 +34,11 @@ def main():
     print('')
     print(tools.red(r'       oooooooo      ====================') + tools.yellow(r'=====================================') + tools.green(r'====================      oooooooo       '))
     print(tools.red(r'    ooo   oo   ooo      _____    ______  ') + tools.yellow(r'  _____    _____   _____   ______    ') + tools.green(r' ___         ___       ooo   oo   ooo    '))
-    print(tools.red(r'   oo     oo     oo    |  __ \  |  ____| ') + tools.yellow(r' / ____|  / ____| |_   _| |  ____|   ') + tools.green(r'|__ \       / _ \     oo     oo     oo   '))  # noqa: W605 invalid escape sequence
+    print(tools.red(r'   oo     oo     oo    |  __ \  |  ____| ') + tools.yellow(r' / ____|  / ____| |_   _| |  ____|   ') + tools.green(r'|__ \       / _ \     oo     oo     oo   '))
     print(tools.red(r'  oo      oo      oo   | |__) | | |__    ') + tools.yellow(r'| |  __  | |  __    | |   | |__      ') + tools.green(r'   ) |     | | | |   oo      oo      oo  '))
     print(tools.red(r'  oo     oooo     oo   |  _  /  |  __|   ') + tools.yellow(r'| | |_ | | | |_ |   | |   |  __|     ') + tools.green(r'  / /      | | | |   oo     oooo     oo  '))
-    print(tools.red(r'  oo    oooooo    oo   | | \ \  | |____  ') + tools.yellow(r'| |__| | | |__| |  _| |_  | |____    ') + tools.green(r' / /_   _  | |_| |   oo    oooooo    oo  '))  # noqa: W605
-    print(tools.red(r'   oo oo  oo  oo oo    |_|  \_\ |______| ') + tools.yellow(r' \_____|  \_____| |_____| |______|   ') + tools.green(r'|____| (_)  \___/     oo oo  oo  oo oo   '))  # noqa: W605
+    print(tools.red(r'  oo    oooooo    oo   | | \ \  | |____  ') + tools.yellow(r'| |__| | | |__| |  _| |_  | |____    ') + tools.green(r' / /_   _  | |_| |   oo    oooooo    oo  '))
+    print(tools.red(r'   oo oo  oo  oo oo    |_|  \_\ |______| ') + tools.yellow(r' \_____|  \_____| |_____| |______|   ') + tools.green(r'|____| (_)  \___/     oo oo  oo  oo oo   '))
     print(tools.red(r'    ooo   oo   ooo                       ') + tools.yellow(r'                                     ') + tools.green(r'                       ooo   oo   ooo    '))
     print(tools.red(r'       oooooooo      ====================') + tools.yellow(r'=====================================') + tools.green(r'====================      oooooooo       '))
     print('')

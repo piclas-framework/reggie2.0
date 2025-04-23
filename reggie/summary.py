@@ -20,7 +20,7 @@ from reggie import tools
 from reggie.outputdirectory import OutputDirectory
 
 
-def StartsWithCMD(pathSplit, iDir):  # noqa: D103 Missing docstring in public function
+def StartsWithCMD(pathSplit, iDir):
     try:
         if pathSplit[iDir + 1].startswith('cmd_'):
             return True

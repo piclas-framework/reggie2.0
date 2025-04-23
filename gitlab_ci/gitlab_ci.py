@@ -25,7 +25,7 @@ import gitlab_ci_tools
 import settings
 
 settings.init()  # Call only once
-import sys  # noqa: E402 Module level import not at top of file
+import sys
 
 sys.path.append(settings.absolute_reggie_path)
 reggie_exe_path = os.path.join(settings.absolute_reggie_path, 'reggie.py')
@@ -34,7 +34,7 @@ if not os.path.exists(reggie_exe_path):
     exit(1)
 
 
-def CheckBinaryCall(c):  # noqa: D103 Missing docstring in public function
+def CheckBinaryCall(c):
     if c.find("-e") >= 0:  # find lines which contain "-e"
         c = c[: c.find("-e")]  # remove everything after "-e"
 
@@ -58,7 +58,7 @@ def CheckBinaryCall(c):  # noqa: D103 Missing docstring in public function
     return c.strip()
 
 
-def DisplayInitMessage(Bool, Message):  # noqa: D103 Missing docstring in public function
+def DisplayInitMessage(Bool, Message):
     if Bool:
         print("\n%s\n" % Message)
         Bool = False
