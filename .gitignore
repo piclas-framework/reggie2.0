@@ -12,3 +12,5 @@ std.err
 err.out
 std.err
 config-reggie.json
+tags
+.tags
