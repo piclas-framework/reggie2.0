@@ -30,6 +30,75 @@ Or without editing possibility directly via `pip` and `git` with
 ```
 pip install git+https://github.com/XXXXXXXX
 ```
+Reggie2.0 uses [pre-commit](https://pre-commit.com/) for maintaining code quality. Pre-commit can be installed with
+```
+pre-commit install
+```
+## Ruff linter and formatter
+
+Reggie2.0 uses [Ruff](https://docs.astral.sh/ruff/) for code linting and formatting of all .py files to maintain consistent code quality and style. Ruff is a fast Python linter and formatter that combines multiple individual tools like flake8, black, isort, etc.
+
+### Pre-commit Integration
+
+Ruff is integrated with [pre-commit](https://pre-commit.com/) to automatically check and format code before each commit. The configuration is defined in `.pre-commit-config.yaml` and includes:
+
+1. Ruff linter hook
+2. Ruff formatter hook
+
+All hooks can be tested with pre-commit before commiting your changes with
+```
+pre-commit run
+```
+Note that all pre-commit hooks only run on files that have been staged. The pre-commit hooks can be ignored with the additional flag
+```
+--no-verify
+```
+
+
+When creating a commit:
+1. The linter will display errors immediately
+2. The formatter will:
+   - Fail if it finds issues
+   - Apply automatic fixes
+   - Unstage the modified files
+
+After formatter changes:
+- Review the applied changes
+- Re-stage the files
+- Try committing again (formatter should pass if no new changes were made)
+
+Some linter errors can be fixed automatically with
+```
+ruff check --fix
+```
+while others require manual corrections.
+Note that the flag `--unsafe-fixes` can change the functionality of the code, while `--fix` should keep it.
+
+### Ruff configuration
+
+Ruff's configuration is managed through the `pyproject.toml` file in the project root and specifies linting rules, checks, excludes, etc.
+
+To suppress a violation inline, Ruff uses a `noqa` system similar to Flake8. To ignore an individual violation, add `# noqa: {code}` to the end of the line, like so:
+```
+# Ignore F841.
+x = 1  # noqa: F841
+# Ignore E741 and F841.
+i = 1  # noqa: E741, F841
+# Ignore _all_ violations.
+x = 1  # noqa
+```
+
+Similar to the linter it is also possible to ignore code blocks for the formatter with
+```
+# fmt: off
+_code_
+# fmt: on
+```
+or a python specific block with
+```
+if condition: # fmt: skip
+```
+
 
 ## Overview
  * [General file and directory hierarchy in Reggie2.0](#code-hierarchy-and-required-ini-files)
@@ -347,25 +416,28 @@ where "DG\_Solution" corresponds to the dataset name in *h5diff_file* and "Field
 ### Compare variables
 This option allows for comparison of a single column of the selected dataset to avoid unnecessary computation. Simply provide the name of the attribute of the hdf5 file, which contains all names of the different columns in the dataset and additionally the name of the column, which should be compared.
 
+Both variables also take '_' as placeholder when using more than one analyze to compare all variables.
+
 Template for copying to **analyze.ini**
 ```
 ! hdf5 diff
-h5diff_file             = sphere_PartStateBoundary_000.00000010000000000.h5
-h5diff_reference_file   = sphere_PartStateBoundary_000.00000010000000000_ref.h5
-h5diff_data_set         = PartData
-h5diff_tolerance_value  = 1.0e-2
-h5diff_tolerance_type   = relative
-h5diff_var_attribute    = VarNamesSurface
-h5diff_var_name         = Spec001_ImpactNumber
+h5diff_file             = sphere_PartStateBoundary_000.00000010000000000.h5      , sphere_PartStateBoundary_2_000.00000010000000000.h5
+h5diff_reference_file   = sphere_PartStateBoundary_000.00000010000000000_ref.h5  , sphere_PartStateBoundary_2_000.00000010000000000_ref.h5
+h5diff_data_set         = PartData                                               , PartData2
+h5diff_tolerance_value  = 1.0e-2                                                 , 1.0e-2
+h5diff_tolerance_type   = relative                                               , relative
+h5diff_var_attribute    = VarNamesSurface                                        , _
+h5diff_var_name         = Spec001_ImpactNumber                                   , _
 ```
 
 # vtudiff
 
-* Compares the point and cell data arrays of two .vtu files for each array element-by-element either with an absolute and/or relative difference (depending on which tolerance values are given - if no tolerance is given both default values are used).
+* Compares the point, field and cell data arrays (if not empty) of two .vtu files for each array element-by-element either with an absolute and/or relative difference (depending on which tolerance values are given - if no tolerance is given both default values are used).
 * Requires vtk for reading-in data to python.
 
   [https://pypi.org/project/vtk/](https://pypi.org/project/vtk/)
 
+Note that piclas2vtk needs to be set as external, since otherwise no .vtu file is created for comparison.
 Template for copying to **analyze.ini**
 
 ```
@@ -384,17 +456,17 @@ For comparison of only one array simply add the array name with
 ```
 vtudiff_array_name                 = DG_Solution
 ```
-,where "DG\_Solution" is the array name in the .vtu file.
+,where "DG\_Solution" is the array name in the .vtu file. This variable takes also '_' as placeholder, when using more than one analyze to compare all arrays.
 
 Template for copying to **analyze.ini**
 
 ```
 ! vtu diff
-vtudiff_file                       = single-particle_State_000.00000005000000000.h5
-vtudiff_reference_file             = single-particle_reference_State_000.0000000500000000.h5
-vtudiff_relative_tolerance_value   = 1.0e-2
-vtudiff_absolute_tolerance_value   = 1.0
-vtudiff_array_name                 = DG_Solution
+vtudiff_file                       = single-particle_State_000.00000005000000000.h5           , single-particle_State_2_000.00000005000000000.h5
+vtudiff_reference_file             = single-particle_reference_State_000.0000000500000000.h5  , single-particle_reference_State_2_000.0000000500000000.h5
+vtudiff_relative_tolerance_value   = 1.0e-2                                                   , 1.0e-2
+vtudiff_absolute_tolerance_value   = 1.0                                                      , 1.0
+vtudiff_array_name                 = DG_Solution                                              , _
 ```
 
 # h5 array bounds check
