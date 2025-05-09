@@ -18,6 +18,7 @@ import logging
 import glob
 import shutil
 import types
+import sys
 
 import numpy as np
 
@@ -1671,6 +1672,8 @@ class Analyze_h5diff(Analyze, ExternalCommand):
                             NbrOfDifferences = np.sum(~data_compare)
 
                             if NbrOfDifferences > 0:
+                                if var_name_loc is None:
+                                    var_name_loc = '[var_name]'
                                 s = "Comparison failed for [%s] of [%s] with [%s] due to %s differences\n" % (var_name_loc, path, reference_file_loc, NbrOfDifferences)
                                 if NbrOfDifferences > max_differences_loc:
                                     s = tools.red(s)
@@ -1689,11 +1692,15 @@ class Analyze_h5diff(Analyze, ExternalCommand):
                                     if total_entries > num_entries:
                                         indices += list(range(max(num_entries, total_entries - num_entries), total_entries))
                                     # print out differences
+                                    print(s)
                                     print(tools.red("{:<20} | {:<45} | {:<45}".format('Index', var_name_loc, var_name_loc + '_ref')) + tools.yellow(" | {:<20} | {:<20}".format('Absolute Diff', 'Relative Diff')))
                                     print('-' * 160)
                                     for i in indices:
                                         abs_diff = np.abs(real_diffs[i] - real_diffs_ref[i])
-                                        rel_diff = abs_diff / np.abs(real_diffs_ref[i])
+                                        if np.abs(real_diffs_ref[i]) > 0.0:
+                                            rel_diff = abs_diff / np.abs(real_diffs_ref[i])
+                                        else:
+                                            rel_diff = 1.0
                                         print(
                                             tools.red("{:<20} | {:<45} | {:<45}".format(non_masked_indices[i], str(real_diffs[i]), str(real_diffs_ref[i])))
                                             + tools.yellow(" | {:<20} | {:<20}".format(str(abs_diff), str(rel_diff)))
@@ -1724,7 +1731,10 @@ class Analyze_h5diff(Analyze, ExternalCommand):
 
                         # The python comparison could not be executed
                         except Exception as ex:
-                            self.result = tools.red("Python array comparison failed. (Exception=" + str(ex) + ")")
+                            exc_type, exc_obj, exc_tb = sys.exc_info()
+                            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+                            s = "%s, %s, %s" % (exc_type, fname, exc_tb.tb_lineno)
+                            self.result = tools.red("Python array comparison failed. (Exception=" + str(ex) + "): " + s)
                             print(" " + self.result)
 
                             # 1.3.1   Add failed info if return a code != 0 to run
@@ -1811,7 +1821,7 @@ class Analyze_h5diff(Analyze, ExternalCommand):
                             Analyze.total_errors += 1
 
     def __str__(self):
-        return "perform h5diff between two files: [" + str(self.prms["file"][0]) + "] + reference [" + str(self.prms["reference_file"][0]) + "]"
+        return "perform h5diff of " + str(self.prms["data_set"][0]) + " between two files: [" + str(self.prms["file"][0]) + "] + reference [" + str(self.prms["reference_file"][0]) + "]"
 
 
 # ==================================================================================================
