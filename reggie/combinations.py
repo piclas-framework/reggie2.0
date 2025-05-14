@@ -76,6 +76,7 @@ def readValueFromFile(filename, key):
         raise Exception(tools.red("getCombination failed. file '%s' not found." % filename))
 
     # 1. read options and exclusions from the file
+    currentValue = None
     with open(filename) as f:
         for line in f.readlines():  # iterate over all lines of the file
             line = re.sub(r"\s+", "", line)  # remove all whitespaces ("\s" is the whitespac symbol)
@@ -110,9 +111,9 @@ def readKeyValueFile(filename):
     # 1.1   get exclusion from line (if line starts with 'exclude:')
     # 1.2   get noCrossCombination from line (if line starts with 'nocrosscombination:')
     # 1.3   get option and its values from line ( option=value1 [,value2 [,value3 ...]] )
-    found = os.path.exists(filename) # check if directory exists
+    found = os.path.exists(filename)  # check if directory exists
     if not found :
-        #raise getCombinationException(filename) # file not found
+        #  Raise getCombinationException(filename) # file not found
         raise Exception(tools.red("getCombination failed. file '%s' not found." % filename))
 
     options = []                               # list of all options
@@ -121,48 +122,47 @@ def readKeyValueFile(filename):
 
     # 1. read options and exclusions from the file
     with open(filename) as f :
-        for line in f.readlines() :   # iterate over all lines of the file
+        for line in f.readlines() :                # iterate over all lines of the file
             line = re.sub(r"\s+", "", line)        # remove all whitespaces ("\s" is the whitespac symbol)
             line = re.sub(r"\\s", " ", line)       # add new whitespaces for all occurrances of "\s" in the string ("\s" is NOT the whitespace symbol here)
-            if line.startswith('!') : # skip lines starting with a comment
+            if line.startswith('!') :              # skip lines starting with a comment
                 continue
             line = line.split('!')[0]              # remove comments
 
             # 1.1 read an exclusion
             if line.lower().startswith('exclude:') :
-                line = line.split(':', 1)[1]       # remove everything before ':''
-                ex = {}                            # new dictionary for the exclusion
-                for key_value in splitValues(line):# split at ',' (but not inside brackets) and iterate over key-value-pairs
-                    (key,value) = key_value.split('=')
-                    ex[key] = value                # save key and its value in the exclusion-dictionary
+                line = line.split(':', 1)[1]         # remove everything before ':''
+                ex = {}                              # new dictionary for the exclusion
+                for key_value in splitValues(line):  # split at ',' (but not inside brackets) and iterate over key-value-pairs
+                    (key, value) = key_value.split('=')
+                    ex[key] = value                  # save key and its value in the exclusion-dictionary
 
-                exclusions.append(ex)              # append exclusion to the list of all exclusions
-                continue                           # reading of exclusion finished -> go on with next line
+                exclusions.append(ex)                # append exclusion to the list of all exclusions
+                continue                             # reading of exclusion finished -> go on with next line
 
             # 1.2 read a noCrossCombination
             if line.lower().startswith('nocrosscombination:') :
-                line = line.split(':', 1)[1]                   # remove everything before ':''
-                noCrossCombination = line.split(',')           # list of keys, that should not be cross combined
-                noCrossCombinations.append(noCrossCombination) # append noCrossCombination to the list of all noCrossCombinations
-                continue                                       # reading of noCrossCombination finished -> go on with next line
-
+                line = line.split(':', 1)[1]                    # remove everything before ':''
+                noCrossCombination = line.split(',')            # list of keys, that should not be cross combined
+                noCrossCombinations.append(noCrossCombination)  # append noCrossCombination to the list of all noCrossCombinations
+                continue                                        # reading of noCrossCombination finished -> go on with next line
 
             # 1.3 read a option and its possible values
             if '=' in line :
                 # Catch special variables
                 # DEFVAR=(INT):i0 = 1, 2
                 if "DEFVAR" in line and ("INT" in line or "REAL" in line) :
-                    splitline = line.split('=',2)
+                    splitline = line.split('=', 2)
                     key       = "=".join(splitline[:2])
                     values    = splitline[2]
                 else:
-                    (key,values) = line.split('=',1)     # split line at '='
-                option = Option(key,splitValues(values)) # generate new Option with a list of values (splitted at ',' but not inside brackets)
-                options.append(option)                   # append option to options list, where
-                continue                                 # reading of option finished -> go on with next line
+                    (key, values) = line.split('=', 1)     # split line at '='
+                option = Option(key, splitValues(values))  # generate new Option with a list of values (splitted at ',' but not inside brackets)
+                options.append(option)                     # append option to options list, where
+                continue                                   # reading of option finished -> go on with next line
             # fmt: on
 
-    options.sort(key=lambda option: len(option.values), reverse=True) # sort list in order to have the most varying option at the beginning
+    options.sort(key=lambda option: len(option.values), reverse=True)  # sort list in order to have the most varying option at the beginning
 
     return options, exclusions, noCrossCombinations
 
@@ -242,6 +242,7 @@ def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None
     if NumOfCombinationsTotal > maxCombinations:
         raise Exception(tools.red("%s is more than %s combinations in parameter.ini which is not allowed!" % (NumOfCombinationsTotal, maxCombinations)))
 
+    digits = None
     # 2.2 build all valid combinations (all that do not match any exclusion)
     for i in range(NumOfCombinationsTotal):  # iterate index 'i' over NumOfCombinationsTotal
         combination = collections.OrderedDict()
