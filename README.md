@@ -14,83 +14,90 @@ graph TD;
   A-->|read/write|parameter.ini;
 ```
 
-
-Try typing the following
+Show the available options of the regression checker
 ```
-python reggie.py --help
-```
-
-```
-python gitlab-ci.py --help
+reggie --help
 ```
 
-## Python version compatibility
-Reggie2.0 was originally desinged to be executed with Python 2, however, Python 3 is now mandated.
-The following two versions of Python 2 and 3 are recommended
+## Installation
+Installation can be done either done with the current workflow to keep an editable package for development, i.e.
+```
+git clone git@XXXXXXXX
+cd reggie2.0
+pip install -e .
+```
+Or without editing possibility directly via `pip` and `git` with
+```
+pip install git+https://github.com/XXXXXXXX
+```
+Reggie2.0 uses [pre-commit](https://pre-commit.com/) for maintaining code quality. Pre-commit can be installed with
+```
+pre-commit install
+```
+## Ruff linter and formatter
 
-| **Version** |
-| :---------: |
-|    2.7.18   |
-|    3.9.7    |
+Reggie2.0 uses [Ruff](https://docs.astral.sh/ruff/) for code linting and formatting of all .py files to maintain consistent code quality and style. Ruff is a fast Python linter and formatter that combines multiple individual tools like flake8, black, isort, etc.
 
-The following versions are known to cause problems
+### Pre-commit Integration
 
-| **Version** |                   **Problem**                  |
-| :---------: | :--------------------------------------------: |
-|    3.8.10   | subprocess.Popen cannot run *mpirun* correctly |
+Ruff is integrated with [pre-commit](https://pre-commit.com/) to automatically check and format code before each commit. The configuration is defined in `.pre-commit-config.yaml` and includes:
 
-For the sake of backward-compatibility, the following remarks should be considered.
+1. Ruff linter hook
+2. Ruff formatter hook
 
-### print() function
-In Python 3, print() is a function and if the line break is to be omitted, simply add `, end='')` to the `print()` call. In order for this command to work with Python 2, the following line must be added as the very first line of code in the file
+All hooks can be tested with pre-commit before commiting your changes with
 ```
-from __future__ import print_function
+pre-commit run
 ```
-### Python 3 can't concat bytes to str
-In Python 2
+Note that all pre-commit hooks only run on files that have been staged. The pre-commit hooks can be ignored with the additional flag
 ```
-bufOut = bufOut + os.read(pipeOut_r, 1024)
+--no-verify
 ```
-is a valid command, where `bufOut` is of type `str` and `os.read(pipeOut_r, 1024)` is of type `byte`, however, in Python 3 the following line of code must be used
-```
-    out_s = os.read(pipeOut_r, 1024)
-    if not isinstance(out_s, str):
-        out_s = out_s.decode("utf-8")
-    bufOut = bufOut + out_s
-```
-### Lists of (key, value) pairs
-In Python 2, `.items()` returned a list of (key, value) pairs. In Python 3, `.items()` is now an itemview object, which behaves different. 
-Therefore it has to be iterated over (or materialised), which requires `list(dict.items())`. In Python 2
-```
-for key, value in parameters.items():
-```
-is valid, however, in Python 3 the following must be used
-```
-for key, value in list(parameters.items()):
-```
-### Integer division
-In Python 2
-```
-j = (i / option.base) % len(option.values)
-```
-returns an integer, however, in Python 3 a float is returned. Use
-```
-j = int((i / option.base) % len(option.values))
-```
-if an integer is required.
 
 
-### Items
+When creating a commit:
+1. The linter will display errors immediately
+2. The formatter will:
+   - Fail if it finds issues
+   - Apply automatic fixes
+   - Unstage the modified files
 
-In python3, use dict.items() instead of dict.iteritems() because  iteritems() was removed in python3, so this method cannot be used anymore.
+After formatter changes:
+- Review the applied changes
+- Re-stage the files
+- Try committing again (formatter should pass if no new changes were made)
 
-Take a look at Python 3.0 Wiki Built-in Changes section, where it is stated:
+Some linter errors can be fixed automatically with
+```
+ruff check --fix
+```
+while others require manual corrections.
+Note that the flag `--unsafe-fixes` can change the functionality of the code, while `--fix` should keep it.
 
-    Removed dict.iteritems(), dict.iterkeys(), and dict.itervalues().
+### Ruff configuration
 
-    Instead: use dict.items(), dict.keys(), and dict.values() respectively.
+Ruff's configuration is managed through the `pyproject.toml` file in the project root and specifies linting rules, checks, excludes, etc.
 
+To suppress a violation inline, Ruff uses a `noqa` system similar to Flake8. To ignore an individual violation, add `# noqa: {code}` to the end of the line, like so:
+```
+# Ignore F841.
+x = 1  # noqa: F841
+# Ignore E741 and F841.
+i = 1  # noqa: E741, F841
+# Ignore _all_ violations.
+x = 1  # noqa
+```
 
+Similar to the linter it is also possible to ignore code blocks for the formatter with
+```
+# fmt: off
+_code_
+# fmt: on
+```
+or a python specific block with
+```
+if condition: # fmt: skip
+```
 
 
 ## Overview
@@ -99,7 +106,6 @@ Take a look at Python 3.0 Wiki Built-in Changes section, where it is stated:
  * [Command line arguments for program execution in **command_line.ini**](#command-line)
  * [Compile flag combinations for c-make in **builds.ini**](#builds)
  * [Exclude runs in **parameter.ini**](#runs)
-
 
 ## Code hierarchy and required *.ini* files
 ```
@@ -124,99 +130,127 @@ gitlab-ci.py
         ...
 ```
 
-
-
-
 # Analyze routines for "analyze.ini"
-  
-1. [L2 error file](#l2-error-file)
-1. [L2 error upper limit](#l2-error-upper-limit)
-1. [h-convergence test](#h-convergence-test)
-1. [p-convergence test](#p-convergence-test)
-1. [h5diff](#h5diff)
-    1. [h5diff (multiple files)](#h5diff-multiple-files)
-        1. [Example with h5diff_one_diff_per_run = F](#example-with-h5diff_one_diff_per_run-f)
-        1. [Example with h5diff_one_diff_per_run = T](#example-with-h5diff_one_diff_per_run-t)
-    1. [h5diff (additional options)](#h5diff-additional-options)
-        1. [Dataset Sorting](#dataset-sorting)
-        1. [Multiple dataset names](#multiple-dataset-names)
-1. [h5 array bounds check](#h5-array-bounds-check)
-1. [Data file line comparison](#data-file-line-comparison)
-1. [integrate data columns](#integrate-data-columns)
-1. [compare data columns](#compare-data-column)
-1. [compare across commands](#compare-across-commands)
-1. [Clean-up files after each run](#clean-up-files)
+
+- [Reggie2.0 toolbox](#reggie20-toolbox)
+  - [Installation](#installation)
+  - [Overview](#overview)
+  - [Code hierarchy and required *.ini* files](#code-hierarchy-and-required-ini-files)
+- [Analyze routines for "analyze.ini"](#analyze-routines-for-analyzeini)
+- [L2 error file](#l2-error-file)
+- [L2 error upper limit](#l2-error-upper-limit)
+- [h-convergence test](#h-convergence-test)
+- [p-convergence test](#p-convergence-test)
+- [h5diff](#h5diff)
+  - [h5diff (multiple files)](#h5diff-multiple-files)
+    - [Example with `h5diff_one_diff_per_run = F`](#example-with-h5diff_one_diff_per_run--f)
+    - [Example with `h5diff_one_diff_per_run = T`](#example-with-h5diff_one_diff_per_run--t)
+  - [h5diff (additional options)](#h5diff-additional-options)
+    - [Dataset Sorting](#dataset-sorting)
+    - [Dataset Re-Shaping](#dataset-re-shaping)
+    - [Multiple dataset names](#multiple-dataset-names)
+    - [Compare variables](#compare-variables)
+- [vtudiff](#vtudiff)
+    - [vtudiff (additional options)](#vtudiff-additional-options)
+      - [Compare single array](#Compare-single-array)
+- [h5 array bounds check](#h5-array-bounds-check)
+- [Data file line comparison](#data-file-line-comparison)
+    - [Example 1 of 4](#example-1-of-4)
+    - [Example 2 of 4](#example-2-of-4)
+    - [Example 3 of 4](#example-3-of-4)
+    - [Example 4 of 4](#example-4-of-4)
+- [integrate data columns](#integrate-data-columns)
+- [compare data column](#compare-data-column)
+- [Compare across commands](#compare-across-commands)
+- [Clean-up files](#clean-up-files)
+- [Command Line](#command-line)
+    - [Example](#example)
+- [Externals](#externals)
+    - [Example](#example-1)
+- [Builds](#builds)
+- [Runs](#runs)
+    - [Exclude runs directly](#exclude-runs-directly)
+    - [Use the same parameter list for multiple parameters in parameter.ini](#use-the-same-parameter-list-for-multiple-parameters-in-parameterini)
+    - [Example](#example-2)
 
 
-The parameters used in `analyze.ini` and example arguments are given in the following table. Note that if you intend to use white spaces in variable names they must be supplied in form of `\s` in the variable name. 
-Example: `"Initial Timestep"` becomes `"Initial\sTimestep"` (or `"Initial\s Timestep"`) because all white spaces are removed from the variable name automatically. 
-The intention of a white space must be stated explicitly. 
+The parameters used in `analyze.ini` and example arguments are given in the following table. Note that if you intend to use white spaces in variable names they must be supplied in form of `\s` in the variable name.
+Example: `"Initial Timestep"` becomes `"Initial\sTimestep"` (or `"Initial\s Timestep"`) because all white spaces are removed from the variable name automatically.
+The intention of a white space must be stated explicitly.
 
-| **analyze**              | **options**                                         | **values (examples)**                 | **Default values**  | **Description**
-| :-----------------------:| :-------------------------------------              | :------------------------------------ | :------------------ | :---------------------------------------------------------------------------------------------------------------------------                                                                                                             |
-| L2 error in file         | analyze\_L2\_file                                   | L2error.txt                           | None                | data file containing the L2 errors for comparing with                                                                                                                                                                                    |
-|                          | analyze\_L2\_file\_tolerance                        | 6e-2                                  | None                | relative/absolute deviation between two L2 errors (from output and from reference file)                                                                                                                                                  |
-|                          | analyze\_L2\_file\_tolerance\_type                  | relative                              | absolute            | relative or absolute comparison                                                                                                                                                                                                          |
-|                          | analyze\_L2\_file\_error\_name                      | L\_2\_ERROR                           | L\_2                | string name of the L2 error in the std.out file                                                                                                                                                                                          |
-| L2 error                 | analyze\_L2                                         | 1e-5                                  | None                | L2 upper boundary for all nVar. If one L2 error is above the boundary, this test fails                                                                                                                                                   |
-|                          | analyze\_L2\_error\_name                            | L\_2\_ERROR                           | L\_2                | string name of the L2 error in the std.out file                                                                                                                                                                                          |
-| h-convergence test       | analyze\_Convtest\_h\_cells                         | 1,2,4,8                               | None                | number of cells (in each direction, or in the direction of the convergence test variable)                                                                                                                                                |
-|                          | analyze\_Convtest\_h\_tolerance                     | 0.3                                   | 0.02                | relative deviation from the p+1 convergence rate to the calculated one                                                                                                                                                                   |
-|                          | analyze\_Convtest\_h\_rate                          | 1.0                                   | 1.0                 | ratio of successful tests versus failed tests regarding the number of nVar                                                                                                                                                               |
-|                          | analyze\_Convtest\_h\_error\_name                   | L\_2\_ERROR                           | L\_2                | string name of the L2 error in the std.out file                                                                                                                                                                                          |
-| p-convergence test       | analyze\_Convtest\_p\_rate                          | 0.6                                   | None                | ratio of successful tests versus failed tests regarding the number of nVar                                                                                                                                                               |
-|                          | analyze\_Convtest\_p\_percentage                    | 0.5                                   | 0.75                | ratio of increasing EOC samples vs. total number of samples (for the p-convergence, the EOC must increase with p)                                                                                                                        |
-|                          | analyze\_Convtest\_p\_error\_name                   | L\_2\_ERROR                           | L\_2                | string name of the L2 error in the std.out file                                                                                                                                                                                          |
-| h5diff                   | h5diff\_file                                        | particle\_State\_00.0000.h5           | None                | name of calculated .h5 file (output from current run)                                                                                                                                                                                    |
-|                          | h5diff\_reference\_file                             | particle\_State\_00.0000.h5\_ref      | None                | reference .h5 file (must be placed in repository) for comparing with the calculated one                                                                                                                                                  |
-|                          | h5diff\_data\_set                                   | DG\_Solution or DG\_Solution\\sField1 | None                | name of dataset for comparing (e.g. DG\_Solution or DG\_Solution vs. Field1 when the datasets in the two files have different names)                                                                                                     |
-|                          | h5diff\_tolerance\_value                            | 1.0e-2                                | 1e-5                | relative/absolute deviation between two elements in a .h5 array                                                                                                                                                                          |
-|                          | h5diff\_tolerance\_type                             | relative                              | absolute            | relative or absolute comparison                                                                                                                                                                                                          |
-|                          | h5diff\_one\_diff\_per\_run                         | True                                  | False               | if multiple reference files are supplied, these can either be used in every run or one each run                                                                                                                                          |
-|                          | h5diff\_sort                                        | True                                  | False               | Sort h5 arrays before comparing them, which circumvents problems when comparing arrays that are written in arbitrary order due to multiple MPI processes writing the dataset (currently only 2-dimensional m x n arrays are implemented) |
-|                          | h5diff\_sort\_dim                                   | 1                                     | -1                  | Sorting dimension of a 2-dimensional m x n array (1: sort array by rows, 2: sort array by columns)                                                                                                                                       |
-|                          | h5diff\_sort\_var                                   | 0                                     | -1                  | Sorting variable of the specified dimension. The array will be sorted for this variable in ascending order (note that variables start at 0)                                                                                              |
-|                          | h5diff\_reshape                                     | True                                  | False               | Re-shape h5 arrays before comparing them, effectively removing rows or columns (for example). This is currently only implemented for 2-dimensional m x n arrays.                                                                         |
-|                          | h5diff\_reshape\_dim                                | 1                                     | -1                  | Select the dimension, which is to be changed (decreased, note that variables start at 0)                                                                                                                                                 |
-|                          | h5diff\_reshape\_value                              | 11                                    | -1                  | Value to which the selected dimension is to be changed (decreased)                                                                                                                                                                       |
-|                          | h5diff\_max\_differences                            | 15                                    | 0                   | Maximum number of allowed differences that are detected by h5diff for the test to pass without failure                                                                                                                                   |
-| h5 array bounds check    | check\_hdf5\_file                                   | tildbox_State_01.0000.h5              | None                | name of calculated .h5 file (output from current run)                                                                                                                                                                                    |
-|                          | check\_hdf5\_data\_set                              | PartData                              | None                | name of data set for comparing (e.g. DG\_Solution)                                                                                                                                                                                       |
-|                          | check\_hdf5\_span                                   | 1                                     | 2                   | Checks elements of a 2-dimensional m x n array (1: check array elements by rows, 2: check array elements by columns)                                                                                                                     |
-|                          | check\_hdf5\_dimension                              | 0:2                                   | None                | dimension of data set (note that dimensions start at 0)                                                                                                                                                                                  |
-|                          | check\_hdf5\_limits                                 | -10.0:10.0                            | None                | bounding interval for all elements in h5 array for all dimensions supplied under check\_hdf5\_dimension                                                                                                                                  |
-| data file line           | compare\_data\_file\_<br />one\_diff\_per\_run      | True                                  | True                | if multiple reference files are supplied, these can either be used in every run or one each run                                                                                                                                          |
-|                          | compare\_data\_file\_<br />name                     | Database.csv                          | None                | name of calculated ASCII data file (usually .csv file)                                                                                                                                                                                   |
-|                          | compare\_data\_file\_<br />reference                | Database.csv\_ref                     | None                | name of reference file (must be placed in repository)                                                                                                                                                                                    |
-|                          | compare\_data\_file\_<br />tolerance                | 6e-2                                  | None                | relative/absolute deviation between two elements (in e.g. .csv file)                                                                                                                                                                     |
-|                          | compare\_data\_file\_<br />tolerance\_type          | relative                              | absolute            | relative or absolute comparison                                                                                                                                                                                                          |
-|                          | compare\_data\_file\_<br />line                     | 50                                    | last                | line number in calculated data file (e.g. .csv file)                                                                                                                                                                                     |
-|                          | compare\_data\_file\_<br />delimiter                | :                                     | ,                   | delimiter symbol, default is comma ',' (note that a comma cannot be supplied in this file as it is a delimiter itself)                                                                                                                   |
-|                          | compare\_data\_file\_<br />max\_differences         | 5                                     | 0                   | Maximum number of allowed differences that are detected by comparison with a reference value for the test to pass without failure                                                                                                        |
-| integrate data columns   | integrate\_line\_file                               | Database.csv                          | None                | name of calculated output file (e.g. .csv file)                                                                                                                                                                                          |
-|                          | integrate\_line\_delimiter                          | :                                     | ,                   | delimiter symbol, default is comma ',' (note that a comma cannot be supplied in this file as it is a delimiter itself)                                                                                                                   |
-|                          | integrate\_line\_columns                            | 0:5                                   | None                | two columns for the values x and y supplied as 'x:y' (Note that columns start at 0)                                                                                                                                                      |
-|                          | integrate\_line\_integral_value                     | 44.00                                 | None                | integral value used for comparison                                                                                                                                                                                                       |
-|                          | integrate\_line\_tolerance_value                    | 0.8e-2                                | None                | tolerance that is used in comparison                                                                                                                                                                                                     |
-|                          | integrate\_line\_tolerance_type                     | relative                              | None                | type of tolerance, either 'absolute' or 'relative'                                                                                                                                                                                       |
-|                          | integrate\_line\_option                             | DivideByTimeStep                      | None                | special option, e.g., calculating a rate by dividing the integrated values by the timestep which is used in the values 'x'                                                                                                               |
-|                          | integrate\_line\_multiplier                         | 1                                     | 1                   | factor for multiplying the result (in order to acquire a physically meaning value for comparison)                                                                                                                                        |
-|                          | integrate\_line\_multiplier                         | 1                                     | 1                   | factor for multiplying the result (in order to acquire a physically meaning value for comparison)                                                                                                                                        |
-| compare data column      | compare\_column\_file                               | PartAnalyze.csv                       | None                | name of calculated output file (e.g. .csv file)                                                                                                                                                                                          |
-|                          | compare\_column\_reference\_file                    | Reference.csv                         | None                | name of of the reference file                                                                                                                                                                                                            |
-|                          | compare\_column\_delimiter                          | :                                     | ,                   | delimiter symbol, default is comma ',' (note that a comma cannot be supplied in this file as it is a delimiter itself)                                                                                                                   |
-|                          | compare\_column\_index                              | 0                                     | None                | column index for comparison (Note that the index of the column start at 0)                                                                                                                                                               |
-|                          | compare\_column\_tolerance_value                    | 0.8e-2                                | None                | tolerance that is used in comparison                                                                                                                                                                                                     |
-|                          | compare\_column\_tolerance_type                     | relative                              | None                | type of tolerance, either 'absolute' or 'relative'                                                                                                                                                                                       |
-|                          | compare\_column\_multiplier                         | 1                                     | 1                   | factor for multiplying the result (in order to acquire a physically meaning value for comparison)                                                                                                                                        |
-| compare across commands  | compare\_across\_commands\_<br />file               | ElemTimeStatistics.csv                | None                | name of calculated output file (e.g. csv)                                                                                                                                                                                                |
-|                          | compare\_across\_commands\_<br />column\_delimiter  | :                                     | ,                   | delimiter symbol, default is comma ',' (note that a comma cannot be supplied in this file as it is a delimiter itself)                                                                                                                   |
-|                          | compare\_across\_commands\_<br />column\_index      | 0                                     | None                | column index for comparison (note that first column has index 0)                                                                                                                                                                         |
-|                          | compare\_across\_commands\_<br />line\_number       | 1                                     | last                | line number for comparison (note that first line has number 1)                                                                                                                                                                           |
-|                          | compare\_across\_commands\_<br />tolerance\_value   | 0.1                                   | 0.1                 | tolerance value for deviation among the values to be compared                                                                                                                                                                            |
-|                          | compare\_across\_commands\_<br />tolerance\_type    | absolute                              | relative            | tolerance type to be used in comparison                                                                                                                                                                                                  | 
-|                          | compare\_across\_commands\_<br />reference          | 1                                     | 0                   | command number for taking reference value (according to numbering cmd_0001, cmd_0002,...) - default value 0 takes average of all calculated values                                                                                       |
-| clean-up files after run | clean\_up\_files                                    | *_State_*                             | None                | remove all unwanted files directly after the run is completed. The wild card character is "*"                                                                                                                                            |
+|       **analyze**        | **options**                                        | **values (examples)**                 | **Default values** | **Description**                                                                                                                                                                                                                          |
+| :----------------------: | :------------------------------------------------- | :------------------------------------ | :----------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|     L2 error in file     | analyze\_L2\_file                                  | L2error.txt                           | None               | data file containing the L2 errors for comparing with                                                                                                                                                                                    |
+|                          | analyze\_L2\_file\_tolerance                       | 6e-2                                  | None               | relative/absolute deviation between two L2 errors (from output and from reference file)                                                                                                                                                  |
+|                          | analyze\_L2\_file\_tolerance\_type                 | relative                              | absolute           | relative or absolute comparison                                                                                                                                                                                                          |
+|                          | analyze\_L2\_file\_error\_name                     | L\_2\_ERROR                           | L\_2               | string name of the L2 error in the std.out file                                                                                                                                                                                          |
+|         L2 error         | analyze\_L2                                        | 1e-5                                  | None               | L2 upper boundary for all nVar. If one L2 error is above the boundary, this test fails                                                                                                                                                   |
+|                          | analyze\_L2\_error\_name                           | L\_2\_ERROR                           | L\_2               | string name of the L2 error in the std.out file                                                                                                                                                                                          |
+|    h-convergence test    | analyze\_Convtest\_h\_cells                        | 1,2,4,8                               | None               | number of cells (in each direction, or in the direction of the convergence test variable)                                                                                                                                                |
+|                          | analyze\_Convtest\_h\_tolerance                    | 0.3                                   | 0.02               | relative deviation from the p+1 convergence rate to the calculated one                                                                                                                                                                   |
+|                          | analyze\_Convtest\_h\_rate                         | 1.0                                   | 1.0                | ratio of successful tests versus failed tests regarding the number of nVar                                                                                                                                                               |
+|                          | analyze\_Convtest\_h\_error\_name                  | L\_2\_ERROR                           | L\_2               | string name of the L2 error in the std.out file                                                                                                                                                                                          |
+|    p-convergence test    | analyze\_Convtest\_p\_rate                         | 0.6                                   | None               | ratio of successful tests versus failed tests regarding the number of nVar                                                                                                                                                               |
+|                          | analyze\_Convtest\_p\_percentage                   | 0.5                                   | 0.75               | ratio of increasing EOC samples vs. total number of samples (for the p-convergence, the EOC must increase with p)                                                                                                                        |
+|                          | analyze\_Convtest\_p\_error\_name                  | L\_2\_ERROR                           | L\_2               | string name of the L2 error in the std.out file                                                                                                                                                                                          |
+|          h5diff          | h5diff\_file                                       | particle\_State\_00.0000.h5           | None               | name of calculated .h5 file (output from current run)                                                                                                                                                                                    |
+|                          | h5diff\_reference\_file                            | particle\_State\_00.0000.h5\_ref      | None               | reference .h5 file (must be placed in repository) for comparing with the calculated one                                                                                                                                                  |
+|                          | h5diff\_data\_set                                  | DG\_Solution or DG\_Solution\\sField1 | None               | name of dataset for comparing (e.g. DG\_Solution or DG\_Solution vs. Field1 when the datasets in the two files have different names)                                                                                                     |
+|                          | h5diff\_tolerance\_value                           | 1.0e-2                                | 1e-5               | relative/absolute deviation between two elements in a .h5 array                                                                                                                                                                          |
+|                          | h5diff\_tolerance\_type                            | relative                              | absolute           | relative or absolute comparison                                                                                                                                                                                                          |
+|                          | h5diff\_one\_diff\_per\_run                        | True                                  | False              | if multiple reference files are supplied, these can either be used in every run or one each run                                                                                                                                          |
+|                          | h5diff\_sort                                       | True                                  | False              | Sort h5 arrays before comparing them, which circumvents problems when comparing arrays that are written in arbitrary order due to multiple MPI processes writing the dataset (currently only 2-dimensional m x n arrays are implemented) |
+|                          | h5diff\_sort\_dim                                  | 1                                     | -1                 | Sorting dimension of a 2-dimensional m x n array (1: sort array by rows, 2: sort array by columns)                                                                                                                                       |
+|                          | h5diff\_sort\_var                                  | 0                                     | -1                 | Sorting variable of the specified dimension. The array will be sorted for this variable in ascending order (note that variables start at 0)                                                                                              |
+|                          | h5diff\_reshape                                    | True                                  | False              | Re-shape h5 arrays before comparing them, effectively removing rows or columns (for example). This is currently only implemented for 2-dimensional m x n arrays and 3D and 4D (the latter two can only be reduced in the last dimension).|
+|                          | h5diff\_reshape\_dim                               | 1                                     | -1                 | Select the dimension, which is to be changed (decreased, note that variables start at 0)                                                                                                                                                 |
+|                          | h5diff\_reshape\_value                             | 11                                    | -1                 | Value to which the selected dimension is to be changed (decreased)                                                                                                                                                                       |
+|                          | h5diff\_flip                                       | True                                  | False              | Re-shape the h5 array before comparing it with the reference by transposing the array. This is currently only implemented for 2-dimensional m x n arrays.                                                                                |
+|                          | h5diff\_max\_differences                           | 15                                    | 0                  | Maximum number of allowed differences that are detected by h5diff for the test to pass without failure                                                                                                                                   |
+|                          | h5diff\_var\_attribute                             | VarNamesSurface                       | None               | name of attribute in the h5 file containing the column names of the given dataset                                                                                                                                                        |
+|                          | h5diff\_var\_name                                  | Spec001_ImpactNumber                  | None               | name of column containing the data which should be compared                                                                                                                                                                              |
+|          vtudiff         | vtudiff\_file                                      | particle\_Solution\_00.0000.vtu       | None               | name of calculated .vtu file (output from current run)                                                                                                                                                                                    |
+|                          | vtudiff\_reference\_file                           | particle\_Solution\_00.0000\_ref.vtu  | None               | reference .vtu file (must be placed in repository) for comparing with the calculated one                                                                                                                                                  |
+|                          | vtudiff\_relative\_tolerance\_value                | 1.0e-5                                | 1e-2               | relative deviation between two elements in a .vtu array                                                                                                                                                                          |
+|                          | vtudiff\_absolute\_tolerance\_value                | 1.0e-8                                | 1e-5               | absolute deviation between two elements in a .vtu array                                                                                                                                                                          |
+|                          | vtudiff\_array\_name                               | DG\_Solution or DG\_Solution\\sField1 | None               | name of .vtu array for comparing (e.g. DG\_Solution or DG\_Solution vs. Field1 when the datasets in the two files have different names)                                                                                                     |
+|  h5 array bounds check   | check\_hdf5\_file                                  | tildbox_State_01.0000.h5              | None               | name of calculated .h5 file (output from current run)                                                                                                                                                                                    |
+|                          | check\_hdf5\_data\_set                             | PartData                              | None               | name of data set for comparing (e.g. DG\_Solution)                                                                                                                                                                                       |
+|                          | check\_hdf5\_span                                  | 1                                     | 2                  | Checks elements of a 2-dimensional m x n array (1: check array elements by rows, 2: check array elements by columns)                                                                                                                     |
+|                          | check\_hdf5\_dimension                             | 0:2                                   | None               | dimension of data set (note that dimensions start at 0)                                                                                                                                                                                  |
+|                          | check\_hdf5\_limits                                | -10.0:10.0                            | None               | bounding interval for all elements in h5 array for all dimensions supplied under check\_hdf5\_dimension                                                                                                                                  |
+|      data file line      | compare\_data\_file\_<br />one\_diff\_per\_run     | True                                  | True               | if multiple reference files are supplied, these can either be used in every run or one each run                                                                                                                                          |
+|                          | compare\_data\_file\_<br />name                    | Database.csv                          | None               | name of calculated ASCII data file (usually .csv file)                                                                                                                                                                                   |
+|                          | compare\_data\_file\_<br />reference               | Database.csv\_ref                     | None               | name of reference file (must be placed in repository)                                                                                                                                                                                    |
+|                          | compare\_data\_file\_<br />tolerance               | 6e-2                                  | None               | relative/absolute deviation between two elements (in e.g. .csv file)                                                                                                                                                                     |
+|                          | compare\_data\_file\_<br />tolerance\_type         | relative                              | absolute           | relative or absolute comparison                                                                                                                                                                                                          |
+|                          | compare\_data\_file\_<br />line                    | 50                                    | last               | line number in calculated data file (e.g. .csv file)                                                                                                                                                                                     |
+|                          | compare\_data\_file\_<br />delimiter               | :                                     | ,                  | delimiter symbol, default is comma ',' (note that a comma cannot be supplied in this file as it is a delimiter itself)                                                                                                                   |
+|                          | compare\_data\_file\_<br />max\_differences        | 5                                     | 0                  | Maximum number of allowed differences that are detected by comparison with a reference value for the test to pass without failure                                                                                                        |
+|  integrate data columns  | integrate\_line\_file                              | Database.csv                          | None               | name of calculated output file (e.g. .csv file)                                                                                                                                                                                          |
+|                          | integrate\_line\_delimiter                         | :                                     | ,                  | delimiter symbol, default is comma ',' (note that a comma cannot be supplied in this file as it is a delimiter itself)                                                                                                                   |
+|                          | integrate\_line\_columns                           | 0:5                                   | None               | two columns for the values x and y supplied as 'x:y' (Note that columns start at 0)                                                                                                                                                      |
+|                          | integrate\_line\_integral_value                    | 44.00                                 | None               | integral value used for comparison                                                                                                                                                                                                       |
+|                          | integrate\_line\_tolerance_value                   | 0.8e-2                                | None               | tolerance that is used in comparison                                                                                                                                                                                                     |
+|                          | integrate\_line\_tolerance_type                    | relative                              | None               | type of tolerance, either 'absolute' or 'relative'                                                                                                                                                                                       |
+|                          | integrate\_line\_option                            | DivideByTimeStep                      | None               | special option, e.g., calculating a rate by dividing the integrated values by the timestep which is used in the values 'x'                                                                                                               |
+|                          | integrate\_line\_multiplier                        | 1                                     | 1                  | factor for multiplying the result (in order to acquire a physically meaning value for comparison)                                                                                                                                        |
+|                          | integrate\_line\_multiplier                        | 1                                     | 1                  | factor for multiplying the result (in order to acquire a physically meaning value for comparison)                                                                                                                                        |
+|   compare data column    | compare\_column\_file                              | PartAnalyze.csv                       | None               | name of calculated output file (e.g. .csv file)                                                                                                                                                                                          |
+|                          | compare\_column\_reference\_file                   | Reference.csv                         | None               | name of of the reference file                                                                                                                                                                                                            |
+|                          | compare\_column\_delimiter                         | :                                     | ,                  | delimiter symbol, default is comma ',' (note that a comma cannot be supplied in this file as it is a delimiter itself)                                                                                                                   |
+|                          | compare\_column\_index                             | 0                                     | None               | column indices for comparison, multiple columns per file are possible (Note that the index of the column start at 0)                                                                                                                     |
+|                          | compare\_column\_tolerance_value                   | 0.8e-2                                | None               | tolerance that is used in comparison                                                                                                                                                                                                     |
+|                          | compare\_column\_tolerance_type                    | relative                              | None               | type of tolerance, either 'absolute' or 'relative'                                                                                                                                                                                       |
+|                          | compare\_column\_multiplier                        | 1                                     | 1                  | factor for multiplying the result (in order to acquire a physically meaning value for comparison)                                                                                                                                        |
+| compare across commands  | compare\_across\_commands\_<br />file              | ElemTimeStatistics.csv                | None               | name of calculated output file (e.g. csv)                                                                                                                                                                                                |
+|                          | compare\_across\_commands\_<br />column\_delimiter | :                                     | ,                  | delimiter symbol, default is comma ',' (note that a comma cannot be supplied in this file as it is a delimiter itself)                                                                                                                   |
+|                          | compare\_across\_commands\_<br />column\_index     | 0                                     | None               | column index for comparison (note that first column has index 0)                                                                                                                                                                         |
+|                          | compare\_across\_commands\_<br />line\_number      | 1                                     | last               | line number for comparison (note that first line has number 1)                                                                                                                                                                           |
+|                          | compare\_across\_commands\_<br />tolerance\_value  | 0.1                                   | 0.1                | tolerance value for deviation among the values to be compared                                                                                                                                                                            |
+|                          | compare\_across\_commands\_<br />tolerance\_type   | absolute                              | relative           | tolerance type to be used in comparison                                                                                                                                                                                                  |
+|                          | compare\_across\_commands\_<br />reference         | 1                                     | 0                  | command number for taking reference value (according to numbering cmd_0001, cmd_0002,...) - default value 0 takes average of all calculated values                                                                                       |
+| clean-up files after run | clean\_up\_files                                   | *_State_*                             | None               | remove all unwanted files directly after the run is completed. The wild card character is "*"                                                                                                                                            |
 
 # L2 error file
 * Compare all L2 errors calculated for all nVar against supplied values in a data file
@@ -272,7 +306,7 @@ analyze_Convtest_p_percentage=0.75
 ```
 
 # h5diff
-* Compares two arrays from two .h5 files element-by-element either with an absolute or relative difference (when comparing with zero, h5diff automatically uses an absolute comparison).  
+* Compares two arrays from two .h5 files element-by-element either with an absolute or relative difference (when comparing with zero, h5diff automatically uses an absolute comparison).
 * Requires h5diff, which is compiled within the HDF5 package (set the corresponding environment variable).
 
       `export PATH=/opt/hdf5/X.X.XX/bin/:$PATH`
@@ -292,8 +326,8 @@ h5diff_tolerance_type  = relative
 ```
 
 ## h5diff (multiple files)
-* Compares multiple arrays from multiple .h5 files element-by-element either with an absolute or relative difference (when comparing with zero, h5diff automatically uses an absolute comparison).  
-* Requires h5diff, which is compiled within the HDF5 package.  
+* Compares multiple arrays from multiple .h5 files element-by-element either with an absolute or relative difference (when comparing with zero, h5diff automatically uses an absolute comparison).
+* Requires h5diff, which is compiled within the HDF5 package.
 
 ### Example with `h5diff_one_diff_per_run = F`
 This setup considers 2 runs and compares two files with two different reference files in each run, hence, multiple file output can be analyzed.
@@ -379,6 +413,61 @@ h5diff_data_set        = DG_Solution\sField1
 ```
 where "DG\_Solution" corresponds to the dataset name in *h5diff_file* and "Field1" to the dataset in *h5diff_reference_file*.
 
+### Compare variables
+This option allows for comparison of a single column of the selected dataset to avoid unnecessary computation. Simply provide the name of the attribute of the hdf5 file, which contains all names of the different columns in the dataset and additionally the name of the column, which should be compared.
+
+Both variables also take '_' as placeholder when using more than one analyze to compare all variables.
+
+Template for copying to **analyze.ini**
+```
+! hdf5 diff
+h5diff_file             = sphere_PartStateBoundary_000.00000010000000000.h5      , sphere_PartStateBoundary_2_000.00000010000000000.h5
+h5diff_reference_file   = sphere_PartStateBoundary_000.00000010000000000_ref.h5  , sphere_PartStateBoundary_2_000.00000010000000000_ref.h5
+h5diff_data_set         = PartData                                               , PartData2
+h5diff_tolerance_value  = 1.0e-2                                                 , 1.0e-2
+h5diff_tolerance_type   = relative                                               , relative
+h5diff_var_attribute    = VarNamesSurface                                        , _
+h5diff_var_name         = Spec001_ImpactNumber                                   , _
+```
+
+# vtudiff
+
+* Compares the point, field and cell data arrays (if not empty) of two .vtu files for each array element-by-element either with an absolute and/or relative difference (depending on which tolerance values are given - if no tolerance is given both default values are used).
+* Requires vtk for reading-in data to python.
+
+  [https://pypi.org/project/vtk/](https://pypi.org/project/vtk/)
+
+Note that piclas2vtk needs to be set as external, since otherwise no .vtu file is created for comparison.
+Template for copying to **analyze.ini**
+
+```
+! vtu diff
+vtudiff_file                       = single-particle_State_000.00000005000000000.h5
+vtudiff_reference_file             = single-particle_reference_State_000.0000000500000000.h5
+vtudiff_relative_tolerance_value   = 1.0e-2
+vtudiff_absolute_tolerance_value   = 1.0
+```
+
+## vtudiff (additional options)
+
+### Compare single array
+
+For comparison of only one array simply add the array name with
+```
+vtudiff_array_name                 = DG_Solution
+```
+,where "DG\_Solution" is the array name in the .vtu file. This variable takes also '_' as placeholder, when using more than one analyze to compare all arrays.
+
+Template for copying to **analyze.ini**
+
+```
+! vtu diff
+vtudiff_file                       = single-particle_State_000.00000005000000000.h5           , single-particle_State_2_000.00000005000000000.h5
+vtudiff_reference_file             = single-particle_reference_State_000.0000000500000000.h5  , single-particle_reference_State_2_000.0000000500000000.h5
+vtudiff_relative_tolerance_value   = 1.0e-2                                                   , 1.0e-2
+vtudiff_absolute_tolerance_value   = 1.0                                                      , 1.0
+vtudiff_array_name                 = DG_Solution                                              , _
+```
 
 # h5 array bounds check
 * Check if all elements of a h5 array are within a supplied interval
@@ -399,6 +488,7 @@ check_hdf5_limits      = -10.0:10.0
 * Compare a single line in, e.g., a .csv file element-by-elements
 * The data is delimited by a comma on default but can be changed by setting "compare\_data\_file\_delimiter = :" (when, e.g., ":" is to be used as the delimiter)
 * relative of absolute comparison
+* Possibility to perform one comparison per run (e.g. supply 10 data and reference files for 10 different runs), default is true
 
 ### Example 1 of 4
 Template for copying to **analyze.ini**
@@ -409,6 +499,7 @@ compare_data_file_name      = Database.csv
 compare_data_file_reference = Database_reference.csv
 compare_data_file_tolerance = 2.0
 compare_data_file_tolerance_type = relative
+compare_data_file_one_diff_per_run = T
 ```
 
 Note that a comma is the default delimiter symbol for reading the data from the supplied file. The variable "compare\_data\_file\_delimiter" cannot be set as custom delimiter symbol "," because the comma is used for splitting the keywords in analyze.ini. However, other symbols can be supplied using "compare\_data\_file\_delimiter" instead of a comma.
@@ -427,7 +518,7 @@ compare_data_file_tolerance_type = relative
 ```
 ### Example 3 of 4
 
-Additionally, multiple output files (Database\_TX000K.csv) can be supplied in combination with multiple reference files (Database\_TX000K\_ref.csv). See the following example. 
+Additionally, multiple output files (Database\_TX000K.csv) can be supplied in combination with multiple reference files (Database\_TX000K\_ref.csv). See the following example.
 
 ```
 ! compare the last row in Database.csv with a reference file
@@ -485,17 +576,23 @@ Note that a comma is the default delimiter symbol for reading the data from the 
 # compare data column
 * compares the data in a column with a reference file
 * The data is delimited by a comma on default but can be changed by setting "compare\_column\_delimiter = :" (when, e.g., ":" is to be used as the delimiter)
+* Comparison of several columns is possible by providing a list of the column indices
+* If only a single column (e.g. from a large PartAnalyze.csv) is compared, it is possible to provide a reference file, which only contains a single column to reduce its size
+* Possibility to perform one comparison per run (e.g. supply 10 data and reference files for 10 different runs), default is true
+* Possibility to perform one comparison per restart file, default is false. Overwrites the one comparison per run parameter above, as the command line runs are one level above
 
 Template for copying to **analyze.ini**
 
 ```
 ! compare columns in a data file
-compare_column_file            = PartAnalyze.csv ! data file name
-compare_column_reference_file  = reference.csv   ! reference data file name
-compare_column_index           = 0               ! columns index (starts at 0)
-compare_column_tolerance_value = 0.8e-2          ! tolerance
-compare_column_tolerance_type  = relative        ! absolute or relative comparison
-compare_column_multiplier      = 5e-3            ! fixed factor
+compare_column_file                       = PartAnalyze.csv ! data file name
+compare_column_reference_file             = reference.csv   ! reference data file name
+compare_column_index                      = 0,1             ! columns index (starts at 0)
+compare_column_tolerance_value            = 0.8e-2          ! tolerance
+compare_column_tolerance_type             = relative        ! absolute or relative comparison
+compare_column_multiplier                 = 5e-3            ! fixed factor
+compare_column_one_diff_per_run           = T
+compare_column_one_diff_per_restart_file  = F
 ```
 
 Note that a comma is the default delimiter symbol for reading the data from the supplied file. The variable "compare\_column\_delimiter" cannot be set as custom delimiter symbol "," because the comma is used for splitting the keywords in analyze.ini. However, other symbols can be supplied using "compare\_column\_delimiter" instead of a comma.
@@ -539,11 +636,12 @@ clean_up_files = *_State_*, *.csv, *.dat
 
 parameters used in `command_line.ini` and example arguments
 
-|**function**              | **options**                          | **values**                                            | **Default values**               | **Description**           
-|:------------------------:|:-------------------------------------|:------------------------------------------------------|:---------------------------------|:---------------------------------------------------------------------------------------------------------------------------|
-|mpirun                    | MPI                                  | 1,2,4,8                                               | None                             | number of MPI threads with which the runs are repeated                                                                     |
-|additional info           | cmd\_suffix                          | DSMC.ini                                              | None                             | additional information that is appended to the command line argument that is used for running a program                    |
-|restart from file         | restart\_file                        | My_State_000.0000005123.h5                            | None                             | supply the name of a state file from which all simulations are to be re-started                                             |
+|   **function**    | **options**   | **values**                 | **Default values** | **Description**                                                                                         |
+| :---------------: | :------------ | :------------------------- | :----------------- | :------------------------------------------------------------------------------------------------------ |
+|      mpirun       | MPI           | 1,2,4,8                    | None               | number of MPI threads with which the runs are repeated                                                  |
+|  additional info  | cmd\_suffix   | DSMC.ini                   | None               | additional information that is appended to the command line argument that is used for running a program |
+| restart from file | restart\_file | My_State_000.0000005123.h5 | None               | supply the name of a state file from which all simulations are to be re-started                         |
+| link to database  | database      | SpeciesDatabase.h5         | None               | supply the name of a database file and its relative path (e.g. ../../../SpeciesDatabase.h5)             |
 
 
 ### Example
@@ -556,19 +654,20 @@ Template for copying to `command_line.ini`
 ! command line parameters
 MPI=2
 cmd\_suffix=DSMC.ini
+database = ../../../SpeciesDatabase.h5
 ```
 
 # Externals
 
-parameters used in `externals.ini` 
+parameters used in `externals.ini`
 
-| **function**                                 | **options**           | **values**                     | **Default values** | **Description**
-| :-----------------------------------------:  | :-------------------- | :----------------------------- | :---------------   | :--------------------------------------------------------------------------------------------------------------------------- |
-| mpirun                                       | MPI                   | 1,2,4,8                        | None               | number of MPI threads with which the runs are repeated                                                                       |
-| name of external binary in bin folder        | externalbinary        | hopr                           | None               | supply the external binary name (the binary is assumed to lie in each "build/bin/" directory                                 |
-| directory of ini-files for external binary   | externaldirectory     | hopr                           | None               | supply the relative path (starting from each example folder) to the directory of the parameterfiles for the external binary  |
-| runtime of external (pre or post)            | externalruntime       | pre,post                       | None               | supply the runtime of the external binary and its parameterfiles as pre- or postprocessing                                   |
-| Pre-execution command                        | cmd\_pre\_execute     | ln\s-s\s../cube_mesh.h5        | None               | Run additional script before external in executed (e.g. create an symbolic link)                                             |
+|                      **function**                      | **options**       | **values**              | **Default values** | **Description**                                                                                                                                                 |
+| :----------------------------------------------------: | :---------------- | :---------------------- | :----------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|                         mpirun                         | MPI               | 1,2,4,8                 | None               | number of MPI threads with which the runs are repeated                                                                                                          |
+|         name of external binary in bin folder          | externalbinary    | hopr                    | None               | supply the external binary name (the binary is assumed to lie in each "build/bin/" directory                                                                    |
+| directory of ini-files or ini-file for external binary | externaldirectory | hopr                    | None               | supply the relative path (starting from each example folder) to the directory of the parameterfiles or directly the parameterfiles name for the external binary |
+|           runtime of external (pre or post)            | externalruntime   | pre,post                | None               | supply the runtime of the external binary and its parameterfiles as pre- or postprocessing                                                                      |
+|                 Pre-execution command                  | cmd\_pre\_execute | ln\s-s\s../cube_mesh.h5 | None               | Run additional script before external in executed (e.g. create an symbolic link)                                                                                |
 
 ### Example
 * supply two external binaries: hopr and posti
@@ -576,7 +675,7 @@ parameters used in `externals.ini`
 * different run times for hopr and posti
 * (optional: run different MPI threads with hopr and posti, see above)
 
-Template for copying to `command\_line.ini`
+Template for copying to `externals.ini`
 
 ```
 ! external parameters
@@ -589,16 +688,25 @@ MPI               = 1,2
 nocrosscombination:externalbinary,externaldirectory,externalruntime,MPI
 ```
 
+To execute the hopr.ini directly in the test folder
+
+```
+MPI               = 1
+externalbinary    = ./hopr/build/bin/hopr
+externaldirectory = hopr.ini
+externalruntime   = pre
+```
+
 
 # Builds
 
 parameters used in `builds.ini` and example arguments
 
-|**function**              | **options**                          | **values**                                            | **Default values**               | **Description**           
-|:------------------------:|:-------------------------------------|:------------------------------------------------------|:---------------------------------|:---------------------------------------------------------------------------------------------------------------------------|
-|program to execute        | binary                               | ./bin/flexi                                           | None                             | set the relative binary path in build directory                                                                            |
-|compile flags             | CMAKE\_BUILD\_TYPE                   | DEBUG                                                 | None                             | set compile flags to the corresponding settings                                                                            |
-|exclude combinations      | EXCLUDE:                             | FLEXI\_VISCOSITY=sutherland,FLEXI\_PARABOLIC=OFF        | None                             | exclude specific combinations of compile flags, these will be skipped                                                      |
+|     **function**     | **options**        | **values**                                       | **Default values** | **Description**                                                       |
+| :------------------: | :----------------- | :----------------------------------------------- | :----------------- | :-------------------------------------------------------------------- |
+|  program to execute  | binary             | ./bin/flexi                                      | None               | set the relative binary path in build directory                       |
+|    compile flags     | CMAKE\_BUILD\_TYPE | DEBUG                                            | None               | set compile flags to the corresponding settings                       |
+| exclude combinations | EXCLUDE:           | FLEXI\_VISCOSITY=sutherland,FLEXI\_PARABOLIC=OFF | None               | exclude specific combinations of compile flags, these will be skipped |
 
 
 # Runs

@@ -2,10 +2,10 @@
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 # Load modules on new boltzplatz reggie
 before_script:
+  - export PATH="/var/lib/gitlab-runner/.local/bin:$PATH"
   - ulimit -s unlimited
   - module list || true
   - python3 -V || true
-  - python2 -V || true
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 # Stages
@@ -17,13 +17,11 @@ stages:
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 # Stage "checkin": Run reggie wiht -h
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
-checkin:
-  stage: deploy
-  tags:
-    - withmodules-concurrent
+build:
+  stage: checkin
   script:
-    - if [ -x "$(command -v python2)" ]; then echo "Testing python 2"; python2 ./reggie.py -h; fi
-    - if [ -x "$(command -v python3)" ]; then echo "Testing python r"; python3 ./reggie.py -h; fi
+    - if [ -x "$(command -v python2)" ]; then echo "Testing python 2"; python2 -m pip install . --break-system-packages; reggie -h; fi
+    - if [ -x "$(command -v python3)" ]; then echo "Testing python 3"; python3 -m pip install . --break-system-packages; reggie -h; fi
   rules:
     - if: '$DO_CHECKIN'
     - if: '$CI_PIPELINE_SOURCE == "push"'
@@ -32,16 +30,14 @@ checkin:
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 github:
   stage: deploy
-  tags:
-    - withmodules-concurrent
   script:
     - if [ -z "${DO_DEPLOY}" ]; then exit ; fi
     - rm -rf reggie_github || true ;
-    - git clone -b master --single-branch git@gitlab.com:reggie2.0/reggie2.0.git reggie_github ;
+    - git clone -b master --single-branch git@piclas.boltzplatz.eu:reggie2.0/reggie2.0.git reggie_github ;
     - cd reggie_github ;
-    - git remote add piclas-framework git@github.com:piclas-framework/reggie2.0.git ;
+    - git remote add piclas-framework git@github.com-reggie2.0:piclas-framework/reggie2.0.git ;
     - git push --force --follow-tags piclas-framework master ;
-    - git remote add reggie-framework git@github.com:reggie-framework/reggie2.0.git ;
+    - git remote add reggie-framework git@github.com-framework-reggie2.0:reggie-framework/reggie2.0.git ;
     - git push --force --follow-tags reggie-framework master ;
   rules:
     - if: '$DO_DEPLOY'

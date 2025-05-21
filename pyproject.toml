@@ -1,0 +1,48 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "reggie"
+version = "2.0.0"
+authors = [
+	"Stephen Copplestone"
+]
+description = ""
+license = "GPL-3.0"
+readme = "README.md"
+repository = "https://github.com/piclas-framework/reggie2.0"
+keywords = ["regression checks", "regression testing", "regression testing framework"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+
+[tool.poetry.dependencies]
+h5py = ">=2.10.0"
+matplotlib = ">=3.1.2"
+vtk = ">=9.4.0"
+pre-commit = ">=4.1.0"
+
+[tool.poetry.scripts]
+reggie = "reggie.reggie:main"
+repas = "reggie.repas.repas:main"
+
+[tool.ruff]
+line-length = 220
+indent-width = 4
+force-exclude = true
+exclude = ["reggie/__init__.py"]
+required-version = ">=0.7.1"
+show-fixes = true
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "A", "ARG", "TD", "PERF", "RUF100"
+         ]
+ignore = ["E402","TD002"]
+
+[tool.ruff.format]
+indent-style = "space"
+quote-style = "preserve"
