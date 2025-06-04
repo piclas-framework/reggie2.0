@@ -514,6 +514,15 @@ def getExternals(path, example, build):
                         combi['externalbinary'] = binary  # over-write user-defined path
                     else:  # fmt: skip
                         s = 'Tried loading hopr binary path from environment variable $HOPR_PATH=[%s] as the supplied path does not exist.\nAdd the binary path via "export HOPR_PATH=/opt/hopr/1.X/bin/hopr"\n' % hopr_path
+                elif binary == 'pyhope':
+                    # Try and load hopr binary path form environment variables
+                    pyhope_path = shutil.which("pyhope")
+                    if pyhope_path:
+                        binary_path = pyhope_path
+                        binary_found = True
+                        combi['externalbinary'] = pyhope_path  # over-write user-defined path
+                    else:  # fmt: skip
+                        s = 'Tried loading pyhope binary path from environment (pyhope_path = %s), but it was not found."\n' % pyhope_path
 
                 # Display error if no binary is found
                 if not binary_found:
