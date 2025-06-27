@@ -15,6 +15,7 @@ import os
 import re
 import shutil
 import subprocess
+from typing import cast
 
 from reggie import combinations
 from reggie import tools
@@ -159,9 +160,9 @@ def StandaloneAutomaticMPIDetection(binary_path):
                         Parentheses = re.search(r'\((.+)\)', line)
                         if Parentheses:
                             # fmt: off
-                            text = Parentheses.group(0) # get text
-                            text = text[1:-1]           # remove opening and closing parentheses
-                            text = re.sub(r'".*"', '', text) # remove double quotes and their content
+                            text = Parentheses.group(0)       # get text
+                            text = text[1:-1]                 # remove opening and closing parentheses
+                            text = re.sub(r'".*"', '', text)  # remove double quotes and their content
                             # fmt: on
                             parameters = text.split()
                             MPI_built_flags = [os.path.basename(binary_path).upper() + "_MPI", 'LIBS_USE_MPI']
@@ -233,7 +234,7 @@ def StandaloneAutomaticMPIDetection(binary_path):
     if not MPIifOFF and not userblockChecked:
         # Use try/except here, but don't terminate the program when try fails
         try:
-            cmd = ['ldd', binary_path, '|', 'grep', '-i', '"libmpi\.\|\<libmpi_"']  # noqa: W605 invalid escape sequence
+            cmd = ['ldd', binary_path, '|', 'grep', '-i', r"libmpi\.\|\<libmpi_"]
             a = ' '.join(cmd)
             pipe = subprocess.Popen(a, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             (std, err) = pipe.communicate()
@@ -247,9 +248,9 @@ def StandaloneAutomaticMPIDetection(binary_path):
                 err = err.decode("utf-8", 'ignore')
 
             # Check if the grep result is not empty
-            if std or 'not a dynamic executable' in err:
+            if std or 'not a dynamic executable' in cast(str, err):
                 MPIifOFF = False
-                if 'not a dynamic executable' in err:
+                if 'not a dynamic executable' in cast(str, err):
                     err = err.rstrip('\n')
                     err = err.lstrip()
                     print(
@@ -341,14 +342,14 @@ class Command_Lines(OutputDirectory):
         return tools.indent(s, 2)
 
 
-def getCommand_Lines(path, example, MPIbuilt, MaxCoresMPICH):
+def getCommand_Lines(path, example, MPIbuilt, MaxCores):
     command_lines = []
     i = 1
     # If single execution is to be performed, remove "MPI =! 1" from command line list
     if not MPIbuilt:
         combis, digits = combinations.getCombinations(path, OverrideOptionKey='MPI', OverrideOptionValue='1')
     else:
-        combis, digits = combinations.getCombinations(path, MaxCoresMPICH=MaxCoresMPICH)
+        combis, digits = combinations.getCombinations(path, MaxCores=MaxCores)
 
     for r in combis:
         command_lines.append(Command_Lines(r, example, i))
@@ -394,12 +395,16 @@ def SetMPIrun(build, args, MPIthreads):
                         cmd = ["aprun", "-n", MPIthreads, "-N", "24"]
                 else:
                     if args.MPIexe == 'mpirun':
-                        if args.detectedMPICH:
+                        if args.MaxCores > 0:
                             # MPICH core limit due to massive drop in performance when using over-subscription
-                            if args.MaxCoresMPICH > 0:
-                                if args.MaxCoresMPICH < int(MPIthreads):
-                                    print(tools.indent(tools.yellow("MPICH process limit activated: Setting MPIthreads=%s (originally was %s)" % (args.MaxCoresMPICH, MPIthreads)), 3))
-                                    MPIthreads = str(args.MaxCoresMPICH)
+                            if args.MaxCores< int(MPIthreads):
+                                if args.detectedMPICH:
+                                    tmpStr = "MPICH"
+                                else:
+                                    tmpStr = "MaxProcs"
+
+                                print(tools.indent(tools.yellow("%s process limit activated: Setting MPIthreads=%s (originally was %s)" % (tmpStr, args.MaxCores, MPIthreads)), 3))
+                                MPIthreads = str(args.MaxCores)
                             cmd = [args.MPIexe, "-np", MPIthreads]
                         else:
                             # Assume OpenMPI
@@ -998,7 +1003,7 @@ def PerformCheck(start, builds, args, log):
 
                 # 2.1    read the command line options in 'command_line.ini' for binary execution
                 #        (e.g. number of threads for mpirun)
-                example.command_lines = getCommand_Lines(os.path.join(example.source_directory, 'command_line.ini'), example, MPIbuilt, MaxCoresMPICH=args.MaxCoresMPICH)
+                example.command_lines = getCommand_Lines(os.path.join(example.source_directory, 'command_line.ini'), example, MPIbuilt, MaxCores=args.MaxCores)
 
                 # 2.2   read-in restart_file parameter from command_line.ini separately
                 example.restart_file_list = getRestartFileList(example)

@@ -111,17 +111,16 @@ def SummaryOfErrors(builds, args):
                     except Exception:
                         pass
 
-                    # Check if MPICH was used and more than the number of physical cores
+                    # Check if MaxCores was set and more than the number of physical cores
                     try:
-                        if args.detectedMPICH:
-                            try:
-                                cores = command_line.parameters.get('MPI', '-')
-                                if int(cores) > args.MaxCoresMPICH and args.MaxCoresMPICH > 0:
-                                    run.output_strings['MPI'] = '%s (changed from %s)' % (args.MaxCoresMPICH, run.output_strings['MPI'])
-                                    run.outputMPIyellow = True
-                            except Exception:
-                                run.output_strings['MPI'] = '%s (changed from %s)' % (args.MaxCoresMPICH, run.output_strings['MPI'])
+                        try:
+                            cores = command_line.parameters.get('MPI', '-')
+                            if int(cores) > args.MaxCores and args.MaxCores> 0:
+                                run.output_strings['MPI'] = '%s (changed from %s)' % (args.MaxCores, run.output_strings['MPI'])
                                 run.outputMPIyellow = True
+                        except Exception:
+                            run.output_strings['MPI'] = '%s (changed from %s)' % (args.MaxCores, run.output_strings['MPI'])
+                            run.outputMPIyellow = True
                     except Exception:
                         pass
 
