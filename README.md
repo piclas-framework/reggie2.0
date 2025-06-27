@@ -350,6 +350,7 @@ Template for copying to **analyze.ini**
 ```
 ! hdf5 diff
 h5diff_one_diff_per_run= T
+h5diff_allow_reorder   = T                                                         , T                                                         , T                                                         , T
 h5diff_file            = hdg_slab_DielectricGlobal_000.00000000000000000.h5        , hdg_slab_DielectricGlobal_000.00000000000000000.h5        , hdg_slab_DielectricGlobal_000.00000000000000000.h5        , hdg_slab_DielectricGlobal_000.00000000000000000.h5
 h5diff_reference_file  = hdg_slab_DielectricGlobal_000.00000000000000000_ref_N3.h5 , hdg_slab_DielectricGlobal_000.00000000000000000_ref_N5.h5 , hdg_slab_DielectricGlobal_000.00000000000000000_ref_N7.h5 , hdg_slab_DielectricGlobal_000.00000000000000000_ref_N9.h5
 h5diff_data_set        = DG_Solution                                               , DG_Solution                                               , DG_Solution                                               , DG_Solution

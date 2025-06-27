@@ -21,6 +21,7 @@ import types
 import sys
 
 import numpy as np
+import scipy as sp
 
 from reggie.externalcommand import ExternalCommand
 from reggie import analyze_functions
@@ -289,6 +290,7 @@ def getAnalyzes(path, example, args):
     # fmt: off
     h5diff = SimpleNamespace( \
              one_diff_per_run = options.get('h5diff_one_diff_per_run',False), \
+             allow_reorder    = options.get('h5diff_allow_reorder',False), \
              reference_file   = options.get('h5diff_reference_file',None), \
              file             = options.get('h5diff_file',None), \
              data_set         = options.get('h5diff_data_set',None), \
@@ -1207,6 +1209,7 @@ class Analyze_h5diff(Analyze, ExternalCommand):
     def __init__(self, h5diff):
         # Set number of diffs per run [True/False]
         self.one_diff_per_run = h5diff.one_diff_per_run in ('True', 'true', 't', 'T')
+        self.allow_reorder    = h5diff.allow_reorder    in ('True', 'true', 't', 'T')  # noqa: E272
 
         # Create dictionary for all keys/parameters and insert a list for every value/options
         self.prms = {
@@ -1221,6 +1224,7 @@ class Analyze_h5diff(Analyze, ExternalCommand):
             "reshape": h5diff.reshape,
             "reshape_dim": h5diff.reshape_dim,
             "reshape_value": h5diff.reshape_value,
+            "allow_reorder": h5diff.allow_reorder,
             "flip": h5diff.flip,
             "max_differences": h5diff.max_differences,
             "var_attribute": h5diff.var_attribute,
@@ -1349,6 +1353,7 @@ class Analyze_h5diff(Analyze, ExternalCommand):
                 max_differences_loc  = int(self.prms["max_differences"][compare])
                 var_attribute_loc    = self.prms["var_attribute"][compare]
                 var_name_loc         = self.prms["var_name"][compare]
+                allow_reorder_loc    = self.prms["allow_reorder"][compare]
 
                 # 1.1.0   Read the hdf5 file
                 path            = os.path.join(run.target_directory,file_loc)
@@ -1539,6 +1544,9 @@ class Analyze_h5diff(Analyze, ExternalCommand):
                         # flattened arrays for comparison
                         data1_slice = b1.flatten()
                         data2_slice = b2.flatten()
+                    else:
+                        equal_shape = False
+                        flattened_shape = False
                 else:
                     equal_shape = True
                     flattened_shape = False
@@ -1771,7 +1779,77 @@ class Analyze_h5diff(Analyze, ExternalCommand):
                                 pass
 
                             # 1.3   If the command 'cmd' returns a code != 0, set failed
-                            if self.return_code != 0:
+                            # > Check if the data match if reordered
+                            if self.return_code != 0 and allow_reorder_loc:
+                                # 1.2.1 Load the datasets into reggie
+                                f1 = h5py.File(path           , 'r')
+                                f2 = h5py.File(path_ref_target, 'r')
+
+                                # Extract the datasets
+                                b1 = f1[data_set_loc_file][:]
+                                b2 = f2[data_set_loc_ref ][:]
+
+                                # Check if both datasets have the same shape
+                                if b1.shape != b2.shape:
+                                    s = tools.red(
+                                        "Analyze_h5diff: Datasets [%s] and [%s] have different shapes [%s] and [%s]. Cannot compare them." % (data_set_loc_file, data_set_loc_ref, b1.shape, b2.shape)
+                                    )
+                                    print(s)
+                                    run.analyze_results.append(s)
+                                    run.analyze_successful = False
+                                    Analyze.total_errors += 1
+                                    f1.close()
+                                    f2.close()
+                                    continue
+
+                                # Calculate the difference array first
+                                diff = b1[:, np.newaxis] - b2[np.newaxis, :]
+
+                                # Compute the axis over which to calculate the norm
+                                axis = tuple(range(2, diff.ndim))
+
+                                print(
+                                    tools.yellow(
+                                        "    Reordering dim=%s to match the reference data"
+                                        % (1)
+                                    )
+                                )
+
+                                # Compute the cost matrix
+                                # > Eeach entry is the norm of the difference between b1[i] and b2[j]
+                                cost_matrix = np.sqrt(np.sum(diff**2, axis=axis))
+
+                                # Remap the data
+                                row_ind, col_ind = sp.optimize.linear_sum_assignment(cost_matrix)
+                                mapped_b1 = b1[row_ind]
+                                mapped_b2 = b2[col_ind]
+
+                                # Close the files
+                                f1.close()
+                                f2.close()
+
+                                if tolerance_type_loc == '--delta':
+                                    data_compare = np.isclose(mapped_b1, mapped_b2, atol=tolerance_value_loc)
+                                else:
+                                    data_compare = np.isclose(mapped_b1, mapped_b2, rtol=tolerance_value_loc)
+
+                                NbrOfDifferences = np.sum(~data_compare)
+                                if NbrOfDifferences > 0:
+                                    s = tools.red(
+                                        "Reordered datasets [%s] and [%s] have %s differences after reordering. This analysis is therefore marked as failed." % (data_set_loc_file, data_set_loc_ref, NbrOfDifferences)
+                                    )
+                                    print(s)
+                                    run.analyze_results.append(s)
+                                    run.analyze_successful = False
+                                    Analyze.total_errors += 1
+                                else:
+                                    s = tools.blue(
+                                        "Reordered datasets [%s] and [%s] have no differences after reordering. This analysis is therefore marked as passed." % (data_set_loc_file, data_set_loc_ref)
+                                    )
+                                    print(s)
+                                    run.analyze_results.append(s)
+
+                            elif self.return_code != 0 and not allow_reorder_loc:
                                 print(tools.indent("tolerance_type       : " + tolerance_type_loc, 2))
                                 print(tools.indent("tolerance_value      : " + str(tolerance_value_loc), 2))
                                 print(tools.indent("file                 : " + str(file_loc), 2))
