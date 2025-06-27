@@ -167,7 +167,7 @@ def readKeyValueFile(filename):
     return options, exclusions, noCrossCombinations
 
 
-def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None, OverrideOptionValue=None, MaxCoresMPICH=0):
+def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None, OverrideOptionValue=None, MaxCores=0):
     # 1. get the key-value list from file
     # 1.1   get exclusion from line (if line starts with 'exclude:')
     # 1.2   get noCrossCombination from line (if line starts with 'nocrosscombination:')
@@ -189,8 +189,8 @@ def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None
 
         options.sort(key=lambda option: len(option.values), reverse=True)  # sort list in order to have the most varying option at the beginning
 
-    # Avoid performing multiple tests, where the number of cores will be limited to MaxCoresMPICH (only set in the call from getCommand_Lines)
-    if MaxCoresMPICH > 0:
+    # Avoid performing multiple tests, where the number of cores will be limited to MaxCores(only set in the call from getCommand_Lines)
+    if MaxCores> 0:
         # loop over all the options
         for i in range(len(options)):
             # find the MPI option
@@ -199,7 +199,7 @@ def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None
                 # loop over the values
                 for j in range(len(options[i].values)):
                     # determine number of cores above the MPICH limit
-                    if int(options[i].values[j]) > MaxCoresMPICH:
+                    if int(options[i].values[j]) >= MaxCores:
                         counter += 1
                         # add an exclusion for the second and subsequent occurrences
                         if counter > 1:

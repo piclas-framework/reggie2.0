@@ -21,6 +21,7 @@ from reggie import check
 from reggie.outputdirectory import OutputDirectory
 
 try:
+    # Python 2.7
     import commands
 except Exception:
     pass
@@ -37,6 +38,7 @@ def getMaxCPUCores():
     try:
         MaxCores = open('/proc/cpuinfo').read().count('processor\t:')
 
+        cpuCores = None
         with open('/proc/cpuinfo') as file:
             for line in file:
                 line_parts = line.rstrip()
@@ -46,7 +48,7 @@ def getMaxCPUCores():
                     cpuCores = int(line_parts[1])
                     break
 
-        if cpuCores > 0 and MaxCores > cpuCores:
+        if cpuCores is not None and cpuCores > 0 and MaxCores > cpuCores:
             return cpuCores
         else:
             return 0
@@ -87,6 +89,7 @@ def getArgsAndBuilds():
     parser.add_argument('-f', '--fc'         , help='Create/Replace required restart files (if defined in command_line.ini). After running the program, the output files are stored in the check-/example-directory.', action='store_true', dest='restartcopy') # noqa: E501
     parser.add_argument('-i', '--noMPI'      , help='Run program without "mpirun" (single thread execution).', action='store_true')
     parser.add_argument('-p', '--stop'       , help='Stop on first error.', action='store_true')
+    parser.add_argument('-l', '--limitprocs' , help='Limit the number of processes to be used for the rune.', type=int, default=0)
     parser.add_argument('check', help='Path to check-/example-directory.')
     parser.add_argument('--meshesdir'        , help='When hopr is used as external: Only run hopr once for each example and store meshes in separate directory to use symbolic links.', action='store_true')
     # fmt: on
@@ -191,11 +194,11 @@ def getArgsAndBuilds():
     except Exception:
         pass
 
-    args.MaxCoresMPICH = 0
+    args.MaxCores = args.limitprocs  # set the maximum number of processes to be used for the run
     # Set maximum number of processes/cores for mpich as over-subscription results in a massive performance drop
     if args.detectedMPICH:
-        args.MaxCoresMPICH = getMaxCPUCores()
-        print(tools.yellow('WARNING: MPICH detected, which limits the total number of processes that can be used to %s as over-subscription results in a massive performance drop' % args.MaxCoresMPICH))
+        args.MaxCores = getMaxCPUCores()
+        print(tools.yellow('WARNING: MPICH detected, which limits the total number of processes that can be used to %s as over-subscription results in a massive performance drop' % args.MaxCores))
 
     if args.run:
         print("args.run -> skip building")
