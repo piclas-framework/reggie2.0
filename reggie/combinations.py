@@ -199,7 +199,7 @@ def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None
                 # loop over the values
                 for j in range(len(options[i].values)):
                     # determine number of cores above the MPICH limit
-                    if int(options[i].values[j]) >= MaxCoresMPICH:
+                    if int(options[i].values[j]) > MaxCoresMPICH:
                         counter += 1
                         # add an exclusion for the second and subsequent occurrences
                         if counter > 1:
