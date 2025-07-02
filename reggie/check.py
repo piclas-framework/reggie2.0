@@ -231,10 +231,12 @@ def StandaloneAutomaticMPIDetection(binary_path):
 
     # 2nd Test
     # If the userblock test did not result in MPIifOFF=True, check the shared object dependencies of the executable and search for MPI related libs
+    # Note that this is not fully accurate, as the executable might be compiled with MPI=OFF but with the MPI libs loaded and therefore still
+    # present in ldd (maybe add info to piclas/flexi/... --help stating if it was compiled single-core or multi-core)
     if not MPIifOFF and not userblockChecked:
         # Use try/except here, but don't terminate the program when try fails
         try:
-            cmd = ['ldd', binary_path, '|', 'grep', '-i', r"libmpi\.\|\<libmpi_"]
+            cmd = ['ldd', binary_path, '|', 'grep', '-i', r'"libmpi\.\|\<libmpi_"']
             a = ' '.join(cmd)
             pipe = subprocess.Popen(a, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             (std, err) = pipe.communicate()
@@ -397,7 +399,7 @@ def SetMPIrun(build, args, MPIthreads):
                     if args.MPIexe == 'mpirun':
                         if args.MaxCores > 0:
                             # MPICH core limit due to massive drop in performance when using over-subscription
-                            if args.MaxCores< int(MPIthreads):
+                            if args.MaxCores < int(MPIthreads):
                                 if args.detectedMPICH:
                                     tmpStr = "MPICH"
                                 else:
