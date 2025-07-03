@@ -802,7 +802,7 @@ class Analyze_Convtest_h(Analyze):
                     Analyze.total_errors += 1
 
         else:
-            s = "cannot perform h-convergence test, because number of successful runs must equal the number of cells"
+            s = "Failed: cannot perform h-convergence test, because number of successful runs must equal the number of cells"
             print(tools.red(s))
             for run in runs:
                 run.analyze_results.append(s)  # append info for summary of errors
@@ -1027,7 +1027,7 @@ class Analyze_Convtest_t(Analyze):
                     Analyze.total_errors += 1
 
         else :  # fmt: skip
-            s = "cannot perform t-convergence test, because number of successful runs must equal the number of supplied %s in the user-supplied list" % self.name
+            s = "Failed: cannot perform t-convergence test, because number of successful runs must equal the number of supplied %s in the user-supplied list" % self.name
             print(tools.red(s))
             for run in runs:
                 run.analyze_results.append(s)  # append info for summary of errors
@@ -1189,7 +1189,7 @@ class Analyze_Convtest_p(Analyze):
 
                     # global_errors+=1
         else :  # fmt: skip
-            s = "cannot perform p-convergence test, because number of successful runs must equal the number of polynomial degrees p"
+            s = "Failed: cannot perform p-convergence test, because number of successful runs must equal the number of polynomial degrees p"
             print(tools.red(s))
             for run in runs:
                 run.analyze_results.append(s)  # append info for summary of errors
@@ -1209,7 +1209,7 @@ class Analyze_h5diff(Analyze, ExternalCommand):
     def __init__(self, h5diff):
         # Set number of diffs per run [True/False]
         self.one_diff_per_run = h5diff.one_diff_per_run in ('True', 'true', 't', 'T')
-        self.allow_reorder    = h5diff.allow_reorder    in ('True', 'true', 't', 'T')  # noqa: E272
+        self.allow_reorder = h5diff.allow_reorder in ('True', 'true', 't', 'T')
 
         # Create dictionary for all keys/parameters and insert a list for every value/options
         self.prms = {
@@ -1782,18 +1782,16 @@ class Analyze_h5diff(Analyze, ExternalCommand):
                             # > Check if the data match if reordered
                             if self.return_code != 0 and allow_reorder_loc:
                                 # 1.2.1 Load the datasets into reggie
-                                f1 = h5py.File(path           , 'r')
+                                f1 = h5py.File(path, 'r')
                                 f2 = h5py.File(path_ref_target, 'r')
 
                                 # Extract the datasets
                                 b1 = f1[data_set_loc_file][:]
-                                b2 = f2[data_set_loc_ref ][:]
+                                b2 = f2[data_set_loc_ref][:]
 
                                 # Check if both datasets have the same shape
                                 if b1.shape != b2.shape:
-                                    s = tools.red(
-                                        "Analyze_h5diff: Datasets [%s] and [%s] have different shapes [%s] and [%s]. Cannot compare them." % (data_set_loc_file, data_set_loc_ref, b1.shape, b2.shape)
-                                    )
+                                    s = tools.red("Analyze_h5diff: Datasets [%s] and [%s] have different shapes [%s] and [%s]. Cannot compare them." % (data_set_loc_file, data_set_loc_ref, b1.shape, b2.shape))
                                     print(s)
                                     run.analyze_results.append(s)
                                     run.analyze_successful = False
@@ -1808,12 +1806,7 @@ class Analyze_h5diff(Analyze, ExternalCommand):
                                 # Compute the axis over which to calculate the norm
                                 axis = tuple(range(2, diff.ndim))
 
-                                print(
-                                    tools.yellow(
-                                        "    Reordering dim=%s to match the reference data"
-                                        % (1)
-                                    )
-                                )
+                                print(tools.yellow("    Reordering dim=%s to match the reference data" % (1)))
 
                                 # Compute the cost matrix
                                 # > Eeach entry is the norm of the difference between b1[i] and b2[j]
@@ -1843,9 +1836,7 @@ class Analyze_h5diff(Analyze, ExternalCommand):
                                     run.analyze_successful = False
                                     Analyze.total_errors += 1
                                 else:
-                                    s = tools.blue(
-                                        "Reordered datasets [%s] and [%s] have no differences after reordering. This analysis is therefore marked as passed." % (data_set_loc_file, data_set_loc_ref)
-                                    )
+                                    s = tools.blue("Reordered datasets [%s] and [%s] have no differences after reordering. This analysis is therefore marked as passed." % (data_set_loc_file, data_set_loc_ref))
                                     print(s)
                                     run.analyze_results.append(s)
 
@@ -2863,7 +2854,7 @@ class Analyze_integrate_line(Analyze):
             # 1.3.2 check column numbers
             line_len = len(line) - 1
             if line_len < self.dim1 or line_len < self.dim2:
-                s = "cannot perform analyze Analyze_integrate_line, because the supplied columns (%s:%s) exceed the columns (%s) in the data file (the first column starts at 0)" % (self.dim1, self.dim2, line_len)
+                s = "Failed: cannot perform analyze Analyze_integrate_line, because the supplied columns (%s:%s) exceed the columns (%s) in the data file (the first column starts at 0)" % (self.dim1, self.dim2, line_len)
                 print(tools.red(s))
                 run.analyze_results.append(s)
                 run.analyze_successful = False
@@ -2887,7 +2878,7 @@ class Analyze_integrate_line(Analyze):
 
             # 1.3.5   Check the number of data points: Integration can only be performed if at least two points exist
             if max_lines - header < 2:
-                s = "cannot perform analyze Analyze_integrate_line, because there are not enough lines of data to perform the integral calculation. Number of lines = %s" % (max_lines - header)
+                s = "Failed: cannot perform analyze Analyze_integrate_line, because there are not enough lines of data to perform the integral calculation. Number of lines = %s" % (max_lines - header)
                 print(tools.red(s))
                 run.analyze_results.append(s)
                 run.analyze_successful = False
@@ -3149,7 +3140,9 @@ class Analyze_compare_column(Analyze):
                         csvfile.seek(0)
                         # Sanity check: number of columns should not be smaller than the selected column
                         if column_count - 1 < index_loc:
-                            s = ("Cannot perform analyze Analyze_compare_column, because the supplied column (%s) in %s exceeds the number of " "columns (%s) in the data file (the first column must start at 0)") % (
+                            s = (
+                                "Failed: Cannot perform analyze Analyze_compare_column, because the supplied column (%s) in %s exceeds the number of " "columns (%s) in the data file (the first column must start at 0)"
+                            ) % (
                                 index_loc,
                                 path,
                                 0,
@@ -3200,7 +3193,10 @@ class Analyze_compare_column(Analyze):
                         elif column_count_ref - 1 >= index_loc:
                             refDim = index_loc
                         elif column_count_ref - 1 < index_loc:
-                            s = ("Cannot perform analyze Analyze_compare_column, because the supplied column (%s) in %s exceeds the number of " "columns (%s) in the reference file (the first column must start at 0)") % (
+                            s = (
+                                "Failed: Cannot perform analyze Analyze_compare_column, because the supplied column (%s) in %s exceeds the number of "
+                                "columns (%s) in the reference file (the first column must start at 0)"
+                            ) % (
                                 index_loc,
                                 path_ref_target,
                                 0,
@@ -3242,7 +3238,7 @@ class Analyze_compare_column(Analyze):
 
                     # Check dimensions of the arrays
                     if data.shape != data_ref.shape:
-                        s = ("cannot perform analyze Analyze_compare_column, because the shape of the data in file=[%s] is %s and that of the " "reference=[%s] is %s. They cannot be different!") % (
+                        s = ("Failed: cannot perform analyze Analyze_compare_column, because the shape of the data in file=[%s] is %s and that of the " "reference=[%s] is %s. They cannot be different!") % (
                             path,
                             data.shape,
                             reference_file_loc,
@@ -3258,7 +3254,7 @@ class Analyze_compare_column(Analyze):
                     # Check the number of data points: Comparison can only be performed if at least one point exists
                     if max_lines - header < 1 or max_lines_ref - header_ref < 1 or max_lines - header != max_lines_ref - header_ref:
                         s = (
-                            "cannot perform analyze Analyze_compare_column, because there are not enough lines of data or different numbers of "
+                            "Failed: cannot perform analyze Analyze_compare_column, because there are not enough lines of data or different numbers of "
                             "data points to perform the comparison. Number of lines = %s (file) and %s (reference file), which must be equal and "
                             "at least one."
                         ) % (max_lines - header, max_lines_ref - header_ref)
@@ -3375,7 +3371,7 @@ class Analyze_compare_across_commands(Analyze):
             # 1.3   check number of lines in data file
             selected_line = i
             if selected_line < self.line_number:
-                s = ("cannot perform analyze Analyze_compare_across_commands, because the supplied line number [%s] in [%s] exceeds the number of " "lines [%s] in the data file (the first line has number 1)") % (
+                s = ("Failed: cannot perform analyze Analyze_compare_across_commands, because the supplied line number [%s] in [%s] exceeds the number of " "lines [%s] in the data file (the first line has number 1)") % (
                     self.line_number,
                     path,
                     selected_line,
@@ -3389,7 +3385,9 @@ class Analyze_compare_across_commands(Analyze):
             # 1.4  check number of columns in data file
             line_len = len(line) - 1
             if line_len < self.column_index:
-                s = ("cannot perform analyze Analyze_compare_across_commands, because the supplied column [%s] in [%s] exceeds the number of columns " "[%s] in the data file (the first column must start at 0)") % (
+                s = (
+                    "Failed: cannot perform analyze Analyze_compare_across_commands, because the supplied column [%s] in [%s] exceeds the number of columns " "[%s] in the data file (the first column must start at 0)"
+                ) % (
                     self.column_index,
                     path,
                     line_len,
@@ -3413,7 +3411,8 @@ class Analyze_compare_across_commands(Analyze):
         # 2.1   check index of reference command (1-based indexing, in accordance with directory name pattern 'cmd_0001, cmd_0002, ...'), index 0 means average of all commands
         if (self.reference > len(runs)) or (self.reference < 0):
             s = (
-                "cannot perform analyze Analyze_compare_across_commands, because index of reference command [%s] exceeds number of executed commands " "[%s] (indexing starts at 1, use 0 for average of all commands)"
+                "Failed: cannot perform analyze Analyze_compare_across_commands, because index of reference command [%s] exceeds number of executed commands "
+                "[%s] (indexing starts at 1, use 0 for average of all commands)"
             ) % (self.reference, len(runs))
             print(tools.red(s))
             run.analyze_results.append(s)
