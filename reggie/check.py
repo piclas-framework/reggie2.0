@@ -399,7 +399,7 @@ def SetMPIrun(build, args, MPIthreads):
                     if args.MPIexe == 'mpirun':
                         if args.MaxCores > 0 or args.detectedMPICH:
                             # MPICH core limit due to massive drop in performance when using over-subscription
-                            if args.MaxCores < int(MPIthreads):
+                            if args.MaxCores > 0 and args.MaxCores < int(MPIthreads):
                                 if args.detectedMPICH:
                                     tmpStr = "MPICH"
                                 else:
