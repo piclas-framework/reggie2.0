@@ -397,7 +397,7 @@ def SetMPIrun(build, args, MPIthreads):
                         cmd = ["aprun", "-n", MPIthreads, "-N", "24"]
                 else:
                     if args.MPIexe == 'mpirun':
-                        if args.MaxCores > 0:
+                        if args.MaxCores > 0 or args.detectedMPICH:
                             # MPICH core limit due to massive drop in performance when using over-subscription
                             if args.MaxCores < int(MPIthreads):
                                 if args.detectedMPICH:
