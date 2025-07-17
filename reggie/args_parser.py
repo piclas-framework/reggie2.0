@@ -34,37 +34,68 @@ def getMaxCPUCores():
     The affinity is ignored at the moment, e.g., if the total number of processes is artificially limited,
     see https://docs.python.org/3/library/os.html#os.sched_getaffinity.
     """
-    # Linux
+    # Docker
+    # > Check cpuset.cpus for Docker-specific CPU limits
     try:
-        MaxCores = open('/proc/cpuinfo').read().count('processor\t:')
+        with open('/sys/fs/cgroup/cpuset.cpus') as file:
+            line = file.read().strip()
+            cnt  = 0
 
-        cpuCores = None
+            # Assemble the number from the comma-separated list
+            for prt in line.split(','):
+                if '-' in prt:
+                    start, end = map(int, prt.split('-'))
+                    cnt += end - start + 1
+                else:
+                    cnt += 1
+
+        if cnt > 0:
+            return cnt
+    except Exception:
+        pass
+
+    # Linux
+    # > Parse /proc/cpuinfo for physical cores
+    try:
+        physical_cores = {}
+        physical_id    = None
         with open('/proc/cpuinfo') as file:
             for line in file:
-                line_parts = line.rstrip()
-                line_parts = line_parts.split(":")
-                if 'cpu cores\t' in line_parts[0]:
-                    # Convert to integer
-                    cpuCores = int(line_parts[1])
-                    break
+                if line.strip():
+                    val   = line.split(':')
+                    key   = val[0].strip()
+                    value = val[1].strip() if len(val) > 1 else None
 
-        if cpuCores is not None and cpuCores > 0 and MaxCores > cpuCores:
-            return cpuCores
-        else:
-            return 0
+                    if value is None:
+                        continue
+
+                    # Look for "physical id" (CPU socket) and "core id" (core within socket)
+                    if   key == 'physical id':  # noqa: E271
+                        physical_id = int(value)
+                    elif key == 'core id':
+                        core_id = int(value)
+
+                        # physical id has to come before core id
+                        if physical_id is None:
+                            raise IndexError
+
+                        physical_cores[(physical_id, core_id)] = True
+
+        # Count unique (physical_id, core_id) pairs
+        print(len(physical_cores))
+        return len(physical_cores)
     except Exception:
         pass
 
     # Python 2.6+
+    # > POSIX fallback: Use os.sched_getaffinity to get available cores
     try:
-        import multiprocessing
-
-        # This yields the hyper threading or SMT cores (hence, not the physical cores), but serves as a fallback
-        MaxCores = multiprocessing.cpu_count()
-        print(tools.yellow('getMaxCPUCores() fallback has returned the number of hyper threading or SMT cores (hence, not the physical cores)'))
-        return MaxCores
-    except Exception:
+        return len(os.sched_getaffinity(0))
+    except AttributeError:
         pass
+
+    # If all else fails, return 0 (unknown physical cores)
+    return 0
 
 
 def getArgsAndBuilds():
