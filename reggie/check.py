@@ -1374,7 +1374,7 @@ def PerformCheck(start, builds, args, log):
 
         # check if reggie is executed directly or via gitlab: if executed by hand combine the coverage data over all builds, gitlab uses the single reports to combine
         coverage_env = os.getenv('CODE_COVERAGE')
-        if not coverage_env:
+        if not coverage_env and args.coverage:
             coverage_files = [os.path.abspath(os.path.join(single_reports_dir, file)) for file in os.listdir(single_reports_dir) if file.endswith('.json')]
 
             # combine all coverage reports from all builds
