@@ -72,6 +72,13 @@ class Build(OutputDirectory, ExternalCommand):
         for key, value in self.configuration.items():  # add configuration to the cmake command
             self.cmake_cmd.append("-D%s=%s" % (key, value))
             self.cmake_cmd_color.append(tools.blue("-D") + "%s=%s" % (key, value))
+
+        # add compiler options to each combination for code coverage
+        coverage_flags = '"--coverage"'
+        if coverage_flags:
+            self.cmake_cmd.append('-DCMAKE_Fortran_FLAGS=' + coverage_flags)
+            self.cmake_cmd_color.append(tools.blue("-D") + "CMAKE_Fortran_FLAGS=" + '%s' % coverage_flags)
+
         self.cmake_cmd.append(self.basedir)  # add basedir to the cmake command
         self.cmake_cmd_color.append(self.basedir)  # add basedir to the cmake command
 
@@ -562,7 +569,7 @@ class ExternalRun(OutputDirectory, ExternalCommand):
         # external folders already there
         self.skip = False
 
-    def execute(self, build, external, args, meshes_directory=None, cov_path=None, external_counter=None):
+    def execute(self, build, external, args, meshes_directory=None):
         # set path to parameter file (single combination of values for execution "parameter.ini" for example)
         self.parameter_path = os.path.join(external.directory, external.parameterfile)
 
@@ -635,18 +642,6 @@ class ExternalRun(OutputDirectory, ExternalCommand):
                 self.execute_cmd(cmd, meshes_directory, name=tail, string_info=tools.indent(s, 3))  # run the code
             else:
                 self.execute_cmd(cmd, external.directory, name=tail, string_info=tools.indent(s, 3))  # run the code
-
-        # perform code coverage if requested via gcovr
-        if cov_path is not None:
-            test_name = tools.splitall(cov_path)
-            cmd_gcovr = ["gcovr", "--json", "--print-summary", "-o", "coverage_%s_%s.json" % (test_name[-2], external_counter)]
-            self.execute_cmd(cmd_gcovr, os.getcwd())
-            cmd_gcovr_html = ["gcovr", "--add-tracefile", "coverage_%s_%s.json" % (test_name[-2], external_counter), "--html", "coverage_%s_%s.html" % (test_name[-2], external_counter)]
-            self.execute_cmd(cmd_gcovr_html, os.getcwd())
-            cmd_move = ["mv", "coverage_%s_%s.json" % (test_name[-2], external_counter), "coverage_%s_%s.html" % (test_name[-2], external_counter), cov_path]
-            self.execute_cmd(cmd_move, os.getcwd())
-            cmd_move_collect = ["cp", "coverage_%s_%s.json" % (test_name[-2], external_counter), "../../combined_reports"]
-            self.execute_cmd(cmd_move_collect, cov_path)
 
         if self.return_code != 0:
             self.successful = False
@@ -740,7 +735,7 @@ class Run(OutputDirectory, ExternalCommand):
         shutil.move(self.target_directory, self.target_directory + "_failed")  # rename folder (non-existent folder fails)
         self.target_directory = self.target_directory + "_failed"  # set new name for summary of errors
 
-    def execute(self, build, command_line, args, external_failed, cov_path=None):
+    def execute(self, build, command_line, args, external_failed):
         Run.total_number_of_runs += 1
         self.globalnumber = Run.total_number_of_runs
 
@@ -819,19 +814,6 @@ class Run(OutputDirectory, ExternalCommand):
         else:
             s = "Running [%s] ..." % (" ".join(cmd))
             self.execute_cmd(cmd, self.target_directory, string_info=tools.indent(s, 2))  # run the code
-
-        # do code coverage if requested via gcovr
-        if cov_path is not None:
-            test_name = tools.splitall(cov_path)
-            print(test_name)
-            cmd_gcovr = ["gcovr", "--json", "--print-summary", "-o", "coverage_%s.json" % (test_name[-2])]
-            self.execute_cmd(cmd_gcovr, os.getcwd())
-            cmd_gcovr_html = ["gcovr", "--add-tracefile", "coverage_%s.json" % (test_name[-2]), "--html", "coverage_%s.html" % (test_name[-2])]
-            self.execute_cmd(cmd_gcovr_html, os.getcwd())
-            cmd_move = ["mv", "coverage_%s.json" % (test_name[-2]), "coverage_%s.html" % (test_name[-2]), cov_path]
-            self.execute_cmd(cmd_move, os.getcwd())
-            cmd_move_collect = ["cp", "coverage_%s.json" % (test_name[-2]), "../../combined_reports"]
-            self.execute_cmd(cmd_move_collect, cov_path)
 
         # Copy restart file if required
         if cmd_restart_file and args.restartcopy:
@@ -956,14 +938,11 @@ def PerformCheck(start, builds, args, log):
     7.   perform analyze tests comparing corresponding runs from different commands
     """
 
-    build_number = 0
-
     # compile and run loop
     try:  # if compiling fails -> go to exception
         # 1.   loop over alls builds
-        for build in builds:
+        for build_number, build in enumerate(builds, start=1):
             remove_build_when_successful = True
-            build_number += 1  # count number of builds
             print("Build Cmake Configuration ", build_number, " of ", len(builds), " ...", end=' ')  # skip linebreak
             log.info(str(build))
 
@@ -1007,17 +986,15 @@ def PerformCheck(start, builds, args, log):
                             MPIbuilt = False
             build.MPIbuilt = MPIbuilt
 
-            # create folder to collect all code coverage reports for this build
             if args.coverage:
-                combined_cov_path = os.path.join(build.source_directory, "combined_reports")
+                # create directories for combined report over all builds and for single reports per build
+                single_reports_dir = os.path.abspath(os.path.join(OutputDirectory.output_dir, "single_reports"))
+                tools.create_folder(single_reports_dir)
+                combined_cov_path = os.path.abspath(os.path.join(OutputDirectory.output_dir, "combined_report"))
                 tools.create_folder(combined_cov_path)
-                cov_paths = [os.path.join(example.source_directory, "coverage_data") for example in build.examples]
-            else:  # dummy list to fallback to original behavior
-                cov_paths = [None for _ in build.examples]
 
             # 2.   loop over all example directories
-            for example_count, example in enumerate(build.examples):
-                tools.create_folder(cov_paths[example_count])
+            for example in build.examples:
                 log.info(str(example))
                 print(str(example))
 
@@ -1063,7 +1040,7 @@ def PerformCheck(start, builds, args, log):
                         if database_path is not None and os.path.exists(run.target_directory):
                             head, tail = os.path.split(database_path)
                             os.symlink(database_path, os.path.join(run.target_directory, tail))
-                            print(tools.green('Preprocessing: Linked database [%s] to [%s] ... ' % (database_path, run.target_directory)))
+                            print(tools.indent(tools.green('Preprocessing: Linked database [%s] to [%s] ... ' % (database_path, run.target_directory)), 2))
                         # 4.1 read the external options in 'externals.ini' within each example directory (e.g. eos, hopr, posti)
                         #     distinguish between pre- and post processing
                         run.externals_pre, run.externals_post, run.externals_errors = getExternals(os.path.join(run.source_directory, 'externals.ini'), run, build)
@@ -1114,7 +1091,7 @@ def PerformCheck(start, builds, args, log):
                                             # execute all external runs for first run of first command line (since loop iterates over each externalrun anyway)
                                             if command_line_count == 1 and RunCount == 1:
                                                 # execute external (hopr)
-                                                externalcmd = externalrun.execute(build, external, args, meshes_directory=meshes_dir_path, cov_path=cov_paths[example_count], external_counter=externalrun_count)
+                                                externalcmd = externalrun.execute(build, external, args, meshes_directory=meshes_dir_path)
                                                 # collect all mesh names which have been created in the directory 'meshes_dir_path' (since name of the mesh is not part of externalrun.parameters)
                                                 for file in os.listdir(meshes_dir_path):
                                                     # create identifier of external, externalparameterfile and externalrun to check if mesh for given combination of these there has been build already
@@ -1150,10 +1127,10 @@ def PerformCheck(start, builds, args, log):
                                                     print(tools.indent(tools.yellow(f'Creating symbolic link from {relative_source_path} to {target_mesh_path}'), 3))
                                         # execute other externals normally and also hopr every run if hopr binary has random name
                                         else:
-                                            externalcmd = externalrun.execute(build, external, args, cov_path=cov_paths[example_count], external_counter=externalrun_count)
+                                            externalcmd = externalrun.execute(build, external, args)
                                     # execute each external each run normally
                                     else:
-                                        externalcmd = externalrun.execute(build, external, args, cov_path=cov_paths[example_count], external_counter=externalrun_count)
+                                        externalcmd = externalrun.execute(build, external, args)
                                     if not externalrun.successful:
                                         external_failed = True
                                         s = tools.red('Execution (pre) external failed: %s' % externalcmd)
@@ -1170,7 +1147,7 @@ def PerformCheck(start, builds, args, log):
                             print(tools.indent(tools.green('Preprocessing: Externals %s finished!' % externalbinaries), 3))
 
                         # 4.2    execute the binary file for one combination of parameters
-                        run.execute(build, command_line, args, external_failed, cov_path=cov_paths[example_count])
+                        run.execute(build, command_line, args, external_failed)
                         if not run.successful:
                             Run.total_errors += 1  # add error if run fails
                             # Check if immediate stop is activated on failure
@@ -1210,11 +1187,11 @@ def PerformCheck(start, builds, args, log):
                                 external.runs = getExternalRuns(os.path.join(external.directory, external.parameterfile), external)
 
                                 # (post) externals (3): loop over all combinations and parameterfiles for the i'th external
-                                for externalrun_count, externalrun in enumerate(external.runs, start=1):
+                                for externalrun in external.runs:
                                     log.info(str(externalrun))
 
                                     # (post) externals (3.1): run the external binary
-                                    externalcmd = externalrun.execute(build, external, args, cov_path=cov_paths[example_count], external_counter=externalrun_count)
+                                    externalcmd = externalrun.execute(build, external, args)
                                     if not externalrun.successful:
                                         # print(externalrun.return_code)
                                         s = tools.red('Execution (post) external failed: %s' % externalcmd)
@@ -1291,15 +1268,126 @@ def PerformCheck(start, builds, args, log):
                                 print(s)
                                 exit(1)
 
-            # combine all coverage.json files to one html summary report.
+            # create coverage report for current build
             if args.coverage:
-                target_path = os.path.join(build.source_directory, "combined_reports")
-                cmd_combine = ["gcovr", "--add-tracefile", '"coverage_*.json"', "--html", "combined_report.html"]
-                ExternalCommand().execute_cmd(cmd_combine, target_path)
+                # gcovr needs two directories as arguments: - "source_files_dir" the root directory, where the source files are located
+                #                                           - "coverage_files_dir" the coverage files directory (containing necessary files)
+                # When compiling with the --coverage option, the compiler generates additional files for each object file, .gcno and .gcda
+                # The .gcno file is created during compilation and contains information for reconstructing basic block graphs and associating source lines with blocks.
+                # The .gcda file is generated when the instrumented code is executed and contains counts
+                # for out of source builds (like with cmake) these are not the same directory
+                # the .gcno and .gcda files are located in the build/CMakeFiles directory, but the build directory is sufficient here
+                # for a standalone executable these paths are not safely known here and are therefore searched
+                # for the args.basedir options is gets easier
+                s = tools.green("Post-processing: Started gcovr")
+                print(tools.indent(s, 1))
+                if args.exe:
+                    print(tools.indent(tools.yellow("Running gcovr for standalone executable [%s]" % build.binary_path), 2))
+                    try:
+                        # expect that code is executed in the build directory
+                        coverage_files_dir = os.getcwd()
+                        # check with binary directory, which suggests cwd is build directory
+                        dir_elems = [os.path.abspath(elem) for elem in os.listdir(coverage_files_dir)]
+                        if build.binary_dir in dir_elems:
+                            pass
+                        else:
+                            # defaults to the parent dir of binary_dir
+                            coverage_files_dir = os.path.dirname(build.binary_dir)
+                        # sanity check: find .gcno files in coverage_files_dir or any subdir, since exe must be compiled with coverage
+                        gcno_files = [os.path.join(root, file) for root, _, files in os.walk(coverage_files_dir) for file in files if file.endswith('.gcno')]
+                        if not gcno_files:
+                            raise Exception("No .gcno files found in coverage_files_dir [%s] or any subdirectories. Please check if the executable is compiled with coverage enabled" % coverage_files_dir)
+                    except Exception as e:
+                        print("%s" % (tools.red("Error determining source directory of standalone executable: %s" % e)))
+                        exit(1)
+                    # source_files_dir is the directory where the source files are located, it is expected to be the parent directory or at least a subdirectory of the parentdirectory
+                    source_files_dir = os.path.dirname(coverage_files_dir)
+                else:
+                    coverage_files_dir = build.binary_dir
+                    source_files_dir = build.basedir
 
-            if remove_build_when_successful and not args.save and not args.coverage:
+                coverage_files_dir = os.path.abspath(coverage_files_dir)
+                if not os.path.exists(coverage_files_dir):
+                    s = tools.red("Coverage data object directory [%s] does not exist" % coverage_files_dir)
+                    print(s)
+                    exit(1)
+
+                # try to append /src to the path to exclude other directories, e.g. UnitTests
+                src_path = os.path.abspath(os.path.join(source_files_dir, 'src'))
+                if os.path.exists(src_path):
+                    source_files_dir = src_path
+                    print(tools.indent(tools.yellow("Using source directory [%s] for gcovr" % source_files_dir), 2))
+
+                source_files_dir = os.path.abspath(source_files_dir)
+                if not os.path.exists(source_files_dir):
+                    s = tools.red("Source files directory [%s] does not exist" % source_files_dir)
+                    print(s)
+                    exit(1)
+
+                s = tools.indent(tools.green('Combining coverage reports for build: %s' % build.target_directory), 2)
+                print(s)
+                cmd_gcovr = ["gcovr", "--root", f"{source_files_dir}", f"{coverage_files_dir}"]
+                if args.debug > 0:
+                    cmd_gcovr.append("--verbose")
+
+                # //TODO Improvement: exclude vars file
+                # //TODO Improvement: get loaded gcc version and check for output format/ compatibilty with gcovr version
+                cmd_gcovr.append("--include-internal-functions")
+                cmd_gcovr.append("--gcov-ignore-parse-errors")
+                cmd_gcovr.append("all")
+
+                # get name of current example from build source dir
+                report_name = f"combined_report_example_{str(build.source_directory).split("/")[-1]}_build_{build_number}"
+                cmd_gcovr.append("--json")
+                cmd_gcovr.append(f"{report_name}.json")
+
+                s = tools.indent("Running [%s] ..." % (" ".join(cmd_gcovr)), 2)
+                ExternalCommand().execute_cmd(cmd_gcovr, single_reports_dir, string_info=s)
+                # these json files can be converted by hand with gcovr using the command:
+                # gcovr --root <root_dir> --add-tracefile <json_file1> --add-tracefile <json_file2> --html-nested report_name.html or
+                # gcovr --root <root_dir> --add-tracefile <json_file1> --add-tracefile <json_file2> --cobertura report_name.xml, respectively
+                # or with wildcards aswell
+                # note that the root directory must be the same as the one used for the gcovr command which creates the json file
+
+                s = tools.green("Post-processing: Finished gcovr")
+                print(tools.indent(s, 1))
+
+            if remove_build_when_successful and not args.save:
                 tools.remove_folder(build.target_directory)
             print('=' * 132)
+
+        # check if reggie is executed directly or via gitlab: if executed by hand combine the coverage data over all builds, gitlab uses the single reports to combine
+        coverage_env = os.getenv('CODE_COVERAGE')
+        if not coverage_env:
+            coverage_files = [os.path.abspath(os.path.join(single_reports_dir, file)) for file in os.listdir(single_reports_dir) if file.endswith('.json')]
+
+            # combine all coverage reports from all builds
+            s = tools.indent(tools.green('Combining coverage reports for all builds'), 1)
+            print(s)
+            cmd_combine = ["gcovr", "--root", f"{source_files_dir}"]
+            if args.debug > 0:
+                cmd_combine.append("--verbose")
+            # add files separately to the command line since ExternalCommand().execute_cmd resolves wildcards
+            for cov_file in coverage_files:
+                cmd_combine.append("--json-add-tracefile")
+                cmd_combine.append(cov_file)
+            if args.coverage_output_html:
+                cmd_combine_html = cmd_combine.copy()
+                cmd_combine_html.append("--html-nested")
+                cmd_combine_html.append("combined_report.html")
+                s = tools.indent("Running [%s] ..." % (" ".join(cmd_combine_html)), 2)
+                ExternalCommand().execute_cmd(cmd_combine_html, combined_cov_path, string_info=s)
+            if args.coverage_output_cobertura:
+                cmd_combine_cobertura = cmd_combine.copy()
+                cmd_combine_cobertura.append("--cobertura")
+                cmd_combine_cobertura.append("combined_report.xml")
+                s = tools.indent("Running [%s] ..." % (" ".join(cmd_combine_cobertura)), 2)
+                ExternalCommand().execute_cmd(cmd_combine_cobertura, combined_cov_path, string_info=s)
+
+            cmd_combine.append("--json")
+            cmd_combine.append("combined_report.json")
+            s = tools.indent("Running [%s] ..." % (" ".join(cmd_combine)), 2)
+            ExternalCommand().execute_cmd(cmd_combine, combined_cov_path, string_info=s)
 
     # catch exception if bulding fails
     except BuildFailedException as ex:
