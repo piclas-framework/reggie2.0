@@ -956,6 +956,12 @@ def PerformCheck(start, builds, args, log):
 
     # compile and run loop
     try:  # if compiling fails -> go to exception
+        # create directory to store coverage data (one file per build)
+        if args.coverage:
+            coverage_dir = os.path.abspath(os.path.join(os.path.dirname(os.getcwd()), 'Coverage'))
+            print(coverage_dir)
+            tools.create_folder(coverage_dir)
+
         # 1.   loop over alls builds
         for build_number, build in enumerate(builds, start=1):
             remove_build_when_successful = True
@@ -1001,13 +1007,6 @@ def PerformCheck(start, builds, args, log):
                         else:  # PICLAS_MPI=OFF or flag not specified (i.e. assuming LIBS_USE_MPI=OFF)
                             MPIbuilt = False
             build.MPIbuilt = MPIbuilt
-
-            if args.coverage:
-                # create directories for combined report over all builds and for single reports per build
-                single_reports_dir = os.path.abspath(os.path.join(OutputDirectory.output_dir, "single_reports"))
-                tools.create_folder(single_reports_dir)
-                combined_cov_path = os.path.abspath(os.path.join(OutputDirectory.output_dir, "combined_report"))
-                tools.create_folder(combined_cov_path)
 
             # 2.   loop over all example directories
             for example in build.examples:
@@ -1352,13 +1351,13 @@ def PerformCheck(start, builds, args, log):
                 cmd_gcovr.append("--gcov-ignore-parse-errors")
                 cmd_gcovr.append("all")
 
-                # get name of current example from build source dir
-                report_name = f"combined_report_example_{str(build.source_directory).split("/")[-1]}_build_{build_number}"
+                # get name of current build source dir
+                report_name = f"combined_report_build_{str(coverage_files_dir).split("/")[-1]}"
                 cmd_gcovr.append("--json")
                 cmd_gcovr.append(f"{report_name}.json")
 
                 s = tools.indent("Running [%s] ..." % (" ".join(cmd_gcovr)), 2)
-                ExternalCommand().execute_cmd(cmd_gcovr, single_reports_dir, string_info=s)
+                ExternalCommand().execute_cmd(cmd_gcovr, coverage_dir, string_info=s)
                 # these json files can be converted by hand with gcovr using the command:
                 # gcovr --root <root_dir> --add-tracefile <json_file1> --add-tracefile <json_file2> --html-nested report_name.html or
                 # gcovr --root <root_dir> --add-tracefile <json_file1> --add-tracefile <json_file2> --cobertura report_name.xml, respectively
@@ -1375,7 +1374,10 @@ def PerformCheck(start, builds, args, log):
         # check if reggie is executed directly or via gitlab: if executed by hand combine the coverage data over all builds, gitlab uses the single reports to combine
         coverage_env = os.getenv('CODE_COVERAGE')
         if not coverage_env and args.coverage:
-            coverage_files = [os.path.abspath(os.path.join(single_reports_dir, file)) for file in os.listdir(single_reports_dir) if file.endswith('.json')]
+            combined_cov_path = os.path.abspath(os.path.join(coverage_dir, "combined_report"))
+            tools.create_folder(combined_cov_path)
+
+            coverage_files = [os.path.abspath(os.path.join(coverage_dir, file)) for file in os.listdir(coverage_dir) if file.endswith('.json')]
 
             # combine all coverage reports from all builds
             s = tools.indent(tools.green('Combining coverage reports for all builds'), 1)
