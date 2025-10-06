@@ -956,10 +956,14 @@ def PerformCheck(start, builds, args, log):
 
     # compile and run loop
     try:  # if compiling fails -> go to exception
-        # create directory to store coverage data (one file per build)
+        # create directory to store coverage data (one file per build), if executed locally the coverage directory is created in the current directory, but
+        # for GitLab regressiontests the parent dir is used since all build directories will be deleted but the coverage data is needed
+        coverage_env = os.getenv('CODE_COVERAGE')
         if args.coverage:
-            coverage_dir = os.path.abspath(os.path.join(os.path.dirname(os.getcwd()), 'Coverage'))
-            print(coverage_dir)
+            if coverage_env:
+                coverage_dir = os.path.abspath(os.path.join(os.path.dirname(os.getcwd()), 'Coverage'))
+            else:
+                coverage_dir = os.path.abspath(os.path.join(os.getcwd(), 'Coverage'))
             tools.create_folder(coverage_dir)
 
         # 1.   loop over alls builds
@@ -1299,15 +1303,15 @@ def PerformCheck(start, builds, args, log):
                 if args.exe:
                     print(tools.indent(tools.yellow("Running gcovr for standalone executable [%s]" % build.binary_path), 2))
                     try:
-                        # expect that code is executed in the build directory
-                        coverage_files_dir = os.getcwd()
-                        # check with binary directory, which suggests cwd is build directory
-                        dir_elems = [os.path.abspath(elem) for elem in os.listdir(coverage_files_dir)]
-                        if build.binary_dir in dir_elems:
-                            pass
-                        else:
-                            # defaults to the parent dir of binary_dir
-                            coverage_files_dir = os.path.dirname(build.binary_dir)
+                        # expect directory structure for a cmake project like
+                        # program
+                        # |- src
+                        #   | - source files
+                        #   | ...
+                        # |- build
+                        #   | - bin
+                        # default to the parent dir of binary_dir
+                        coverage_files_dir = os.path.dirname(build.binary_dir)
                         # sanity check: find .gcno files in coverage_files_dir or any subdir, since exe must be compiled with coverage
                         gcno_files = [os.path.join(root, file) for root, _, files in os.walk(coverage_files_dir) for file in files if file.endswith('.gcno')]
                         if not gcno_files:
@@ -1344,8 +1348,8 @@ def PerformCheck(start, builds, args, log):
                 cmd_gcovr = ["gcovr", "--root", f"{source_files_dir}", f"{coverage_files_dir}"]
                 if args.debug > 0:
                     cmd_gcovr.append("--verbose")
+                    cmd_gcovr.append("--print-summary")
 
-                # //TODO Improvement: exclude vars file
                 # //TODO Improvement: get loaded gcc version and check for output format/ compatibilty with gcovr version
                 cmd_gcovr.append("--include-internal-functions")
                 cmd_gcovr.append("--gcov-ignore-parse-errors")
@@ -1371,8 +1375,7 @@ def PerformCheck(start, builds, args, log):
                 tools.remove_folder(build.target_directory)
             print('=' * 132)
 
-        # check if reggie is executed directly or via gitlab: if executed by hand combine the coverage data over all builds, gitlab uses the single reports to combine
-        coverage_env = os.getenv('CODE_COVERAGE')
+        # check if reggie is executed directly or via gitlab: if executed by hand combine the coverage data over all builds, gitlab uses the single reports and separate stage to combine
         if not coverage_env and args.coverage:
             combined_cov_path = os.path.abspath(os.path.join(coverage_dir, "combined_report"))
             tools.create_folder(combined_cov_path)
@@ -1385,6 +1388,7 @@ def PerformCheck(start, builds, args, log):
             cmd_combine = ["gcovr", "--root", f"{source_files_dir}"]
             if args.debug > 0:
                 cmd_combine.append("--verbose")
+                cmd_combine.append("--print-summary")
             # add files separately to the command line since ExternalCommand().execute_cmd resolves wildcards
             for cov_file in coverage_files:
                 cmd_combine.append("--json-add-tracefile")
@@ -1404,6 +1408,8 @@ def PerformCheck(start, builds, args, log):
 
             cmd_combine.append("--json")
             cmd_combine.append("combined_report.json")
+            # merge functions for builds with different compiler flags (function name stays the same but line changes due to ifdef)
+            cmd_combine.append("--merge-mode-functions=merge-use-line-min")
             s = tools.indent("Running [%s] ..." % (" ".join(cmd_combine)), 2)
             ExternalCommand().execute_cmd(cmd_combine, combined_cov_path, string_info=s)
 

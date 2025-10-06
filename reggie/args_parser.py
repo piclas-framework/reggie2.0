@@ -91,7 +91,7 @@ def getArgsAndBuilds():
     parser.add_argument('-p', '--stop'       , help='Stop on first error.', action='store_true')
     parser.add_argument('-l', '--limitprocs' , help='Limit the number of processes to be used for the rune.', type=int, default=0)
     parser.add_argument('check', help='Path to check-/example-directory.')
-    parser.add_argument('-v', '--coverage'   , help='Compile code with code coverage option, always returns output in json format. Additional values (resulting in additional output formats): 1=HTML output, 2=Cobertura XML, 3=both formats. Default=0 if flag used without value.', nargs='?', const='0', default=None) # noqa: E501
+    parser.add_argument('-v', '--coverage'   , help='Compile code with code coverage option, always returns output in json format. Additional values (resulting in additional output formats): 1=HTML output, 2=Cobertura XML, also allows 12 for both. Default=0 if flag used without value.', nargs='?', const='0', default=None) # noqa: E501
     parser.add_argument('--meshesdir'        , help='When hopr is used as external: Only run hopr once for each example and store meshes in separate directory to use symbolic links.', action='store_true')
     # fmt: on
     # parser.set_defaults(carryon=False)
@@ -165,13 +165,7 @@ def getArgsAndBuilds():
 
     # delete the building directory when [carryon = False] and [run = False] before getBuilds is called
     if not args.carryon and not args.run:
-        # keep the output directory if coverage option is enabled since the data over all builds is needed
-        if not args.coverage:
-            tools.remove_folder(OutputDirectory.output_dir)
-        else:
-            # check if this is the first time the reggie is run with coverage (that means the last output directory does not contain directories for coverage reports)
-            if 'combined_report' not in os.listdir(OutputDirectory.output_dir) and 'single_reports' not in os.listdir(OutputDirectory.output_dir):
-                tools.remove_folder(OutputDirectory.output_dir)
+        tools.remove_folder(OutputDirectory.output_dir)
 
     # ENV variable for code coverage
     coverage_env = os.getenv('CODE_COVERAGE')
@@ -182,15 +176,15 @@ def getArgsAndBuilds():
     elif args.coverage:  # check for command line argument when executed locally
         args.coverage_output_html = False
         args.coverage_output_cobertura = False
-        if '1' in args.coverage:
-            args.coverage_output_html = True
-        if '2' in args.coverage:
-            args.coverage_output_cobertura = True
-        if '3' in args.coverage:
-            args.coverage_output_html = True
-            args.coverage_output_cobertura = True
-        elif args.coverage != '0':
-            print(tools.red("Invalid value for --coverage: '%s'. Use 1, 2, 3 or leave empty." % args.coverage))
+        if args.coverage == '0':
+            pass
+        elif all(c in '12' for c in args.coverage):
+            if '1' in args.coverage:
+                args.coverage_output_html = True
+            if '2' in args.coverage:
+                args.coverage_output_cobertura = True
+        else:
+            print(tools.red("Invalid value for --coverage: '%s'. Use any combination of 1, 2, 3, or 0." % args.coverage))
             exit(1)
         args.coverage = True
 
