@@ -956,9 +956,27 @@ def PerformCheck(start, builds, args, log):
 
     # compile and run loop
     try:  # if compiling fails -> go to exception
+        # get coverage flags and set output format
+        coverage_env = os.getenv('CODE_COVERAGE')
+        coverage_output_html = False
+        coverage_output_cobertura = False
+        if coverage_env:
+            args.coverage = True
+        elif args.coverage:  # check for command line argument when executed locally
+            if args.coverage == '0':
+                pass
+            elif all(c in '12' for c in args.coverage):
+                if '1' in args.coverage:
+                    coverage_output_html = True
+                if '2' in args.coverage:
+                    coverage_output_cobertura = True
+            else:
+                print(tools.red("Invalid value for --coverage: '%s'. Use any combination of 1, 2, 3, or 0." % args.coverage))
+                exit(1)
+            args.coverage = True
+
         # create directory to store coverage data (one file per build), if executed locally the coverage directory is created in the current directory, but
         # for GitLab regressiontests the parent dir is used since all build directories will be deleted but the coverage data is needed
-        coverage_env = os.getenv('CODE_COVERAGE')
         if args.coverage:
             if coverage_env:
                 coverage_dir = os.path.abspath(os.path.join(os.path.dirname(os.getcwd()), 'Coverage'))
@@ -1350,15 +1368,36 @@ def PerformCheck(start, builds, args, log):
                     cmd_gcovr.append("--verbose")
                     cmd_gcovr.append("--print-summary")
 
-                # //TODO Improvement: get loaded gcc version and check for output format/ compatibilty with gcovr version
                 cmd_gcovr.append("--include-internal-functions")
                 cmd_gcovr.append("--gcov-ignore-parse-errors")
                 cmd_gcovr.append("all")
 
                 # get name of current build source dir
-                report_name = f"combined_report_build_{str(coverage_files_dir).split("/")[-1]}"
-                cmd_gcovr.append("--json")
-                cmd_gcovr.append(f"{report_name}.json")
+                if coverage_env:
+                    # get cwd for naming convention due to gitlab setup
+                    report_name = f"combined_report_{os.getcwd().split("/")[-1]}.json"
+                else:
+                    # get build_dir name otherwise
+                    report_name = f"combined_report_{str(coverage_files_dir).split("/")[-1]}.json"
+
+                # check if file already exists from other reggie call before the current call, e.g. two regression tests use the same build, which would lead to the same report_name here
+                if report_name in os.listdir(coverage_dir):
+                    # if yes add the new coverage data to the old coverage data file, since the updated .gcno files (which contain the coverage from the current run) in the build directory
+                    # are not necessarily pushed to the cache (on gitlab) each time the reggie is executed and will be lost! This would result in only the last reggie execution coverage per filename
+                    # will be stored and combined later
+                    cmd_gcovr.append("--json-add-tracefile")
+                    cmd_gcovr.append(report_name)
+                    # new output name, since same name is not possible
+                    temp_output = f"{report_name}_temp.json"
+                    cmd_gcovr.append("--json")
+                    cmd_gcovr.append(temp_output)
+                    print(tools.indent(f'{report_name} already existing in {coverage_dir}! Creating new temporary output {temp_output} file and combining coverage data!', 2))
+                    move_file = True
+                else:
+                    # otherwise just create the report_name file as output
+                    cmd_gcovr.append("--json")
+                    cmd_gcovr.append(report_name)
+                    move_file = False
 
                 s = tools.indent("Running [%s] ..." % (" ".join(cmd_gcovr)), 2)
                 ExternalCommand().execute_cmd(cmd_gcovr, coverage_dir, string_info=s)
@@ -1367,6 +1406,26 @@ def PerformCheck(start, builds, args, log):
                 # gcovr --root <root_dir> --add-tracefile <json_file1> --add-tracefile <json_file2> --cobertura report_name.xml, respectively
                 # or with wildcards aswell
                 # note that the root directory must be the same as the one used for the gcovr command which creates the json file
+
+                # if coverage data was written to temp file, move file to old old name to ensure functionality for next time
+                if move_file:
+                    full_report_name_path = os.path.abspath(os.path.join(coverage_dir, report_name))
+                    full_temp_output_path = os.path.abspath(os.path.join(coverage_dir, temp_output))
+                    # sanity check if paths are files
+                    if os.path.isfile(full_report_name_path) and os.path.isfile(full_temp_output_path):
+                        print(tools.indent(f'Moving {temp_output} back to {report_name}', 2))
+                        os.replace(full_temp_output_path, full_report_name_path)
+                    else:
+                        print(
+                            tools.indent(
+                                tools.red(
+                                    f'{report_name} already existing in {coverage_dir}! Failed to create temporary output file to combine current coverage data with coverage data from earlier run:'
+                                    + f'temporary output file: {full_temp_output_path}\nexisting output file: {full_report_name_path}.'
+                                ),
+                                2,
+                            )
+                        )
+                        exit(1)
 
                 s = tools.green("Post-processing: Finished gcovr")
                 print(tools.indent(s, 1))
@@ -1389,22 +1448,28 @@ def PerformCheck(start, builds, args, log):
             if args.debug > 0:
                 cmd_combine.append("--verbose")
                 cmd_combine.append("--print-summary")
-            # add files separately to the command line since ExternalCommand().execute_cmd resolves wildcards
+            # add files separately to the command line since ExternalCommand().execute_cmd resolves wildcards which would lead to invalid syntax for gcovr
+            # which is either --json-add-tracefile file1 --json-add-tracefile file2 or --json-add-tracefile *.json, but ExternalCommand().execute_cmd resolves wildcards to
+            # --json-add-tracefile file1 file2 ...
             for cov_file in coverage_files:
                 cmd_combine.append("--json-add-tracefile")
                 cmd_combine.append(cov_file)
-            if args.coverage_output_html:
+            if coverage_output_html:
+                html_path = os.path.abspath(os.path.join(combined_cov_path, "html"))
+                tools.create_folder(html_path)
                 cmd_combine_html = cmd_combine.copy()
                 cmd_combine_html.append("--html-nested")
                 cmd_combine_html.append("combined_report.html")
                 s = tools.indent("Running [%s] ..." % (" ".join(cmd_combine_html)), 2)
-                ExternalCommand().execute_cmd(cmd_combine_html, combined_cov_path, string_info=s)
-            if args.coverage_output_cobertura:
+                ExternalCommand().execute_cmd(cmd_combine_html, html_path, string_info=s)
+            if coverage_output_cobertura:
+                xml_path = os.path.abspath(os.path.join(combined_cov_path, "xml"))
+                tools.create_folder(xml_path)
                 cmd_combine_cobertura = cmd_combine.copy()
                 cmd_combine_cobertura.append("--cobertura")
                 cmd_combine_cobertura.append("combined_report.xml")
                 s = tools.indent("Running [%s] ..." % (" ".join(cmd_combine_cobertura)), 2)
-                ExternalCommand().execute_cmd(cmd_combine_cobertura, combined_cov_path, string_info=s)
+                ExternalCommand().execute_cmd(cmd_combine_cobertura, xml_path, string_info=s)
 
             cmd_combine.append("--json")
             cmd_combine.append("combined_report.json")

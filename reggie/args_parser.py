@@ -167,27 +167,6 @@ def getArgsAndBuilds():
     if not args.carryon and not args.run:
         tools.remove_folder(OutputDirectory.output_dir)
 
-    # ENV variable for code coverage
-    coverage_env = os.getenv('CODE_COVERAGE')
-    if coverage_env:
-        args.coverage = True
-        args.coverage_output_html = False
-        args.coverage_output_cobertura = True
-    elif args.coverage:  # check for command line argument when executed locally
-        args.coverage_output_html = False
-        args.coverage_output_cobertura = False
-        if args.coverage == '0':
-            pass
-        elif all(c in '12' for c in args.coverage):
-            if '1' in args.coverage:
-                args.coverage_output_html = True
-            if '2' in args.coverage:
-                args.coverage_output_cobertura = True
-        else:
-            print(tools.red("Invalid value for --coverage: '%s'. Use any combination of 1, 2, 3, or 0." % args.coverage))
-            exit(1)
-        args.coverage = True
-
     # get builds from checks directory if no executable is supplied
     if args.exe is None:  # if not exe is supplied, get builds
         # read build combinations from checks/XX/builds.ini
