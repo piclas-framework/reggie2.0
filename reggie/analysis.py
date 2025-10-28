@@ -2395,11 +2395,12 @@ class Analyze_vtudiff(Analyze, ExternalCommand):
                                         tools.red(
                                             "{:<20} | {:<45} | {:<45}".format(
                                                 non_masked_indices[i],
-                                                str(np.around(masked_array[non_masked_indices[i], offset : size + offset], decimals=4)),
-                                                str(np.around(masked_array_ref[non_masked_indices[i], offset : size + offset], decimals=4)),
+                                                str(masked_array[non_masked_indices[i], offset : size + offset]),
+                                                str(masked_array_ref[non_masked_indices[i], offset : size + offset]),
                                             )
                                         )
-                                        + tools.yellow("| {:<30} | {:<30}".format(str(np.around(abs_diff, decimals=2)), str(np.around(rel_diff, decimals=2))))
+                                        # + tools.yellow("| {:<30} | {:<30}".format(str(np.around(abs_diff, decimals=2)), str(np.around(rel_diff, decimals=2))))
+                                        + tools.yellow("| {:<30} | {:<30}".format(str(abs_diff), str(rel_diff)))
                                     )
                                 offset += size
                                 error_array_names.append(name)
