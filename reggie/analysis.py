@@ -2164,6 +2164,15 @@ class Analyze_vtudiff(Analyze, ExternalCommand):
 
                     vtu_data, array_names_dims = read_in_vtk_data(reader, array_name_loc_file)
                     vtu_data_ref, array_names_dims_ref = read_in_vtk_data(reader_ref, array_name_loc_ref)
+                    try:
+                        # Check if array_name_loc has not been set (because no name was stated in the analyze.ini file)
+                        if array_name_loc is None:
+                            listOfKeys = list(array_names_dims.keys())
+                            delimiter = " "  # Define a delimiter
+                            array_name_loc = delimiter.join(listOfKeys)
+                    except Exception as e:
+                        print(e)
+                        array_name_loc = '[???]'
                 except Exception as e:
                     s = tools.red(
                         "Analyze_vtudiff: Could not read in the data from the vtk file [%s] or [%s]. Please make sure the provided reference file is a .vtu file and the given array names exist! Error: %s"
