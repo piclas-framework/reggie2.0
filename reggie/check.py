@@ -971,7 +971,7 @@ def PerformCheck(start, builds, args, log):
                 if '2' in args.coverage:
                     coverage_output_cobertura = True
             else:
-                print(tools.red("Invalid value for --coverage: '%s'. Use any combination of 1, 2, 3, or 0." % args.coverage))
+                print(tools.red("Invalid value for --coverage: '%s'. Use any combination of 1, 2 or 0." % args.coverage))
                 exit(1)
             args.coverage = True
 
@@ -981,7 +981,7 @@ def PerformCheck(start, builds, args, log):
             if coverage_env:
                 coverage_dir = os.path.abspath(os.path.join(os.path.dirname(os.getcwd()), 'Coverage'))
             else:
-                coverage_dir = os.path.abspath(os.path.join(os.getcwd(), 'Coverage'))
+                coverage_dir = os.path.abspath(os.path.join(OutputDirectory.output_dir, 'Coverage'))
             tools.create_folder(coverage_dir)
 
         # 1.   loop over alls builds
@@ -1372,6 +1372,10 @@ def PerformCheck(start, builds, args, log):
                 cmd_gcovr.append("--gcov-ignore-parse-errors")
                 cmd_gcovr.append("all")
 
+                # //TODO exclude call aborts and collective stop
+                # cmd_gcovr.append("--exclude-lines-by-pattern")
+                # cmd_gcovr.append("/collectivestop/")
+
                 # get name of current build source dir
                 if coverage_env:
                     # get cwd for naming convention due to gitlab setup
@@ -1416,15 +1420,14 @@ def PerformCheck(start, builds, args, log):
                         print(tools.indent(f'Moving {temp_output} back to {report_name}', 2))
                         os.replace(full_temp_output_path, full_report_name_path)
                     else:
-                        print(
-                            tools.indent(
-                                tools.red(
-                                    f'{report_name} already existing in {coverage_dir}! Failed to create temporary output file to combine current coverage data with coverage data from earlier run:'
-                                    + f'temporary output file: {full_temp_output_path}\nexisting output file: {full_report_name_path}.'
-                                ),
-                                2,
-                            )
+                        s = tools.indent(
+                            tools.red(
+                                f'{report_name} already existing in {coverage_dir}! Failed to create temporary output file to combine current coverage data with coverage data from earlier run:'
+                                + f'temporary output file: {full_temp_output_path}\nexisting output file: {full_report_name_path}.'
+                            ),
+                            2,
                         )
+                        print(s)
                         exit(1)
 
                 s = tools.green("Post-processing: Finished gcovr")
@@ -1454,6 +1457,8 @@ def PerformCheck(start, builds, args, log):
             for cov_file in coverage_files:
                 cmd_combine.append("--json-add-tracefile")
                 cmd_combine.append(cov_file)
+            # use merge mode functions to avoid errors if the same functions appears in different lines (e.g. for two builds a block is missing due to compiler flags, which moves func1 form line X to X-5)
+            cmd_combine.append("--merge-mode-functions=merge-use-line-min")
             if coverage_output_html:
                 html_path = os.path.abspath(os.path.join(combined_cov_path, "html"))
                 tools.create_folder(html_path)
@@ -1474,7 +1479,6 @@ def PerformCheck(start, builds, args, log):
             cmd_combine.append("--json")
             cmd_combine.append("combined_report.json")
             # merge functions for builds with different compiler flags (function name stays the same but line changes due to ifdef)
-            cmd_combine.append("--merge-mode-functions=merge-use-line-min")
             s = tools.indent("Running [%s] ..." % (" ".join(cmd_combine)), 2)
             ExternalCommand().execute_cmd(cmd_combine, combined_cov_path, string_info=s)
 

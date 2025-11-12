@@ -99,6 +99,27 @@ or a python specific block with
 if condition: # fmt: skip
 ```
 
+## Code Coverage
+
+Reggie2.0 supports code coverage analysis using [gcovr](https://gcovr.com/). To enable code coverage:
+
+1. Compile the executable with the `--coverage` flag in your build configuration. This generates additional `.gcno` and `.gcda` files per object file, which track all compiled lines and the number of calls per line.
+2. Run reggie with the `-v` option to generate the coverage report.
+
+The `-v` parameter accepts an optional numeric argument to specify the output format: the default generates a `.json` file, `1` enables additional `.html` output, and `2` produces `.xml` output.
+
+All output files are stored in the `Coverage` directory. Separate reports are generated per build and then combined into a single report across all builds. This combined report can be inspected as an HTML file at `Coverage/combined_report/html/combined_report.html`. Other formats such as `.json` or `.xml` are used for combining reports or visualisation on GitLab.
+
+**CAUTION**: The `.gcno` and `.gcda` files are **not** deleted by `make clean`! These files must be manually deleted before running new coverage tests, as they may be corrupted or retain results from previous runs.
+
+Example:
+```
+reggie /path/to/single/regressiontest -e /path/to/executable -v 1
+```
+or
+```
+reggie -b /path/to/basedirectory /path/to/regressiontests -v
+```
 
 ## Overview
  * [General file and directory hierarchy in Reggie2.0](#code-hierarchy-and-required-ini-files)
