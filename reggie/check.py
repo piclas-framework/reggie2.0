@@ -1370,9 +1370,23 @@ def PerformCheck(start, builds, args, log):
 
                 cmd_gcovr.extend(["--include-internal-functions", "--gcov-ignore-parse-errors", "all"])
 
-                # //TODO exclude call aborts and collective stop
-                # cmd_gcovr.append("--exclude-lines-by-pattern")
-                # cmd_gcovr.append("/collectivestop/")
+                # exclude call aborts and collective stop, using python regular expressions for one or more leading spaces (\s+) and a separate exclude for no leading spaces
+                # since zero or more (\s*) is interpreted as glob pattern
+                # //TODO exclusions dont work when combining data, so hard code it here? what if reggie is used for other program? only add if env_var is set? => local and gitlab coverage might differ
+                # or just apply all the time? maybe as additional flag for reggie but seems messy
+                cmd_gcovr.extend(
+                    [
+                        "--exclude-lines-by-pattern",
+                        r"(?i)^\s+CALL\s+collectivestop",
+                        "--exclude-lines-by-pattern",
+                        r"(?i)^CALL\s+collectivestop",
+                        "--exclude-lines-by-pattern",
+                        r"(?i)^\s+CALL\s+ABORT",
+                        "--exclude-lines-by-pattern",
+                        r"(?i)^CALL\s+ABORT",
+                    ]
+                )
+                # //TODO exclude node/core split parts depending on PICLAS_SPLIT_TYPE like above
 
                 # get name of current build source dir
                 if coverage_env:
@@ -1407,7 +1421,6 @@ def PerformCheck(start, builds, args, log):
                     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', dir=coverage_dir, delete=False) as tmp_combined:
                         temp_combined_path = tmp_combined.name
 
-                    # fmt: off
                     cmd_combine = [
                         "gcovr",
                         "--root",
@@ -1420,7 +1433,6 @@ def PerformCheck(start, builds, args, log):
                         "--json",
                         os.path.basename(temp_combined_path),
                     ]
-                    # fmt: on
 
                     s = tools.indent("Merging coverage reports [%s] ..." % (" ".join(cmd_combine)), 2)
                     return_code = ExternalCommand().execute_cmd(cmd_combine, coverage_dir, string_info=s)
