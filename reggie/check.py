@@ -1374,18 +1374,15 @@ def PerformCheck(start, builds, args, log):
                 # since zero or more (\s*) is interpreted as glob pattern
                 # //TODO exclusions dont work when combining data, so hard code it here? what if reggie is used for other program? only add if env_var is set? => local and gitlab coverage might differ
                 # or just apply all the time? maybe as additional flag for reggie but seems messy
+                # fmt: off
                 cmd_gcovr.extend(
-                    [
-                        "--exclude-lines-by-pattern",
-                        r"(?i)^\s+CALL\s+collectivestop",
-                        "--exclude-lines-by-pattern",
-                        r"(?i)^CALL\s+collectivestop",
-                        "--exclude-lines-by-pattern",
-                        r"(?i)^\s+CALL\s+ABORT",
-                        "--exclude-lines-by-pattern",
-                        r"(?i)^CALL\s+ABORT",
+                    ["--exclude-lines-by-pattern",r"(?i)^\s+CALL\s+collectivestop",
+                     "--exclude-lines-by-pattern",r"(?i)^CALL\s+collectivestop",
+                     "--exclude-lines-by-pattern",r"(?i)^\s+CALL\s+ABORT",
+                     "--exclude-lines-by-pattern",r"(?i)^CALL\s+ABORT",
                     ]
                 )
+                # fmt: on
                 # //TODO exclude node/core split parts depending on PICLAS_SPLIT_TYPE like above
 
                 # get name of current build source dir
@@ -1421,18 +1418,15 @@ def PerformCheck(start, builds, args, log):
                     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', dir=coverage_dir, delete=False) as tmp_combined:
                         temp_combined_path = tmp_combined.name
 
-                    cmd_combine = [
-                        "gcovr",
-                        "--root",
-                        source_files_dir,
-                        "--json-add-tracefile",
-                        report_name,
-                        "--json-add-tracefile",
-                        os.path.basename(temp_new_path),
-                        "--merge-mode-functions=merge-use-line-min",
-                        "--json",
-                        os.path.basename(temp_combined_path),
-                    ]
+                    # fmt: off
+                    cmd_combine = ["gcovr",
+                                   "--root",source_files_dir,
+                                   "--json-add-tracefile",report_name,
+                                   "--json-add-tracefile",os.path.basename(temp_new_path),
+                                   "--merge-mode-functions=merge-use-line-min",
+                                   "--json",os.path.basename(temp_combined_path),
+                                  ]
+                    # fmt: on
 
                     s = tools.indent("Merging coverage reports [%s] ..." % (" ".join(cmd_combine)), 2)
                     return_code = ExternalCommand().execute_cmd(cmd_combine, coverage_dir, string_info=s)
