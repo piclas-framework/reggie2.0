@@ -39,7 +39,7 @@ def getMaxCPUCores():
     try:
         with open('/sys/fs/cgroup/cpuset.cpus') as file:
             line = file.read().strip()
-            cnt  = 0
+            cnt = 0
 
             # Assemble the number from the comma-separated list
             for prt in line.split(','):
@@ -58,19 +58,19 @@ def getMaxCPUCores():
     # > Parse /proc/cpuinfo for physical cores
     try:
         physical_cores = {}
-        physical_id    = None
+        physical_id = None
         with open('/proc/cpuinfo') as file:
             for line in file:
                 if line.strip():
-                    val   = line.split(':')
-                    key   = val[0].strip()
+                    val = line.split(':')
+                    key = val[0].strip()
                     value = val[1].strip() if len(val) > 1 else None
 
                     if value is None:
                         continue
 
                     # Look for "physical id" (CPU socket) and "core id" (core within socket)
-                    if   key == 'physical id':  # noqa: E271
+                    if key == 'physical id':
                         physical_id = int(value)
                     elif key == 'core id':
                         core_id = int(value)
@@ -122,7 +122,8 @@ def getArgsAndBuilds():
     parser.add_argument('-p', '--stop'       , help='Stop on first error.', action='store_true')
     parser.add_argument('-l', '--limitprocs' , help='Limit the number of processes to be used for the rune.', type=int, default=0)
     parser.add_argument('check', help='Path to check-/example-directory.')
-    parser.add_argument('-v', '--coverage'   , help='Compile code with code coverage option, always returns output in json format. Additional values (resulting in additional output formats): 1=HTML output, 2=Cobertura XML, also allows 12 for both. Default=0 if flag used without value.', nargs='?', const='0', default=None) # noqa: E501
+    parser.add_argument('-g', '--coverage'   , help='Compile code with code coverage option, always returns output in json format. Additional values (resulting in additional output formats): 1=HTML output, 2=Cobertura XML, also allows 12 for both. Default=0 if flag used without value.', nargs='?', const='0', default=None) # noqa: E501
+    parser.add_argument('--gcovr_extra'      , help='Extra arguments (string) to pass to gcovr (e.g. --exclude-lines-by-pattern <pattern> or --include-internal-functions). Additional arguments can be obtained from the gcovr documentation.', default=None) # noqa: E501
     parser.add_argument('--meshesdir'        , help='When hopr is used as external: Only run hopr once for each example and store meshes in separate directory to use symbolic links.', action='store_true')
     # fmt: on
     # parser.set_defaults(carryon=False)
@@ -144,6 +145,13 @@ def getArgsAndBuilds():
     meshesdir_env = os.getenv('MESHESDIR')
     if meshesdir_env:
         args.meshesdir = True
+
+    # ENV variable for gcovr_extra
+    gcovr_args = os.getenv('GCOVR_ARGS')
+    if gcovr_args:
+        if args.gcovr_extra:
+            print(f'Overwriting local additional gcovr arguments {args.gcovr_extra} with arguments from environment variable {gcovr_args}!')
+        args.gcovr_extra = gcovr_args
 
     # Check OS
     if re.search('^linux', platform):

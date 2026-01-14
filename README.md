@@ -104,9 +104,9 @@ if condition: # fmt: skip
 Reggie2.0 supports code coverage analysis using [gcovr](https://gcovr.com/). To enable code coverage:
 
 1. Compile the executable with the `--coverage` flag in your build configuration. This generates additional `.gcno` and `.gcda` files per object file, which track all compiled lines and the number of calls per line.
-2. Run reggie with the `-v` option to generate the coverage report.
+2. Run reggie with the `-g` (or `--coverage`) option to generate the coverage report.
 
-The `-v` parameter accepts an optional numeric argument to specify the output format: the default generates a `.json` file, `1` enables additional `.html` output, and `2` produces `.xml` output.
+The `-g` parameter accepts an optional numeric argument to specify the output format: the default generates a `.json` file, `1` enables additional `.html` output, and `2` produces `.xml` output.
 
 All output files are stored in the `Coverage` directory. Separate reports are generated per build and then combined into a single report across all builds. This combined report can be inspected as an HTML file at `Coverage/combined_report/html/combined_report.html`. Other formats such as `.json` or `.xml` are used for combining reports or visualisation on GitLab.
 
@@ -114,11 +114,11 @@ All output files are stored in the `Coverage` directory. Separate reports are ge
 
 Example:
 ```
-reggie /path/to/single/regressiontest -e /path/to/executable -v 1
+reggie /path/to/single/regressiontest -e /path/to/executable -g 1
 ```
 or
 ```
-reggie -b /path/to/basedirectory /path/to/regressiontests -v
+reggie -b /path/to/basedirectory /path/to/regressiontests -g
 ```
 
 ## Overview

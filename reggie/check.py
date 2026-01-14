@@ -1368,22 +1368,8 @@ def PerformCheck(start, builds, args, log):
                 if args.debug > 0:
                     cmd_gcovr.extend(["--verbose", "--print-summary"])
 
-                cmd_gcovr.extend(["--include-internal-functions", "--gcov-ignore-parse-errors", "all"])
-
-                # exclude call aborts and collective stop, using python regular expressions for one or more leading spaces (\s+) and a separate exclude for no leading spaces
-                # since zero or more (\s*) is interpreted as glob pattern
-                # //TODO exclusions dont work when combining data, so hard code it here? what if reggie is used for other program? only add if env_var is set? => local and gitlab coverage might differ
-                # or just apply all the time? maybe as additional flag for reggie but seems messy
-                # fmt: off
-                cmd_gcovr.extend(
-                    ["--exclude-lines-by-pattern",r"(?i)^\s+CALL\s+collectivestop",
-                     "--exclude-lines-by-pattern",r"(?i)^CALL\s+collectivestop",
-                     "--exclude-lines-by-pattern",r"(?i)^\s+CALL\s+ABORT",
-                     "--exclude-lines-by-pattern",r"(?i)^CALL\s+ABORT",
-                    ]
-                )
-                # fmt: on
-                # //TODO exclude node/core split parts depending on PICLAS_SPLIT_TYPE like above
+                if args.gcovr_extra:
+                    cmd_gcovr.extend(args.gcovr_extra.split(' '))
 
                 # get name of current build source dir
                 if coverage_env:
