@@ -219,7 +219,7 @@ The intention of a white space must be stated explicitly.
 |                          | h5diff\_data\_set                                  | DG\_Solution or DG\_Solution\\sField1 | None               | name of dataset for comparing (e.g. DG\_Solution or DG\_Solution vs. Field1 when the datasets in the two files have different names)                                                                                                     |
 |                          | h5diff\_tolerance\_value                           | 1.0e-2                                | 1e-5               | relative/absolute deviation between two elements in a .h5 array                                                                                                                                                                          |
 |                          | h5diff\_tolerance\_type                            | relative                              | absolute           | relative or absolute comparison                                                                                                                                                                                                          |
-|                          | h5diff\_one\_diff\_per\_run                        | True                                  | False              | if multiple reference files are supplied, these can either be used in every run or one each run                                                                                                                                          |
+|                          | h5diff\_one\_diff\_per\_run                        | True                                  | False              | when multiple reference files are supplied, these can either be used in every run (h5diff_one_diff_per_run=F) or one each run  (h5diff_one_diff_per_run=T)                                                                               |
 |                          | h5diff\_sort                                       | True                                  | False              | Sort h5 arrays before comparing them, which circumvents problems when comparing arrays that are written in arbitrary order due to multiple MPI processes writing the dataset (currently only 2-dimensional m x n arrays are implemented) |
 |                          | h5diff\_sort\_dim                                  | 1                                     | -1                 | Sorting dimension of a 2-dimensional m x n array (1: sort array by rows, 2: sort array by columns)                                                                                                                                       |
 |                          | h5diff\_sort\_var                                  | 0                                     | -1                 | Sorting variable of the specified dimension. The array will be sorted for this variable in ascending order (note that variables start at 0)                                                                                              |
@@ -351,7 +351,8 @@ h5diff_tolerance_type  = relative
 * Requires h5diff, which is compiled within the HDF5 package.
 
 ### Example with `h5diff_one_diff_per_run = F`
-This setup considers 2 runs and compares two files with two different reference files in each run, hence, multiple file output can be analyzed.
+Each comparison defined in analyze.ini is performed in each run.
+The following example considers two runs (e.g. the time step is changed between the runs) and compares two files with two separate reference files in each run, hence, multiple file output can be analyzed.
 
 Template for copying to **analyze.ini**
 
@@ -365,7 +366,9 @@ h5diff_tolerance_type  = absolute                                   , absolute
 ```
 
 ### Example with `h5diff_one_diff_per_run = T`
-This setup considers 4 runs (the polynomial degree is varied) and in every run only one file is compared with a reference file. In the next run, a different reference file is used.
+A different comparison is performed in each run, where each column in analyze.ini is only used for one of the runs.
+The following example considers 4 runs (the polynomial degree is varied) and in every run only one file is compared with a reference file, which is different for each run.
+This can be used when the mesh is varied in each run, e.g., Cartesian and split2hex meshes and the resulting .h5 files are used for comparison.
 
 Template for copying to **analyze.ini**
 ```
