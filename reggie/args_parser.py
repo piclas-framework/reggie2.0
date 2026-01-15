@@ -122,7 +122,7 @@ def getArgsAndBuilds():
     parser.add_argument('-p', '--stop'       , help='Stop on first error.', action='store_true')
     parser.add_argument('-l', '--limitprocs' , help='Limit the number of processes to be used for the rune.', type=int, default=0)
     parser.add_argument('check', help='Path to check-/example-directory.')
-    parser.add_argument('-g', '--coverage'   , help='Compile code with code coverage option, always returns output in json format. Additional values (resulting in additional output formats): 1=HTML output, 2=Cobertura XML, also allows 12 for both. Default=0 if flag used without value.', nargs='?', const='0', default=None) # noqa: E501
+    parser.add_argument('-o', '--coverage'   , help='Compile code with code coverage option, always returns output in json format. Additional values (resulting in additional output formats): 1=HTML output, 2=Cobertura XML, also allows 12 for both. Default=0 if flag used without value.', nargs='?', const='0', default=None) # noqa: E501
     parser.add_argument('--gcovr_extra'      , help='Extra arguments (string) to pass to gcovr (e.g. --exclude-lines-by-pattern <pattern> or --include-internal-functions). Additional arguments can be obtained from the gcovr documentation.', default=None) # noqa: E501
     parser.add_argument('--meshesdir'        , help='When hopr is used as external: Only run hopr once for each example and store meshes in separate directory to use symbolic links.', action='store_true')
     # fmt: on
