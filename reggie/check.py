@@ -1020,11 +1020,20 @@ def PerformCheck(start, builds, args, log):
                     meshes_dir_path = os.path.join(example.target_directory, 'meshes')
                 for command_line_count, command_line in enumerate(example.command_lines, start=1):
                     log.info(str(command_line))
+                    # Database linking
                     database_path = command_line.parameters.get('database', None)
                     if database_path is not None:
                         database_path = os.path.abspath(os.path.join(example.source_directory, database_path))
                         if not os.path.exists(database_path):
                             s = tools.red("command_line.ini: cannot find file=[%s] " % (database_path))
+                            print(s)
+                            exit(1)
+                    # CVAE scattering linking
+                    cvae_scattering_cvae = command_line.parameters.get('cvae_scattering', None)
+                    if cvae_scattering_cvae is not None:
+                        cvae_scattering_cvae = os.path.abspath(os.path.join(example.source_directory, cvae_scattering_cvae))
+                        if not os.path.exists(cvae_scattering_cvae):
+                            s = tools.red("command_line.ini: cannot find file=[%s] " % (cvae_scattering_cvae))
                             print(s)
                             exit(1)
 
@@ -1042,10 +1051,17 @@ def PerformCheck(start, builds, args, log):
                     for RunCount, run in enumerate(command_line.runs, start=1):
                         print(tools.indent('Run %s of %s' % (RunCount, len(command_line.runs)), 1))
                         log.info(str(run))
+                        # Database linking
                         if database_path is not None and os.path.exists(run.target_directory):
                             head, tail = os.path.split(database_path)
                             os.symlink(database_path, os.path.join(run.target_directory, tail))
                             print(tools.green('Preprocessing: Linked database [%s] to [%s] ... ' % (database_path, run.target_directory)))
+                        # CVAE scattering linking
+                        if cvae_scattering_cvae is not None and os.path.exists(run.target_directory):
+                            head, tail = os.path.split(cvae_scattering_cvae)
+                            os.symlink(cvae_scattering_cvae, os.path.join(run.target_directory, tail))
+                            print(tools.green('Preprocessing: Linked CVAE scattering cvae file [%s] to [%s] ... ' % (cvae_scattering_cvae, run.target_directory)))
+
                         # 4.1 read the external options in 'externals.ini' within each example directory (e.g. eos, hopr, posti)
                         #     distinguish between pre- and post processing
                         run.externals_pre, run.externals_post, run.externals_errors = getExternals(os.path.join(run.source_directory, 'externals.ini'), run, build)
