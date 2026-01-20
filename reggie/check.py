@@ -1374,10 +1374,10 @@ def PerformCheck(start, builds, args, log):
                 # get name of current build source dir
                 if coverage_env:
                     # get cwd for naming convention due to gitlab setup
-                    report_name = f"combined_report_{os.getcwd().split("/")[-1]}.json"
+                    report_name = f"combined_report_{os.getcwd().split('/')[-1]}.json"
                 else:
                     # get build_dir name otherwise
-                    report_name = f"combined_report_{str(coverage_files_dir).split("/")[-1]}.json"
+                    report_name = f"combined_report_{str(coverage_files_dir).split('/')[-1]}.json"
 
                 # check if file already exists from other reggie call before the current call, e.g. two regression tests use the same build, which would lead to the same report_name here
                 if report_name in os.listdir(coverage_dir):
