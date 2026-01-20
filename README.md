@@ -1,4 +1,24 @@
-# Reggie2.0 toolbox
+# Table of Contents
+
+- [Reggie2.0](#reggie20-toolbox)
+  - [Installation](#installation)
+  - [Ruff linter and formatter](#ruff-linter-and-formatter)
+  - [Code Coverage](#code-coverage)
+  - [Overview](#overview)
+  - [Code hierarchy and required *.ini* files](#code-hierarchy-and-required-ini-files)
+- [Analyze routines: analyze.ini](#analyze-routines-for-analyzeini)
+- [Command line arguments for program execution: command_line.ini](#command-line)
+    - [Example](#example)
+- [Externals: externals.ini](#externals)
+    - [Example](#example-1)
+- [Compile flag combinations for c-make in: builds.ini](#builds)
+- [Runs](#runs)
+    - [Exclude runs directly](#exclude-runs-directly)
+    - [Use the same parameter list for multiple parameters in parameter.ini](#use-the-same-parameter-list-for-multiple-parameters-in-parameterini)
+    - [Example](#example-2)
+
+# Reggie2.0
+
 ```mermaid
 graph TD;
   gitlab_ci.py["gitlab_ci.py"]-->|call|A[reggie.py];
@@ -99,13 +119,71 @@ or a python specific block with
 if condition: # fmt: skip
 ```
 
+## Code Coverage
+"In software engineering, code coverage, also called test coverage, is a percentage measure of the
+degree to which the source code of a program is executed when a particular test suite is run." - [Wikipedia](https://en.wikipedia.org/wiki/Code_coverage)
 
-## Overview
- * [General file and directory hierarchy in Reggie2.0](#code-hierarchy-and-required-ini-files)
- * [Analyze routines for post-processing in **analyze.ini**](#analyze-routines-for-analyzeini)
- * [Command line arguments for program execution in **command_line.ini**](#command-line)
- * [Compile flag combinations for c-make in **builds.ini**](#builds)
- * [Exclude runs in **parameter.ini**](#runs)
+### gcovr: Coverage of the .f90 code
+Reggie2.0 supports code coverage analysis using [gcovr](https://gcovr.com/). To enable code coverage:
+
+1. Compile the executable with the `--coverage` flag in your build configuration.
+   For example
+    ```
+    mkdir build_poisson_code_coverage && cd build_poisson_code_coverage
+    cmake .. -DPICLAS_EQNSYSNAME=poisson -DPICLAS_TIMEDISCMETHOD=Leapfrog -DLIBS_USE_PETSC=ON -DPICLAS_CODE_COVERAGE=ON
+    make -j
+    ```
+   This generates additional `.gcno` and `.gcda` files per object file, which track all compiled lines and the number of calls per line.
+
+    **CAUTION**: The `.gcno` and `.gcda` files are **not** deleted by `make clean`! These files must be manually deleted before running new coverage tests,
+    as they may be corrupted or retain results from previous runs.
+
+2. Run reggie with the `-o` (or `--coverage`) option to generate the coverage report, for example
+
+    ```
+    reggie -e bin/piclas ../regressioncheck/CHE_poisson_p_adaption/Laplace_h_N1_pAdaptionType0/ -o 1
+    ```
+
+The `-o` parameter accepts an optional numeric argument to specify the output format: the default generates a `.json` file,
+`1` enables additional `.html` output, and `2` produces `.xml` output.
+
+All output files are stored in the `Coverage` directory. Separate reports are generated per build and then combined into a single report across all builds.
+This combined report can be inspected as an HTML file at `Coverage/combined_report/html/combined_report.html`.
+Other formats such as `.json` or `.xml` are used for combining reports or visualisation on GitLab.
+
+Examples:
+```
+reggie -b /path/to/basedirectory /path/to/regressiontests -o
+reggie /path/to/single/regressiontest -e /path/to/executable -o 1
+reggie /path/to/single/regressiontest -e /path/to/executable -o 2
+```
+
+### Python coverage.py package: Coverage of the reggie2.0 code itself
+It is also possible to generate a report of the reggie tool itself.
+For this, each reggie call is wrapped with the [Python coverage tool](https://coverage.readthedocs.io/).
+Make sure that the package is installed.
+```
+python3 -m pip install coverage
+```
+and then run the coverage tool
+```
+mkdir -p Coverage/reggie
+COVERAGE_REGGIE_DIR="${PWD}/Coverage/reggie"
+reggiecov() { coverage run -a --data-file=${COVERAGE_REGGIE_DIR}/.coverage --source=reggie -m reggie.reggie "$@" }
+reggiecov -e bin/piclas ../regressioncheck/CHE_poisson_p_adaption/Laplace_h_N1_pAdaptionType0
+```
+
+This generates a coverage report of all used lines in the reggie module.
+To convert the report to html, run
+```
+cd Coverage/reggie/ && coverage html && cd ../../
+```
+which should signal a successful html creation with `Wrote HTML report to htmlcov/index.html`.
+The report can be inspected using the `Coverage/reggie/index.html` file.
+
+```
+firefox ./Coverage/reggie/htmlcov/index.html
+```
 
 ## Code hierarchy and required *.ini* files
 ```
@@ -132,11 +210,9 @@ gitlab-ci.py
 
 # Analyze routines for "analyze.ini"
 
-- [Reggie2.0 toolbox](#reggie20-toolbox)
-  - [Installation](#installation)
-  - [Overview](#overview)
-  - [Code hierarchy and required *.ini* files](#code-hierarchy-and-required-ini-files)
-- [Analyze routines for "analyze.ini"](#analyze-routines-for-analyzeini)
+## Overview
+
+- [Table of Functions](#table-of-functions)
 - [L2 error file](#l2-error-file)
 - [L2 error upper limit](#l2-error-upper-limit)
 - [h-convergence test](#h-convergence-test)
@@ -163,16 +239,8 @@ gitlab-ci.py
 - [compare data column](#compare-data-column)
 - [Compare across commands](#compare-across-commands)
 - [Clean-up files](#clean-up-files)
-- [Command Line](#command-line)
-    - [Example](#example)
-- [Externals](#externals)
-    - [Example](#example-1)
-- [Builds](#builds)
-- [Runs](#runs)
-    - [Exclude runs directly](#exclude-runs-directly)
-    - [Use the same parameter list for multiple parameters in parameter.ini](#use-the-same-parameter-list-for-multiple-parameters-in-parameterini)
-    - [Example](#example-2)
 
+## Table of Functions
 
 The parameters used in `analyze.ini` and example arguments are given in the following table. Note that if you intend to use white spaces in variable names they must be supplied in form of `\s` in the variable name.
 Example: `"Initial Timestep"` becomes `"Initial\sTimestep"` (or `"Initial\s Timestep"`) because all white spaces are removed from the variable name automatically.
@@ -252,7 +320,7 @@ The intention of a white space must be stated explicitly.
 |                          | compare\_across\_commands\_<br />reference         | 1                                     | 0                  | command number for taking reference value (according to numbering cmd_0001, cmd_0002,...) - default value 0 takes average of all calculated values                                                                                       |
 | clean-up files after run | clean\_up\_files                                   | *_State_*                             | None               | remove all unwanted files directly after the run is completed. The wild card character is "*"                                                                                                                                            |
 
-# L2 error file
+## L2 error file
 * Compare all L2 errors calculated for all nVar against supplied values in a data file
 * relative or absolute comparison possible
 
@@ -271,7 +339,7 @@ Note that the errors (in this example in L2error.txt) must be supplied in the fo
 L_2       :    1.5942413E+09   1.9238600E+09   1.2437159E+10   7.1690941E+01   1.4439652E+02   1.4360107E-01   1.5516452E+09   3.2439672E-02
 ```
 
-# L2 error upper limit
+## L2 error upper limit
 * Compare all L2 errors calculated for all nVar against an upper boundary *analyze_L2*
 
 Template for copying to **analyze.ini**
@@ -281,7 +349,7 @@ Template for copying to **analyze.ini**
 analyze_L2=1e7
 ```
 
-# h-convergence test
+## h-convergence test
 * Determine the rate of convergence versus decreasing the average spacing between two DOF by running multiple different grids
 * Requires multiple mesh files
 
@@ -294,7 +362,7 @@ analyze_Convtest_h_tolerance=0.3
 analyze_Convtest_h_rate=1
 ```
 
-# p-convergence test
+## p-convergence test
 * Determine an increasing rate of convergence by increasing the polynomial degree (for a constant mesh)
 
 Template for copying to **analyze.ini**
@@ -305,7 +373,7 @@ analyze_Convtest_p_rate=0.8
 analyze_Convtest_p_percentage=0.75
 ```
 
-# h5diff
+## h5diff
 * Compares two arrays from two .h5 files element-by-element either with an absolute or relative difference (when comparing with zero, h5diff automatically uses an absolute comparison).
 * Requires h5diff, which is compiled within the HDF5 package (set the corresponding environment variable).
 
@@ -434,7 +502,7 @@ h5diff_var_attribute    = VarNamesSurface                                       
 h5diff_var_name         = Spec001_ImpactNumber                                   , _
 ```
 
-# vtudiff
+## vtudiff
 
 * Compares the point, field and cell data arrays (if not empty) of two .vtu files for each array element-by-element either with an absolute and/or relative difference (depending on which tolerance values are given - if no tolerance is given both default values are used).
 * Requires vtk for reading-in data to python.
@@ -473,7 +541,7 @@ vtudiff_absolute_tolerance_value   = 1.0                                        
 vtudiff_array_name                 = DG_Solution                                              , _
 ```
 
-# h5 array bounds check
+## h5 array bounds check
 * Check if all elements of a h5 array are within a supplied interval
 * Requires *h5py* python module (analyze will fail if the module cannot be found)
 
@@ -488,7 +556,7 @@ check_hdf5_dimension   = 0:2
 check_hdf5_limits      = -10.0:10.0
 ```
 
-# Data file line comparison
+## Data file line comparison
 * Compare a single line in, e.g., a .csv file element-by-elements
 * The data is delimited by a comma on default but can be changed by setting "compare\_data\_file\_delimiter = :" (when, e.g., ":" is to be used as the delimiter)
 * relative of absolute comparison
@@ -548,7 +616,7 @@ compare_data_file_tolerance_type = relative, relative, absolute, absolute
 
 Note that for this example, the number of all varied parameters must be the same (in this case 4) otherwise it will not work.
 
-# integrate data columns
+## integrate data columns
 * Integrate the data in a column over another column, e.g., x:y in a data file as integral(y(x), x, x(1), x(end)) via the trapezoid rule
 * The data is delimited by a comma on default but can be changed by setting "integrate\_line\_delimiter = :" (when, e.g., ":" is to be used as the delimiter)
 * special options are available for calculating, e.g., rates (something per second)
@@ -577,7 +645,7 @@ integrate_line_multiplier      = 5.340588433333334e-03 ! = MPF*q/tend = 1e6*1.60
 
 Note that a comma is the default delimiter symbol for reading the data from the supplied file. The variable "integrate\_line\_delimiter" cannot be set as custom delimiter symbol "," because the comma is used for splitting the keywords in analyze.ini. However, other symbols can be supplied using "integrate\_line\_delimiter" instead of a comma.
 
-# compare data column
+## compare data column
 * compares the data in a column with a reference file
 * The data is delimited by a comma on default but can be changed by setting "compare\_column\_delimiter = :" (when, e.g., ":" is to be used as the delimiter)
 * Comparison of several columns is possible by providing a list of the column indices
@@ -601,7 +669,7 @@ compare_column_one_diff_per_restart_file  = F
 
 Note that a comma is the default delimiter symbol for reading the data from the supplied file. The variable "compare\_column\_delimiter" cannot be set as custom delimiter symbol "," because the comma is used for splitting the keywords in analyze.ini. However, other symbols can be supplied using "compare\_column\_delimiter" instead of a comma.
 
-# Compare across commands
+## Compare across commands
 * **Description:** compare data from corresponding runs of different commands, e.g. `cmd_*/run_0001` (= `cmd_0001/run_0001` vs. `cmd_0002/run_0001` vs. `cmd_0003/run_0001` vs. ...), `cmd_*/run_0002`, `cmd_*/run_0003`, etc.
 * **Purpose:** allows to investigate e.g. the parallel efficiency in a strong scaling test, if the different command directories originate from an increasing number of MPI threads (command\_line.ini: `MPI=2,4,6,...`) and the PID is written to the csv-file
 * data to be compared is a singular value per run, written to a csv-file and specified through row number (first line = 1) and column index (first column = 0)
@@ -626,7 +694,7 @@ MPI=2,4,6,8
 
 ```
 
-# Clean-up files
+## Clean-up files
 * remove all unwanted files directly after the run is completed. The wild card character is "*"
 
 Template for copying to **analyze.ini**
