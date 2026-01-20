@@ -212,12 +212,24 @@ gitlab-ci.py
 
 ## Overview
 
-- [Table of Functions](#table-of-functions)
-- [L2 error file](#l2-error-file)
-- [L2 error upper limit](#l2-error-upper-limit)
-- [h-convergence test](#h-convergence-test)
-- [p-convergence test](#p-convergence-test)
-- [h5diff](#h5diff)
+- [Table of Contents](#table-of-contents)
+- [Reggie2.0](#reggie20)
+  - [Installation](#installation)
+  - [Ruff linter and formatter](#ruff-linter-and-formatter)
+    - [Pre-commit Integration](#pre-commit-integration)
+    - [Ruff configuration](#ruff-configuration)
+  - [Code Coverage](#code-coverage)
+    - [gcovr: Coverage of the .f90 code](#gcovr-coverage-of-the-f90-code)
+    - [Python coverage.py package: Coverage of the reggie2.0 code itself](#python-coveragepy-package-coverage-of-the-reggie20-code-itself)
+  - [Code hierarchy and required *.ini* files](#code-hierarchy-and-required-ini-files)
+- [Analyze routines for "analyze.ini"](#analyze-routines-for-analyzeini)
+  - [Overview](#overview)
+  - [Table of Functions](#table-of-functions)
+  - [L2 error file](#l2-error-file)
+  - [L2 error upper limit](#l2-error-upper-limit)
+  - [h-convergence test](#h-convergence-test)
+  - [p-convergence test](#p-convergence-test)
+  - [h5diff](#h5diff)
   - [h5diff (multiple files)](#h5diff-multiple-files)
     - [Example with `h5diff_one_diff_per_run = F`](#example-with-h5diff_one_diff_per_run--f)
     - [Example with `h5diff_one_diff_per_run = T`](#example-with-h5diff_one_diff_per_run--t)
@@ -226,19 +238,28 @@ gitlab-ci.py
     - [Dataset Re-Shaping](#dataset-re-shaping)
     - [Multiple dataset names](#multiple-dataset-names)
     - [Compare variables](#compare-variables)
-- [vtudiff](#vtudiff)
-    - [vtudiff (additional options)](#vtudiff-additional-options)
-      - [Compare single array](#Compare-single-array)
-- [h5 array bounds check](#h5-array-bounds-check)
-- [Data file line comparison](#data-file-line-comparison)
+  - [vtudiff](#vtudiff)
+  - [vtudiff (additional options)](#vtudiff-additional-options)
+    - [Compare single array](#compare-single-array)
+  - [h5 array bounds check](#h5-array-bounds-check)
+  - [Data file line comparison](#data-file-line-comparison)
     - [Example 1 of 4](#example-1-of-4)
     - [Example 2 of 4](#example-2-of-4)
     - [Example 3 of 4](#example-3-of-4)
     - [Example 4 of 4](#example-4-of-4)
-- [integrate data columns](#integrate-data-columns)
-- [compare data column](#compare-data-column)
-- [Compare across commands](#compare-across-commands)
-- [Clean-up files](#clean-up-files)
+  - [integrate data columns](#integrate-data-columns)
+  - [compare data column](#compare-data-column)
+  - [Compare across commands](#compare-across-commands)
+  - [Clean-up files](#clean-up-files)
+- [Command Line](#command-line)
+    - [Example](#example)
+- [Externals](#externals)
+    - [Example](#example-1)
+- [Builds](#builds)
+- [Runs](#runs)
+    - [Exclude runs directly](#exclude-runs-directly)
+    - [Use the same parameter list for multiple parameters in parameter.ini](#use-the-same-parameter-list-for-multiple-parameters-in-parameterini)
+    - [Example](#example-2)
 
 ## Table of Functions
 
@@ -714,6 +735,7 @@ parameters used in `command_line.ini` and example arguments
 |  additional info  | cmd\_suffix   | DSMC.ini                   | None               | additional information that is appended to the command line argument that is used for running a program |
 | restart from file | restart\_file | My_State_000.0000005123.h5 | None               | supply the name of a state file from which all simulations are to be re-started                         |
 | link to database  | database      | SpeciesDatabase.h5         | None               | supply the name of a database file and its relative path (e.g. ../../../SpeciesDatabase.h5)             |
+link to cVAE scattering model  | cvae_scattering      |cVAE_VLEO_Al2O3.h5         | None               | supply the name of a cVAE file and its relative path (e.g. ../../../cVAE_VLEO_Al2O3.h5)             |
 
 
 ### Example
