@@ -2254,7 +2254,7 @@ class Analyze_vtudiff(Analyze, ExternalCommand):
 
                     data_shape = vtu_data.shape
                     name_suffix = name_suffix + '_reshaped'
-                    file_loc_new = file_loc.split('.vtu')[0] + name_suffix + '.vtu'
+                    file_loc_new, ext = os.path.splitext(file_loc) + name_suffix + ext
                     # In the following, compare the reshaped array instead of the original one
                     str_1 = "'%s' (instead of '%s')" % (file_loc_new, file_loc)
                     print(
@@ -2307,8 +2307,8 @@ class Analyze_vtudiff(Analyze, ExternalCommand):
 
                     # In the following, compare the two sorted arrays instead of the original ones
                     name_suffix = name_suffix + '_sorted'
-                    file_loc_new = file_loc.spipt('.vtu')[0] + name_suffix + '.vtu'
-                    reference_file_loc_new = reference_file_loc.split('.vtu')[0] + name_suffix + '.vtu'
+                    file_loc_new, ext = os.path.splitext(file_loc) + name_suffix + ext
+                    reference_file_loc_new, ext = os.path.splitext(reference_file_loc) + name_suffix + ext
                     str_1 = "'%s' (instead of '%s')" % (file_loc_new, file_loc)
                     str_2 = "'%s' (instead of '%s')" % (reference_file_loc_new, reference_file_loc)
                     print(tools.yellow("    Sorting dim=%s by variable=%s (variable indexing begins at 0). Now comparing: %s with %s" % (sort_dim_loc, sort_var_loc, str_1, str_2)))
@@ -2334,7 +2334,7 @@ class Analyze_vtudiff(Analyze, ExternalCommand):
                                 # Add the new array to the VTK data
                                 data_writer().AddArray(vtk_new_array)
 
-                    output_file_loc = file_loc.split('.vtu')[0] + name_suffix + '.vtu'
+                    output_file_loc, ext = os.path.splitext(file_loc) + name_suffix + ext
                     output_file_loc = os.path.join(run.target_directory, output_file_loc)
                     # Write the VTK unstructured grid to file
                     try:
@@ -2347,74 +2347,66 @@ class Analyze_vtudiff(Analyze, ExternalCommand):
                         print("Error writing VTK file: %s" % e)
 
                 # 1.3   Compare the data
-                # np.isclose creates a boolean array with True for elements that are close to each other within a tolerance
-                if abs_tolerance_value_loc and not rel_tolerance_value_loc:  # only use absolute tolerance
-                    data_compare = np.isclose(vtu_data, vtu_data_ref, atol=float(abs_tolerance_value_loc))
-                elif rel_tolerance_value_loc and not abs_tolerance_value_loc:  # only use relative tolerance
-                    data_compare = np.isclose(vtu_data, vtu_data_ref, rtol=float(rel_tolerance_value_loc))
-                else:  # use both absolute and relative tolerance otherwise
-                    if abs_tolerance_value_loc is None and rel_tolerance_value_loc is None:  # use default values since no were given
-                        data_compare = np.isclose(vtu_data, vtu_data_ref, atol=abs_default_tolerance, rtol=rel_default_tolerance)
-                    else:  # both references were given
-                        data_compare = np.isclose(vtu_data, vtu_data_ref, atol=float(abs_tolerance_value_loc), rtol=float(rel_tolerance_value_loc))
-                NbrOfDifferences = np.sum(~data_compare)
+                atol = float(abs_tolerance_value_loc) if abs_tolerance_value_loc is not None else abs_default_tolerance
+                rtol = float(rel_tolerance_value_loc) if rel_tolerance_value_loc is not None else rel_default_tolerance
 
-                if NbrOfDifferences > 0:
-                    if NbrOfDifferences > max_differences_loc:
-                        # apply logical mask created by np.isclose to the data arrays
-                        masked_array = np.ma.array(vtu_data, mask=data_compare)
-                        masked_array_ref = np.ma.array(vtu_data_ref, mask=data_compare)
-                        # get indices of differences corresponding to the orginal rows
-                        non_masked_indices = np.where(np.any(~data_compare, axis=1))[0]
-                        # create list of indices to print out first and last 20 entries
-                        num_entries = min(20, masked_array.shape[0])
-                        total_entries = len(non_masked_indices)
-                        indices = list(range(num_entries))
-                        # check if there are more than 20 unique indices, if yes append the last 20 unqiue indices to the list
-                        if total_entries > num_entries:
-                            indices += list(range(max(num_entries, total_entries - num_entries), total_entries))
-                        # variables for array slicing and saving different/correct arrays, where offset counts number of already printed columns
+                # np isclose calculates diff like: absolute(a - b) <= (atol + rtol * absolute(b)), so if only one is used set other to zero
+                if abs_tolerance_value_loc is not None and rel_tolerance_value_loc is None:
+                    rtol = 0.0
+                if rel_tolerance_value_loc is not None and abs_tolerance_value_loc is None:
+                    atol = 0.0
+
+                data_compare = np.isclose(vtu_data, vtu_data_ref, atol=atol, rtol=rtol)
+                diff_mask = ~data_compare
+                nbr_of_differences = np.sum(diff_mask)
+
+                if nbr_of_differences > 0:
+                    if nbr_of_differences > max_differences_loc:
+                        # Get indices where any column in a row has a difference
+                        row_has_diff = np.any(diff_mask, axis=1)
+                        non_masked_indices = np.where(row_has_diff)[0]
+
+                        total_diff_rows = len(non_masked_indices)
+                        num_to_print = min(20, total_diff_rows)
+
+                        indices_to_show = list(range(num_to_print))
+                        if total_diff_rows > num_to_print:
+                            indices_to_show += list(range(max(num_to_print, total_diff_rows - num_to_print), total_diff_rows))
+
                         offset = 0
-                        error_array_names = []
-                        correct_array_names = []
-                        # print out differences, where array_names_dims contains the names of the vtk arrays with the corresponding number of columns (size)
-                        for i, (name, size) in enumerate(list(array_names_dims.items())):
-                            # check if there are any differences in the array, which are found as False in the mask
-                            if np.any(~data_compare[:, offset : size + offset]):
-                                # print out header
-                                print(
-                                    tools.red("{:<20} | {:<45} | {:<44}".format('Index', name, list(array_names_dims_ref.keys())[i] + '_ref'))
-                                    + tools.yellow(" | {:<30} | {:<30}".format('Absolute Difference', 'Relative Difference'))
+                        # array_names_dims contains names and sizes of vtk arrays, since all are stored in one numpy array use offset to separate
+                        for i, (name, size) in enumerate(array_names_dims.items()):
+                            col_slice = slice(offset, offset + size)
+                            array_diff_mask = diff_mask[:, col_slice]
+
+                            if np.any(array_diff_mask):
+                                # Header
+                                header = "{:<20} | {:<45} | {:<45} | {:<25} | {:<25}".format(
+                                    'Index', name, list(array_names_dims_ref.keys())[i] + '_ref', 'Abs Diff', 'Rel Diff'
                                 )
+                                print(tools.red(header))
                                 print('-' * 170)
-                                # loop over unique indices and print out the differences
-                                for i in indices:
-                                    abs_diff = np.abs(masked_array[non_masked_indices[i], offset : size + offset] - masked_array_ref[non_masked_indices[i], offset : size + offset])
-                                    rel_diff = abs_diff / np.abs(masked_array_ref[non_masked_indices[i], offset : size + offset])
-                                    print(
-                                        tools.red(
-                                            "{:<20} | {:<45} | {:<45}".format(
-                                                non_masked_indices[i],
-                                                str(masked_array[non_masked_indices[i], offset : size + offset]),
-                                                str(masked_array_ref[non_masked_indices[i], offset : size + offset]),
-                                            )
-                                        )
-                                        # + tools.yellow("| {:<30} | {:<30}".format(str(np.around(abs_diff, decimals=2)), str(np.around(rel_diff, decimals=2))))
-                                        + tools.yellow("| {:<30} | {:<30}".format(str(abs_diff), str(rel_diff)))
+
+                                for idx in indices_to_show:
+                                    actual_idx = non_masked_indices[idx]
+                                    val = vtu_data[actual_idx, col_slice]
+                                    ref_val = vtu_data_ref[actual_idx, col_slice]
+
+                                    abs_diff = np.abs(val - ref_val)
+                                    rel_diff = np.divide(
+                                        abs_diff,
+                                        np.abs(ref_val),
+                                        out=np.zeros_like(abs_diff),
+                                        where=ref_val != 0
                                     )
-                                offset += size
-                                error_array_names.append(name)
-                            else:
-                                correct_array_names.append(name)
-                        s = "Comparison failed for %s of [%s] with [%s] due to %s differences\n" % (error_array_names, path, reference_file_loc, NbrOfDifferences)
-                        s = tools.red(s)
-                        if len(correct_array_names) > 0:
-                            s2 = "\nComparison sucessfull for %s of [%s] with [%s]\n" % (correct_array_names, path, reference_file_loc)
-                            s2 = tools.green(s2)
-                            print(s2)
-                        run.analyze_results.append(s)
-                        run.analyze_successful = False
-                        Analyze.total_errors += 1
+
+                                    print(tools.red("{:<20} | {:<45} | {:<45}".format(
+                                        actual_idx, str(val), str(ref_val)
+                                    )) + tools.yellow(" | {:<25} | {:<25}".format(
+                                        str(np.round(abs_diff, 6)), str(np.round(rel_diff, 6))
+                                    )))
+
+                            offset += size
                     else:
                         s = s.replace("Comparison failed for", "Comparison ignored for")
                         s2 = ", but %s difference(s) are allowed (given by compare_data_file_max_differences). This analysis is therefore marked as passed." % max_differences_loc
