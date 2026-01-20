@@ -134,6 +134,9 @@ gitlab-ci.py
 
 - [Reggie2.0 toolbox](#reggie20-toolbox)
   - [Installation](#installation)
+  - [Ruff linter and formatter](#ruff-linter-and-formatter)
+    - [Pre-commit Integration](#pre-commit-integration)
+    - [Ruff configuration](#ruff-configuration)
   - [Overview](#overview)
   - [Code hierarchy and required *.ini* files](#code-hierarchy-and-required-ini-files)
 - [Analyze routines for "analyze.ini"](#analyze-routines-for-analyzeini)
@@ -151,8 +154,8 @@ gitlab-ci.py
     - [Multiple dataset names](#multiple-dataset-names)
     - [Compare variables](#compare-variables)
 - [vtudiff](#vtudiff)
-    - [vtudiff (additional options)](#vtudiff-additional-options)
-      - [Compare single array](#Compare-single-array)
+  - [vtudiff (additional options)](#vtudiff-additional-options)
+    - [Compare single array](#compare-single-array)
 - [h5 array bounds check](#h5-array-bounds-check)
 - [Data file line comparison](#data-file-line-comparison)
     - [Example 1 of 4](#example-1-of-4)
@@ -646,6 +649,7 @@ parameters used in `command_line.ini` and example arguments
 |  additional info  | cmd\_suffix   | DSMC.ini                   | None               | additional information that is appended to the command line argument that is used for running a program |
 | restart from file | restart\_file | My_State_000.0000005123.h5 | None               | supply the name of a state file from which all simulations are to be re-started                         |
 | link to database  | database      | SpeciesDatabase.h5         | None               | supply the name of a database file and its relative path (e.g. ../../../SpeciesDatabase.h5)             |
+link to cVAE scattering model  | cvae_scattering      |cVAE_VLEO_Al2O3.h5         | None               | supply the name of a cVAE file and its relative path (e.g. ../../../cVAE_VLEO_Al2O3.h5)             |
 
 
 ### Example
