@@ -1120,7 +1120,7 @@ def PerformCheck(start, builds, args, log):
                                 external.directory = run.target_directory
                                 external.parameterfiles = [externaldirectory]
                             else:
-                                external.directory = run.target_directory + '/' + externaldirectory
+                                external.directory = os.path.join(run.target_directory, externaldirectory)
                                 external.parameterfiles = [i for i in os.listdir(external.directory) if i.endswith('.ini')]
 
                             externalbinary = external.parameters.get("externalbinary")
@@ -1160,9 +1160,9 @@ def PerformCheck(start, builds, args, log):
                                                                 created_mesh_files[dict_identifier] = os.path.join(meshes_dir_path, file)
 
                                             dict_identifier = f'{external_count}' + f'{externalparameterfile_count}' + f'{externalrun_count}'
-                                            mesh_name_current_run = run.parameters['MeshFile'].split('/')[-1]
+                                            mesh_name_current_run = os.path.basename(run.parameters['MeshFile'])
                                             # created_mesh_files contains dict_identifier as keys and the path of the corresponding mesh
-                                            mesh_name_current_externalrun = created_mesh_files[dict_identifier].split('/')[-1]
+                                            mesh_name_current_externalrun = os.path.basename(created_mesh_files[dict_identifier])
                                             # check if mesh of current run matches mesh of current external run to set symbolic link
                                             if mesh_name_current_run == mesh_name_current_externalrun:
                                                 relative_source_path = os.path.relpath(created_mesh_files[dict_identifier], external.directory)
@@ -1230,7 +1230,7 @@ def PerformCheck(start, builds, args, log):
                                 external.directory = run.target_directory
                                 external.parameterfiles = [externaldirectory]
                             else:
-                                external.directory = run.target_directory + '/' + externaldirectory
+                                external.directory = os.path.join(run.target_directory, externaldirectory)
                                 external.parameterfiles = [i for i in os.listdir(external.directory) if i.endswith('.ini')]
 
                             # externalbinary = external.parameters.get("externalbinary")
@@ -1390,10 +1390,10 @@ def PerformCheck(start, builds, args, log):
                 # get name of current build source dir
                 if coverage_env:
                     # get cwd for naming convention due to gitlab setup
-                    report_name = f"combined_report_{os.path.split(os.getcwd())[1]}.json"
+                    report_name = f"combined_report_{os.path.basename(os.getcwd())}.json"
                 else:
                     # get build_dir name otherwise
-                    report_name = f"combined_report_{os.path.split(str(coverage_files_dir))[1]}.json"
+                    report_name = f"combined_report_{os.path.basename(str(coverage_files_dir))}.json"
 
                 # check if file already exists from other reggie call before the current call, e.g. two regression tests use the same build, which would lead to the same report_name here
                 if report_name in os.listdir(coverage_dir):
@@ -1431,12 +1431,15 @@ def PerformCheck(start, builds, args, log):
                     # fmt: on
 
                     s = tools.indent("Merging coverage reports [%s] ..." % (" ".join(cmd_combine)), 2)
-                    return_code = ExternalCommand().execute_cmd(cmd_combine, coverage_dir, string_info=s)
-                    if return_code != 0:
-                        # Clean up temp files on failure
+                    try:
+                        ExternalCommand().execute_cmd(cmd_combine, coverage_dir, string_info=s)
+                    except Exception as e:
+                        # Clean up temp file on failure
                         os.remove(temp_new_path)
-                        os.remove(temp_combined_path)
-                        raise Exception("Failed to merge coverage reports")
+                        s = tools.indent(tools.red(f'Failed merging coverage reports with error:\n {e}') , 2)
+                        print(s)
+                        print(tools.indent(tools.yellow('If this is the first time a job creates a report (e.g. the first job of a new build should create a new report and don\'t find old reports), old report files are likely still present. Due to recent changes the old and new reports might contain conflicting content'), 2))
+                        exit(1)
 
                     # rename combined report to final name
                     final_path = os.path.join(coverage_dir, report_name)
