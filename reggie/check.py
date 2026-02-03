@@ -35,7 +35,7 @@ except ImportError:
 
 
 class Build(OutputDirectory, ExternalCommand):
-    def __init__(self, basedir, source_directory, configuration, number, name='build', binary_path=None):
+    def __init__(self, basedir, source_directory, configuration, number, name='build', binary_path=None, coverage=None):
         # fmt: off
         self.basedir          = basedir
         self.source_directory = source_directory
@@ -76,8 +76,9 @@ class Build(OutputDirectory, ExternalCommand):
             self.cmake_cmd_color.append(tools.blue("-D") + "%s=%s" % (key, value))
 
         # add compiler options to each combination for code coverage
-        coverage_flags = '"--coverage"'
-        if coverage_flags:
+        coverage_env = os.getenv('CODE_COVERAGE')
+        if coverage_env or coverage:
+            coverage_flags = '"--coverage"'
             self.cmake_cmd.append('-DCMAKE_Fortran_FLAGS=' + coverage_flags)
             self.cmake_cmd_color.append(tools.blue("-D") + "CMAKE_Fortran_FLAGS=" + '%s' % coverage_flags)
 
@@ -278,14 +279,14 @@ def StandaloneAutomaticMPIDetection(binary_path):
     return MPIifOFF
 
 
-def getBuilds(basedir, source_directory, CMAKE_BUILD_TYPE, singledir):
+def getBuilds(basedir, source_directory, CMAKE_BUILD_TYPE, singledir, coverage):
     combis, digits = combinations.getCombinations(os.path.join(source_directory, 'builds.ini'), OverrideOptionKey='CMAKE_BUILD_TYPE', OverrideOptionValue=CMAKE_BUILD_TYPE)
 
     # create Builds
     if singledir:
-        builds = [Build(basedir, source_directory, b, 0) for b in combis]
+        builds = [Build(basedir, source_directory, b, 0, coverage=coverage) for b in combis]
     else:
-        builds = [Build(basedir, source_directory, b, i) for i, b in enumerate(combis, start=1)]
+        builds = [Build(basedir, source_directory, b, i, coverage=coverage) for i, b in enumerate(combis, start=1)]
     return builds
 
 
