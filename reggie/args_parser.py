@@ -209,7 +209,7 @@ def getArgsAndBuilds():
     # get builds from checks directory if no executable is supplied
     if args.exe is None:  # if not exe is supplied, get builds
         # read build combinations from checks/XX/builds.ini
-        builds = check.getBuilds(args.basedir, args.check, args.compiletype, args.singledir)
+        builds = check.getBuilds(args.basedir, args.check, args.compiletype, args.singledir, args.coverage)
     else:
         if not os.path.exists(args.exe):  # check if executable exists
             print(tools.red("No executable found under '%s'" % args.exe))
