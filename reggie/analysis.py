@@ -1826,15 +1826,28 @@ class Analyze_h5diff(Analyze, ExternalCommand):
                                 else:
                                     data_compare = np.isclose(mapped_b1, mapped_b2, rtol=tolerance_value_loc)
 
+                                # Calculate the number of differences by using ~data_compare, where "~" is the "invert" or "complement" operation, in which all the bits of the input data are reversed.
                                 NbrOfDifferences = np.sum(~data_compare)
+                                # Check if differences are found
                                 if NbrOfDifferences > 0:
-                                    s = tools.red(
-                                        "Reordered datasets [%s] and [%s] have %s differences after reordering. This analysis is therefore marked as failed." % (data_set_loc_file, data_set_loc_ref, NbrOfDifferences)
-                                    )
-                                    print(s)
-                                    run.analyze_results.append(s)
-                                    run.analyze_successful = False
-                                    Analyze.total_errors += 1
+                                    # Check if max_differences_loc is set and if the number of differences is equal or below
+                                    if NbrOfDifferences <= max_differences_loc:
+                                        s = tools.indent(
+                                            "Reordered datasets [%s] and [%s] have %s differences after reordering, but %s differences are allowed (h5diff_max_differences). The h5diff is therefore marked as passed."
+                                            % (data_set_loc_file, data_set_loc_ref, NbrOfDifferences, max_differences_loc),
+                                            2,
+                                        )
+                                        s = tools.purple(s)
+                                        print(s)
+                                        self.return_code = 0
+                                    else:
+                                        s = tools.red(
+                                            "Reordered datasets [%s] and [%s] have %s differences after reordering. This analysis is therefore marked as failed." % (data_set_loc_file, data_set_loc_ref, NbrOfDifferences)
+                                        )
+                                        print(s)
+                                        run.analyze_results.append(s)
+                                        run.analyze_successful = False
+                                        Analyze.total_errors += 1
                                 else:
                                     s = tools.blue("Reordered datasets [%s] and [%s] have no differences after reordering. This analysis is therefore marked as passed." % (data_set_loc_file, data_set_loc_ref))
                                     print(s)
