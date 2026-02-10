@@ -1849,7 +1849,7 @@ class Analyze_h5diff(Analyze, ExternalCommand):
                                         run.analyze_successful = False
                                         Analyze.total_errors += 1
                                 else:
-                                    s = tools.blue("Reordered datasets [%s] and [%s] have no differences after reordering. This analysis is therefore marked as passed." % (data_set_loc_file, data_set_loc_ref))
+                                    s = tools.purple("Reordered datasets [%s] and [%s] have no differences after reordering. This analysis is therefore marked as passed." % (data_set_loc_file, data_set_loc_ref))
                                     print(s)
                                     run.analyze_results.append(s)
 
