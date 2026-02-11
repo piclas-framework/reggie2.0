@@ -587,7 +587,14 @@ class ExternalRun(OutputDirectory, ExternalCommand):
         # external folders already there
         self.skip = False
 
-    def execute(self, build, external, args, meshes_directory=None):
+    def execute(self, build, external, args, meshes_directory=None, mesh_generator=None):
+        ''''
+        Arguments:  - build
+                    - external
+                    - args
+                    - meshes_directory:     directory where meshes are stored
+                    - mesh_generator:       name of the external which creates meshes (defaults in PerformCheck.__init__())
+        '''
         # set path to parameter file (single combination of values for execution "parameter.ini" for example)
         self.parameter_path = os.path.join(external.directory, external.parameterfile)
 
@@ -638,8 +645,8 @@ class ExternalRun(OutputDirectory, ExternalCommand):
         else:
             s = "Running [%s] ..." % cmdstr
             head, tail = os.path.split(binary_path)
-            # create meshes in separate directory to reuse same meshes with symbolic links, only if meshes_directory is not None and hopr is external
-            if meshes_directory is not None and 'hopr' in tail:
+            # create meshes in separate directory to reuse same meshes with symbolic links, only if meshes_directory is not None and mesh_generator is external
+            if meshes_directory is not None and mesh_generator in tail:
                 # copy hopr.ini file to meshes_directory
                 shutil.copy2(self.parameter_path, meshes_directory)
                 # create list of all files in current directory
@@ -918,60 +925,94 @@ def getRuns(path, command_line):
         i += 1
     return runs
 
+class PerformCheck:
+    def __init__(self):
+        # Definition looks like: self.MeshGeneration = {'external': 'end of created filename', ...}
+        self.MeshGeneration = {'pyhope': '_mesh.h5', 'hopr': '_mesh.h5'}
 
-def PerformCheck(start, builds, args, log):
-    """
-    General workflow:
+    ###################################################################################
+    ############################ Single external functions ############################
+    ###################################################################################
+    def mesh_external(self, run, external, externalrun, build, args):
+        '''
+        This function executes all externals for the first run of the first command line and creates a dictionary with symbolic links to the created files
+        This is (currently) only used for the mesh generation with pyhope (or originally hopr) to create all meshes only once and reuse them in later runs
+        Extension for other mesh generators or generally externals (following the same pattern to use symbolic links) can be done with the self.MeshGeneration dictionary
+        Note that the name in the self.MeshGeneration dictionary has to appear in the name of the externalbinary
+        '''
 
-    1.   loop over alls builds
-    1.1    read all example directories in the check directory and exit if no examples are found
-    1.2    compile the build if args.run is false and the binary is non-existent
-    1.3    check whether the build is using MPI
-    2.   loop over all example directories
-    2.1    read the command line options in 'command_line.ini' for binary execution (e.g. number of threads for mpirun)
-    2.2    read the restart file list
-    2.3    read the analyze options in 'analyze.ini' within each example directory (e.g. L2 error analyze)
-    3.   loop over all command_line options
-    3.1    read the executable parameter file 'parameter.ini' (e.g. flexi.ini with which flexi will be started)
-    4.   loop over all parameter combinations supplied in the parameter file 'parameter.ini'
-    4.1    read the external options in 'externals.ini' within each example directory (e.g. eos, hopr, posti)
-    (pre)  perform a preprocessing step: e.g. run hopr, eos, ...
-           (1):   loop over all externals available in external.ini
-           (1.1):   get the path and the parameterfiles to the i'th external
-           (2):   loop over all parameterfiles available for the i'th external
-           (2.1):   consider combinations
-           (3):   loop over all combinations and parameter files for the i'th external
-           (3.1):   run the external binary
-    4.2    execute the binary file for one combination of parameters
-    (post) perform a post processing step: e.g. run posti, ...
-           (1):   loop over all externals available in external.ini
-           (1.1):   get the path and the parameterfiles to the i'th external
-           (2):   loop over all parameterfiles available for the i'th external
-           (2.1):   consider combinations
-           (3):   loop over all combinations and parameter files for the i'th external
-           (3.1):   run the external binary
-    4.3    remove unwanted files: run analysis directly after each run (as opposed to the normal analysis which is used for analyzing the created output)
-    5.   loop over all successfully executed binary results and perform analyze tests
-    6.   rename all run directories for which the analyze step has failed for at least one test
-    7.   perform analyze tests comparing corresponding runs from different commands
-    """
+        if not os.path.exists(self.meshes_dir_path):
+            os.makedirs(self.meshes_dir_path)
+            print(tools.indent(tools.yellow(f'Meshes will be stored in directory: {self.meshes_dir_path}'), 3))
 
-    # compile and run loop
-    try:  # if compiling fails -> go to exception
+        # execute all external runs for first run of first command line (since loop iterates over each externalrun anyway)
+        if self.command_line_count == 1 and self.RunCount == 1:
+            # execute external
+            externalcmd = externalrun.execute(build, external, args, meshes_directory=self.meshes_dir_path, mesh_generator=self.Matched_Generator_Name)
+            # collect all mesh names which have been created in the directory 'self.meshes_dir_path' (since name of the mesh is not part of externalrun.parameters)
+            for file in os.listdir(self.meshes_dir_path):
+                # create identifier of external, externalparameterfile and externalrun to check if mesh for given combination of these there has been build already
+                # external_count and externalparameterfiel_count prevent from using the same mesh even hopr/pyhope is listed twice as external with separate .ini files
+                dict_identifier = f'{self.external_count}' + f'{self.externalparameterfile_count}'
+                # we use the self.Matched_Generator_Name to get the corresponding file ending of our MeshGenerator from MeshGeneration
+                if file.endswith(self.MeshGeneration[self.Matched_Generator_Name]):
+                    full_path = os.path.join(self.meshes_dir_path, file)
+                    if os.path.isfile(full_path):
+                        if full_path not in self.created_mesh_files.values():
+                            dict_identifier = dict_identifier + f'{self.externalrun_count}'
+                            # save directory where mesh is stored for current combination to set symbolic link in next run/command_line run
+                            self.created_mesh_files[dict_identifier] = os.path.join(self.meshes_dir_path, file)
+
+        # neither the first command_line or run so the mesh should have been created already, so we create the identifier to check our dict
+        dict_identifier = f'{self.external_count}' + f'{self.externalparameterfile_count}' + f'{self.externalrun_count}'
+        mesh_name_current_run = os.path.basename(run.parameters['MeshFile'])
+
+        # self.created_mesh_files contains dict_identifier as keys and the link to the corresponding mesh
+        mesh_name_current_externalrun = os.path.basename(self.created_mesh_files[dict_identifier])
+
+        # check if mesh of current run matches mesh of current external run to set symbolic link
+        if mesh_name_current_run == mesh_name_current_externalrun:
+            relative_source_path = os.path.relpath(self.created_mesh_files[dict_identifier], external.directory)
+            target_mesh_path = os.path.join(external.directory, mesh_name_current_run)
+            if not os.path.exists(target_mesh_path):
+                # Since external will not be executed for these runs check if pre-execution is needed (for the first run the pre_execution is done inside the externalrun execution)
+                if self.command_line_count != 1 or self.RunCount != 1:
+                    cmd_pre_execute = external.parameters.get('cmd_pre_execute')
+                    if cmd_pre_execute:
+                        cmd_pre = cmd_pre_execute.split()
+                        s = "Running [%s] ..." % (" ".join(cmd_pre))
+                        externalrun.execute_cmd(cmd_pre, external.directory, name='pre-exec', string_info=tools.indent(s, 3))  # run something
+                # Create symbolic link
+                os.symlink(relative_source_path, target_mesh_path)
+                print(tools.indent(tools.yellow(f'Creating symbolic link from {relative_source_path} to {target_mesh_path}'), 3))
+                # dummpy output for error message if external fails
+                externalcmd = f'ln -s {relative_source_path} {target_mesh_path}'
+
+        # return externalcmd for error message if externalrun fails
+        return externalcmd
+
+    ############################################################################
+    ############################ Coverage functions ############################
+    ############################################################################
+    def init_coverage(self, args):
+        '''
+        This function initializes the flags and directory needed for coverage information
+        '''
+
         # get coverage flags and set output format
-        coverage_env = os.getenv('CODE_COVERAGE')
-        coverage_output_html = False
-        coverage_output_cobertura = False
-        if coverage_env:
+        self.coverage_env = os.getenv('CODE_COVERAGE')
+        self.coverage_output_html = False
+        self.coverage_output_cobertura = False
+        if self.coverage_env:
             args.coverage = True
         elif args.coverage:  # check for command line argument when executed locally
             if args.coverage == '0':
                 pass
             elif all(c in '12' for c in args.coverage):
                 if '1' in args.coverage:
-                    coverage_output_html = True
+                    self.coverage_output_html = True
                 if '2' in args.coverage:
-                    coverage_output_cobertura = True
+                    self.coverage_output_cobertura = True
             else:
                 print(tools.red("Invalid value for --coverage: '%s'. Use any combination of 1, 2 or 0." % args.coverage))
                 exit(1)
@@ -980,541 +1021,568 @@ def PerformCheck(start, builds, args, log):
         # create directory to store coverage data (one file per build), if executed locally the coverage directory is created in the current directory, but
         # for GitLab regressiontests the parent dir is used since all build directories will be deleted but the coverage data is needed
         if args.coverage:
-            if coverage_env:
-                coverage_dir = os.path.abspath(os.path.join(os.path.dirname(os.getcwd()), 'Coverage'))
+            if self.coverage_env:
+                self.coverage_dir = os.path.abspath(os.path.join(os.path.dirname(os.getcwd()), 'Coverage'))
             else:
-                coverage_dir = os.path.abspath(os.path.join(OutputDirectory.output_dir, 'Coverage'))
-            tools.create_folder(coverage_dir)
+                self.coverage_dir = os.path.abspath(os.path.join(OutputDirectory.output_dir, 'Coverage'))
+            tools.create_folder(self.coverage_dir)
 
-        # 1.   loop over alls builds
-        for build_number, build in enumerate(builds, start=1):
-            remove_build_when_successful = True
-            print("Build Cmake Configuration ", build_number, " of ", len(builds), " ...", end=' ')  # skip linebreak
-            log.info(str(build))
+    def write_single_coverage_report(self, build, args):
+        '''
+        This function writes a coverage report for the current build with gcovr:
 
-            # 1.1    read the example directories
-            # get example folders: run_basic/example1, run_basic/example2 from check folder
-            build.examples = getExamples(args.check, build, log)
-            log.info("build.examples" + str(build.examples))
+        gcovr needs two directories as arguments: - "source_files_dir" the root directory, where the source files are located
+                                                  - "coverage_files_dir" the coverage files directory (containing necessary files)
+        When compiling with the --coverage option, the compiler generates additional files for each object file, .gcno and .gcda
+        The .gcno file is created during compilation and contains information for reconstructing basic block graphs and associating source lines with blocks.
+        The .gcda file is generated when the instrumented code is executed and contains counts
+        for out of source builds (like with cmake) these are not the same directory
+        the .gcno and .gcda files are located in the build/CMakeFiles directory, but the build directory is sufficient here
+        for a standalone executable these paths are not safely known here and are therefore searched
+        for the args.basedir options is gets easier
+        '''
 
-            # check if no examples are found
-            if len(build.examples) == 0:
-                s1 = tools.red("No matching examples found for this build! Create an example or exclude this build combination")
-                s2 = build.configuration.items()
-                s = s1 + '\n' + str(s2)
-                print(s)
+        s = tools.green("Post-processing: Started gcovr")
+        print(tools.indent(s, 1))
+        if args.exe:
+            print(tools.indent(tools.yellow("Running gcovr for standalone executable [%s]" % build.binary_path), 2))
+            try:
+                # expect directory structure for a cmake project like
+                # program
+                # |- src
+                #   | - source files
+                #   | ...
+                # |- build
+                #   | - bin
+                # default to the parent dir of binary_dir
+                coverage_files_dir = os.path.dirname(build.binary_dir)
+                # sanity check: find .gcno files in coverage_files_dir or any subdir, since exe must be compiled with coverage
+                gcno_files = [os.path.join(root, file) for root, _, files in os.walk(coverage_files_dir) for file in files if file.endswith('.gcno')]
+                if not gcno_files:
+                    raise Exception("No .gcno files found in coverage_files_dir [%s] or any subdirectories. Please check if the executable is compiled with coverage enabled" % coverage_files_dir)
+            except Exception as e:
+                print("%s" % (tools.red("Error determining source directory of standalone executable: %s" % e)))
                 exit(1)
+            # source_files_dir is the directory where the source files are located, it is expected to be the parent directory or at least a subdirectory of the parentdirectory
+            self.source_files_dir = os.path.dirname(coverage_files_dir)
+        else:
+            coverage_files_dir = build.binary_dir
+            self.source_files_dir = build.basedir
 
-            # 1.2    compile the build if args.run is false and the binary is non-existent
-            build.compile(args.buildprocs)
-            if not args.carryon:  # remove examples folder if not carryon, in order to re-run all examples
-                tools.remove_folder(os.path.join(build.target_directory, "examples"))
+        coverage_files_dir = os.path.abspath(coverage_files_dir)
+        if not os.path.exists(coverage_files_dir):
+            s = tools.red("Coverage data object directory [%s] does not exist" % coverage_files_dir)
+            print(s)
+            exit(1)
 
-            # 1.3    check whether the build is using MPI (either disabled for the whole reggie execution or because compiled without MPI)
-            if args.noMPI or args.noMPIautomatic:
-                MPIbuilt = False
-            else:
-                if args.run:
-                    # If code is not compiled (ie. an executable is provided, activating MPI)
-                    MPIbuilt = True
+        # try to append /src to the path to exclude other directories, e.g. UnitTests
+        src_path = os.path.abspath(os.path.join(self.source_files_dir, 'src'))
+        if os.path.exists(src_path):
+            self.source_files_dir = src_path
+            print(tools.indent(tools.yellow("Using source directory [%s] for gcovr" % self.source_files_dir), 2))
+
+        self.source_files_dir = os.path.abspath(self.source_files_dir)
+        if not os.path.exists(self.source_files_dir):
+            s = tools.red("Source files directory [%s] does not exist" % self.source_files_dir)
+            print(s)
+            exit(1)
+
+        s = tools.indent(tools.green('Combining coverage reports for build: %s' % build.target_directory), 2)
+        print(s)
+        cmd_gcovr = ["gcovr", "--root", f"{self.source_files_dir}", f"{coverage_files_dir}"]
+        if args.debug > 0:
+            cmd_gcovr.extend(["--verbose", "--print-summary"])
+
+        if args.gcovr_extra:
+            cmd_gcovr.extend(args.gcovr_extra.split(' '))
+
+        # get name of current build source dir
+        if self.coverage_env:
+            # get cwd for naming convention due to gitlab setup
+            report_name = f"combined_report_{os.path.split(os.getcwd())[1]}.json"
+        else:
+            # get build_dir name otherwise
+            report_name = f"combined_report_{os.path.split(str(coverage_files_dir))[1]}.json"
+
+        # check if file already exists from other reggie call before the current call, e.g. two regression tests use the same build, which would lead to the same report_name here
+        if report_name in os.listdir(self.coverage_dir):
+            # Locally this won't be a problem, since the coverage files still contain all data from previous runs, but on GitLab/GitHub this might be different
+            # The updated .gcno files (which contain the coverage from the current run) in the build directory are not necessarily pushed to the cache (on gitlab) each time the reggie is executed
+            # Therefore the coverage information from previous runs is lost and if gcovr is executed again with the same report_name only the coverage data of the last executed run per build is saved
+            # This leaves us with two options: Either combine the reports if the name already exists, or just save as a new file
+            # Saving new files for each test using the same build could lead to a large amount of report files being cached, so we will combine the reports here
+
+            # Generate new coverage report with temporary name
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', dir=self.coverage_dir, delete=False) as tmp_new:
+                temp_new_path = tmp_new.name
+
+            print(tools.indent(f'{report_name} already exists in {self.coverage_dir}! Creating temporary report {os.path.basename(temp_new_path)} and merging coverage data.', 2))
+            cmd_gcovr.extend(["--json", os.path.basename(temp_new_path)])
+            s = tools.indent("Generating new coverage data [%s] ..." % (" ".join(cmd_gcovr)), 2)
+            return_code = ExternalCommand().execute_cmd(cmd_gcovr, self.coverage_dir, string_info=s)
+            if return_code != 0:
+                # Clean up temp file on failure
+                if os.path.exists(temp_new_path):
+                    os.remove(temp_new_path)
+                raise Exception("Failed to generate new coverage report")
+
+            # Combine old and new reports into temporary output, then move temporary output to report_name
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', dir=self.coverage_dir, delete=False) as tmp_combined:
+                temp_combined_path = tmp_combined.name
+
+            # fmt: off
+            cmd_combine = ["gcovr",
+                        "--root",self.source_files_dir,
+                        "--json-add-tracefile",report_name,
+                        "--json-add-tracefile",os.path.basename(temp_new_path),
+                        "--merge-mode-functions=merge-use-line-min",
+                        "--json",os.path.basename(temp_combined_path),
+                        ]
+            # fmt: on
+
+            s = tools.indent("Merging coverage reports [%s] ..." % (" ".join(cmd_combine)), 2)
+            return_code = ExternalCommand().execute_cmd(cmd_combine, self.coverage_dir, string_info=s)
+            if return_code != 0:
+                # Clean up temp files on failure
+                os.remove(temp_new_path)
+                os.remove(temp_combined_path)
+                raise Exception("Failed to merge coverage reports")
+
+            # rename combined report to final name
+            final_path = os.path.join(self.coverage_dir, report_name)
+            os.replace(temp_combined_path, final_path)
+            # Clean up temporary new report
+            os.remove(temp_new_path)
+        else:
+            # No existing report, create new one directly
+            cmd_gcovr.extend(["--json", report_name])
+            s = tools.indent("Running [%s] ..." % (" ".join(cmd_gcovr)), 2)
+            ExternalCommand().execute_cmd(cmd_gcovr, self.coverage_dir, string_info=s)
+
+        s = tools.green("Post-processing: Finished gcovr")
+        print(tools.indent(s, 1))
+
+    def combine_local_coverage_reports(self, args):
+        '''
+        This function uses all coverage reports which were created by the current reggie call and combines them into one report
+        Only used for local execution
+        '''
+
+        combined_cov_path = os.path.abspath(os.path.join(self.coverage_dir, "combined_report"))
+        tools.create_folder(combined_cov_path)
+
+        coverage_files = [os.path.abspath(os.path.join(self.coverage_dir, file)) for file in os.listdir(self.coverage_dir) if file.endswith('.json')]
+
+        # combine all coverage reports from all builds
+        s = tools.indent(tools.green('Combining coverage reports for all builds'), 1)
+        print(s)
+        cmd_combine = ["gcovr", "--root", f"{self.source_files_dir}"]
+        if args.debug > 0:
+            cmd_combine.extend(["--verbose", "--print-summary"])
+        # add files separately to the command line since ExternalCommand().execute_cmd resolves wildcards which would lead to invalid syntax for gcovr
+        # which is either --json-add-tracefile file1 --json-add-tracefile file2 or --json-add-tracefile *.json, but ExternalCommand().execute_cmd resolves wildcards to
+        # --json-add-tracefile file1 file2 ...
+        for cov_file in coverage_files:
+            cmd_combine.extend(["--json-add-tracefile", f"{cov_file}"])
+        # use merge mode functions to avoid errors if the same functions appears in different lines (e.g. for two builds a block is missing due to compiler flags, which moves func1 form line X to X-5)
+        cmd_combine.append("--merge-mode-functions=merge-use-line-min")
+        if self.coverage_output_html:
+            html_path = os.path.abspath(os.path.join(combined_cov_path, "html"))
+            tools.create_folder(html_path)
+            cmd_combine_html = cmd_combine.copy()
+            cmd_combine_html.extend(["--html-nested", "combined_report.html"])
+            s = tools.indent("Running [%s] ..." % (" ".join(cmd_combine_html)), 2)
+            ExternalCommand().execute_cmd(cmd_combine_html, html_path, string_info=s)
+        if self.coverage_output_cobertura:
+            xml_path = os.path.abspath(os.path.join(combined_cov_path, "xml"))
+            tools.create_folder(xml_path)
+            cmd_combine_cobertura = cmd_combine.copy()
+            cmd_combine_cobertura.extend(["--cobertura", "combined_report.xml"])
+            s = tools.indent("Running [%s] ..." % (" ".join(cmd_combine_cobertura)), 2)
+            ExternalCommand().execute_cmd(cmd_combine_cobertura, xml_path, string_info=s)
+
+        cmd_combine.extend(["--json", "combined_report.json"])
+        # merge functions for builds with different compiler flags (function name stays the same but line changes due to ifdef)
+        s = tools.indent("Running [%s] ..." % (" ".join(cmd_combine)), 2)
+        ExternalCommand().execute_cmd(cmd_combine, combined_cov_path, string_info=s)
+
+
+    #######################################################################
+    ############################ main function ############################
+    #######################################################################
+    def main(self, start, builds, args, log):
+        """
+        General workflow:
+
+        1.   loop over alls builds
+        1.1    read all example directories in the check directory and exit if no examples are found
+        1.2    compile the build if args.run is false and the binary is non-existent
+        1.3    check whether the build is using MPI
+        2.   loop over all example directories
+        2.1    read the command line options in 'command_line.ini' for binary execution (e.g. number of threads for mpirun)
+        2.2    read the restart file list
+        2.3    read the analyze options in 'analyze.ini' within each example directory (e.g. L2 error analyze)
+        3.   loop over all command_line options
+        3.1    read the executable parameter file 'parameter.ini' (e.g. flexi.ini with which flexi will be started)
+        4.   loop over all parameter combinations supplied in the parameter file 'parameter.ini'
+        4.1    read the external options in 'externals.ini' within each example directory (e.g. eos, hopr, posti)
+        (pre)  perform a preprocessing step: e.g. run hopr, eos, ...
+            (1):   loop over all externals available in external.ini
+            (1.1):   get the path and the parameterfiles to the i'th external
+            (2):   loop over all parameterfiles available for the i'th external
+            (2.1):   consider combinations
+            (3):   loop over all combinations and parameter files for the i'th external
+            (3.1):   run the external binary
+        4.2    execute the binary file for one combination of parameters
+        (post) perform a post processing step: e.g. run posti, ...
+            (1):   loop over all externals available in external.ini
+            (1.1):   get the path and the parameterfiles to the i'th external
+            (2):   loop over all parameterfiles available for the i'th external
+            (2.1):   consider combinations
+            (3):   loop over all combinations and parameter files for the i'th external
+            (3.1):   run the external binary
+        4.3    remove unwanted files: run analysis directly after each run (as opposed to the normal analysis which is used for analyzing the created output)
+        5.   loop over all successfully executed binary results and perform analyze tests
+        6.   rename all run directories for which the analyze step has failed for at least one test
+        7.   perform analyze tests comparing corresponding runs from different commands
+        """
+
+        # compile and run loop
+        try:  # if compiling fails -> go to exception
+            # initialize coverage
+            self.init_coverage(args)
+
+            # 1.   loop over alls builds
+            for build_number, build in enumerate(builds, start=1):
+                remove_build_when_successful = True
+                print("Build Cmake Configuration ", build_number, " of ", len(builds), " ...", end=' ')  # skip linebreak
+                log.info(str(build))
+
+                # 1.1    read the example directories
+                # get example folders: run_basic/example1, run_basic/example2 from check folder
+                build.examples = getExamples(args.check, build, log)
+                log.info("build.examples" + str(build.examples))
+
+                # check if no examples are found
+                if len(build.examples) == 0:
+                    s1 = tools.red("No matching examples found for this build! Create an example or exclude this build combination")
+                    s2 = build.configuration.items()
+                    s = s1 + '\n' + str(s2)
+                    print(s)
+                    exit(1)
+
+                # 1.2    compile the build if args.run is false and the binary is non-existent
+                build.compile(args.buildprocs)
+                if not args.carryon:  # remove examples folder if not carryon, in order to re-run all examples
+                    tools.remove_folder(os.path.join(build.target_directory, "examples"))
+
+                # 1.3    check whether the build is using MPI (either disabled for the whole reggie execution or because compiled without MPI)
+                if args.noMPI or args.noMPIautomatic:
+                    MPIbuilt = False
                 else:
-                    # Determining how the executable has been compiled
-                    LIBS_USE_MPI = build.configuration.get('LIBS_USE_MPI', 'OFF')
-                    if LIBS_USE_MPI == 'ON':
+                    if args.run:
+                        # If code is not compiled (ie. an executable is provided, activating MPI)
                         MPIbuilt = True
                     else:
-                        # Additionally check for variable MPI_built_flag=PICLAS_MPI (or FLEXI_MPI, depending on the executable name)
-                        MPI_built_flag = os.path.basename(build.binary_path).upper() + "_MPI"
-                        MPI_built_value = build.configuration.get(MPI_built_flag, 'OFF')
-                        if MPI_built_value == 'ON':  # PICLAS_MPI=ON specified
+                        # Determining how the executable has been compiled
+                        LIBS_USE_MPI = build.configuration.get('LIBS_USE_MPI', 'OFF')
+                        if LIBS_USE_MPI == 'ON':
                             MPIbuilt = True
-                        else:  # PICLAS_MPI=OFF or flag not specified (i.e. assuming LIBS_USE_MPI=OFF)
-                            MPIbuilt = False
-            build.MPIbuilt = MPIbuilt
-
-            # 2.   loop over all example directories
-            for example in build.examples:
-                log.info(str(example))
-                print(str(example))
-
-                # 2.1    read the command line options in 'command_line.ini' for binary execution
-                #        (e.g. number of threads for mpirun)
-                example.command_lines = getCommand_Lines(os.path.join(example.source_directory, 'command_line.ini'), example, MPIbuilt, MaxCores=args.MaxCores)
-
-                # 2.2   read-in restart_file parameter from command_line.ini separately
-                example.restart_file_list = getRestartFileList(example)
-
-                # 2.3    read the analyze options in 'analyze.ini' within each example directory (e.g. L2 error analyze)
-                example.analyzes = getAnalyzes(os.path.join(example.source_directory, 'analyze.ini'), example, args)
-
-                # 3.   loop over all command_line options
-                # create directory containing mesh files to set symbolic links if mesh file is already created
-                if args.meshesdir:
-                    created_mesh_files = {}
-                    meshes_dir_path = os.path.join(example.target_directory, 'meshes')
-                for command_line_count, command_line in enumerate(example.command_lines, start=1):
-                    log.info(str(command_line))
-                    # Database linking
-                    database_path = command_line.parameters.get('database', None)
-                    if database_path is not None:
-                        database_path = os.path.abspath(os.path.join(example.source_directory, database_path))
-                        if not os.path.exists(database_path):
-                            s = tools.red("command_line.ini: cannot find file=[%s] " % (database_path))
-                            print(s)
-                            exit(1)
-                    # CVAE scattering linking
-                    cvae_scattering_cvae = command_line.parameters.get('cvae_scattering', None)
-                    if cvae_scattering_cvae is not None:
-                        cvae_scattering_cvae = os.path.abspath(os.path.join(example.source_directory, cvae_scattering_cvae))
-                        if not os.path.exists(cvae_scattering_cvae):
-                            s = tools.red("command_line.ini: cannot find file=[%s] " % (cvae_scattering_cvae))
-                            print(s)
-                            exit(1)
-
-                    # Get the index of the restart file to append to the analyze
-                    if example.restart_file_list is not None:
-                        iRestartFile = example.restart_file_list.index(command_line.parameters.get('restart_file', None))
-                    else:
-                        iRestartFile = None
-
-                    # 3.1    read the executable parameter file 'parameter.ini' (e.g. flexi.ini with which
-                    #        flexi will be started), N=, mesh=, etc.
-                    command_line.runs = getRuns(os.path.join(example.source_directory, 'parameter.ini'), command_line)
-
-                    # 4.   loop over all parameter combinations supplied in the parameter file 'parameter.ini'
-                    for RunCount, run in enumerate(command_line.runs, start=1):
-                        print(tools.indent('Run %s of %s' % (RunCount, len(command_line.runs)), 1))
-                        log.info(str(run))
-                        # Database linking
-                        if database_path is not None and os.path.exists(run.target_directory):
-                            head, tail = os.path.split(database_path)
-                            os.symlink(database_path, os.path.join(run.target_directory, tail))
-                            print(tools.indent(tools.green('Preprocessing: Linked database [%s] to [%s] ... ' % (database_path, run.target_directory)), 2))
-                        # CVAE scattering linking
-                        if cvae_scattering_cvae is not None and os.path.exists(run.target_directory):
-                            head, tail = os.path.split(cvae_scattering_cvae)
-                            os.symlink(cvae_scattering_cvae, os.path.join(run.target_directory, tail))
-                            print(tools.indent(tools.green('Preprocessing: Linked CVAE scattering cvae file [%s] to [%s] ... ' % (cvae_scattering_cvae, run.target_directory)), 2))
-
-                        # 4.1 read the external options in 'externals.ini' within each example directory (e.g. eos, hopr, posti)
-                        #     distinguish between pre- and post processing
-                        run.externals_pre, run.externals_post, run.externals_errors = getExternals(os.path.join(run.source_directory, 'externals.ini'), run, build)
-
-                        # (pre) externals (1): loop over all externals available in external.ini
-                        external_failed = False
-                        if run.externals_pre is None:
-                            PreprocessingActive = False
                         else:
-                            if len(run.externals_pre) == 0:
+                            # Additionally check for variable MPI_built_flag=PICLAS_MPI (or FLEXI_MPI, depending on the executable name)
+                            MPI_built_flag = os.path.basename(build.binary_path).upper() + "_MPI"
+                            MPI_built_value = build.configuration.get(MPI_built_flag, 'OFF')
+                            if MPI_built_value == 'ON':  # PICLAS_MPI=ON specified
+                                MPIbuilt = True
+                            else:  # PICLAS_MPI=OFF or flag not specified (i.e. assuming LIBS_USE_MPI=OFF)
+                                MPIbuilt = False
+                build.MPIbuilt = MPIbuilt
+
+                # 2.   loop over all example directories
+                for example in build.examples:
+                    log.info(str(example))
+                    print(str(example))
+
+                    # 2.1    read the command line options in 'command_line.ini' for binary execution
+                    #        (e.g. number of threads for mpirun)
+                    example.command_lines = getCommand_Lines(os.path.join(example.source_directory, 'command_line.ini'), example, MPIbuilt, MaxCores=args.MaxCores)
+
+                    # 2.2   read-in restart_file parameter from command_line.ini separately
+                    example.restart_file_list = getRestartFileList(example)
+
+                    # 2.3    read the analyze options in 'analyze.ini' within each example directory (e.g. L2 error analyze)
+                    example.analyzes = getAnalyzes(os.path.join(example.source_directory, 'analyze.ini'), example, args)
+
+                    # 3.   loop over all command_line options
+                    # create directory containing mesh files to set symbolic links if mesh file is already created
+                    if args.meshesdir:
+                        self.created_mesh_files = {}
+                        self.meshes_dir_path = os.path.join(example.target_directory, 'meshes')
+                    for self.command_line_count, command_line in enumerate(example.command_lines, start=1):
+                        log.info(str(command_line))
+                        # Database linking
+                        database_path = command_line.parameters.get('database', None)
+                        if database_path is not None:
+                            database_path = os.path.abspath(os.path.join(example.source_directory, database_path))
+                            if not os.path.exists(database_path):
+                                s = tools.red("command_line.ini: cannot find file=[%s] " % (database_path))
+                                print(s)
+                                exit(1)
+                        # CVAE scattering linking
+                        cvae_scattering_cvae = command_line.parameters.get('cvae_scattering', None)
+                        if cvae_scattering_cvae is not None:
+                            cvae_scattering_cvae = os.path.abspath(os.path.join(example.source_directory, cvae_scattering_cvae))
+                            if not os.path.exists(cvae_scattering_cvae):
+                                s = tools.red("command_line.ini: cannot find file=[%s] " % (cvae_scattering_cvae))
+                                print(s)
+                                exit(1)
+
+                        # Get the index of the restart file to append to the analyze
+                        if example.restart_file_list is not None:
+                            iRestartFile = example.restart_file_list.index(command_line.parameters.get('restart_file', None))
+                        else:
+                            iRestartFile = None
+
+                        # 3.1    read the executable parameter file 'parameter.ini' (e.g. flexi.ini with which
+                        #        flexi will be started), N=, mesh=, etc.
+                        command_line.runs = getRuns(os.path.join(example.source_directory, 'parameter.ini'), command_line)
+
+                        # 4.   loop over all parameter combinations supplied in the parameter file 'parameter.ini'
+                        for self.RunCount, run in enumerate(command_line.runs, start=1):
+                            print(tools.indent('Run %s of %s' % (self.RunCount, len(command_line.runs)), 1))
+                            log.info(str(run))
+                            # Database linking
+                            if database_path is not None and os.path.exists(run.target_directory):
+                                head, tail = os.path.split(database_path)
+                                os.symlink(database_path, os.path.join(run.target_directory, tail))
+                                print(tools.indent(tools.green('Preprocessing: Linked database [%s] to [%s] ... ' % (database_path, run.target_directory)), 2))
+                            # CVAE scattering linking
+                            if cvae_scattering_cvae is not None and os.path.exists(run.target_directory):
+                                head, tail = os.path.split(cvae_scattering_cvae)
+                                os.symlink(cvae_scattering_cvae, os.path.join(run.target_directory, tail))
+                                print(tools.indent(tools.green('Preprocessing: Linked CVAE scattering cvae file [%s] to [%s] ... ' % (cvae_scattering_cvae, run.target_directory)), 2))
+
+                            # 4.1 read the external options in 'externals.ini' within each example directory (e.g. eos, hopr, posti)
+                            #     distinguish between pre- and post processing
+                            run.externals_pre, run.externals_post, run.externals_errors = getExternals(os.path.join(run.source_directory, 'externals.ini'), run, build)
+
+                            # (pre) externals (1): loop over all externals available in external.ini
+                            external_failed = False
+                            if run.externals_pre is None:
                                 PreprocessingActive = False
                             else:
-                                PreprocessingActive = True
-                                externalbinaries = [external.parameters.get("externalbinary") for external in run.externals_pre]
-                                print(tools.indent(tools.green('Preprocessing: Started  %s pre-externals' % externalbinaries), 3))
+                                if len(run.externals_pre) == 0:
+                                    PreprocessingActive = False
+                                else:
+                                    PreprocessingActive = True
+                                    externalbinaries = [external.parameters.get("externalbinary") for external in run.externals_pre]
+                                    print(tools.indent(tools.green('Preprocessing: Started  %s pre-externals' % externalbinaries), 3))
 
-                        for external_count, external in enumerate(run.externals_pre):
-                            log.info(str(external))
+                            for self.external_count, external in enumerate(run.externals_pre):
+                                log.info(str(external))
 
-                            # (pre) externals (1.1): get the path and the parameterfiles to the i'th external
-                            externaldirectory = external.parameters.get("externaldirectory")
-                            if externaldirectory.endswith('.ini'):
-                                external.directory = run.target_directory
-                                external.parameterfiles = [externaldirectory]
-                            else:
-                                external.directory = run.target_directory + '/' + externaldirectory
-                                external.parameterfiles = [i for i in os.listdir(external.directory) if i.endswith('.ini')]
+                                # (pre) externals (1.1): get the path and the parameterfiles to the i'th external
+                                externaldirectory = external.parameters.get("externaldirectory")
+                                if externaldirectory.endswith('.ini'):
+                                    external.directory = run.target_directory
+                                    external.parameterfiles = [externaldirectory]
+                                else:
+                                    external.directory = run.target_directory + '/' + externaldirectory
+                                    external.parameterfiles = [i for i in os.listdir(external.directory) if i.endswith('.ini')]
 
-                            externalbinary = external.parameters.get("externalbinary")
+                                externalbinary = external.parameters.get("externalbinary")
 
-                            # (pre) externals (2): loop over all parameterfiles available for the i'th external
-                            for externalparameterfile_count, external.parameterfile in enumerate(external.parameterfiles):  # noqa: B020 loop control variable external overrides iterable it iterates
-                                # (pre) externals (2.1): consider combinations
-                                external.runs = getExternalRuns(os.path.join(external.directory, external.parameterfile), external)
+                                # (pre) externals (2): loop over all parameterfiles available for the i'th external
+                                for self.externalparameterfile_count, external.parameterfile in enumerate(external.parameterfiles):  # noqa: B020 loop control variable external overrides iterable it iterates
+                                    # (pre) externals (2.1): consider combinations
+                                    external.runs = getExternalRuns(os.path.join(external.directory, external.parameterfile), external)
 
-                                # (pre) externals (3): loop over all combinations and parameterfiles for the i'th external
-                                for externalrun_count, externalrun in enumerate(external.runs, start=1):
-                                    log.info(str(externalrun))
+                                    # (pre) externals (3): loop over all combinations and parameterfiles for the i'th external
+                                    for self.externalrun_count, externalrun in enumerate(external.runs, start=1):
+                                        log.info(str(externalrun))
 
-                                    # (pre) externals (3.1): run the external binary
-                                    # check if meshes should be reused with symbolic links for each command line of example
-                                    if args.meshesdir:
-                                        # check if externalbinary is hopr, since other externals should be executed normally
-                                        if 'hopr' in externalbinary:
-                                            if not os.path.exists(meshes_dir_path):
-                                                os.makedirs(meshes_dir_path)
-                                                print(tools.indent(tools.yellow(f'Meshes will be stored in directory: {meshes_dir_path}'), 3))
-                                            # execute all external runs for first run of first command line (since loop iterates over each externalrun anyway)
-                                            if command_line_count == 1 and RunCount == 1:
-                                                # execute external (hopr)
-                                                externalcmd = externalrun.execute(build, external, args, meshes_directory=meshes_dir_path)
-                                                # collect all mesh names which have been created in the directory 'meshes_dir_path' (since name of the mesh is not part of externalrun.parameters)
-                                                for file in os.listdir(meshes_dir_path):
-                                                    # create identifier of external, externalparameterfile and externalrun to check if mesh for given combination of these there has been build already
-                                                    dict_identifier = f'{external_count}' + f'{externalparameterfile_count}'
-                                                    # meshes are created with hopr, which creates _mesh.h5
-                                                    if file.endswith('_mesh.h5'):
-                                                        full_path = os.path.join(meshes_dir_path, file)
-                                                        if os.path.isfile(full_path):
-                                                            if full_path not in created_mesh_files.values():
-                                                                dict_identifier = dict_identifier + f'{externalrun_count}'
-                                                                # save directory where mesh is stored for current combination to set symbolic link in next run/command_line run
-                                                                created_mesh_files[dict_identifier] = os.path.join(meshes_dir_path, file)
-
-                                            dict_identifier = f'{external_count}' + f'{externalparameterfile_count}' + f'{externalrun_count}'
-                                            mesh_name_current_run = run.parameters['MeshFile'].split('/')[-1]
-                                            # created_mesh_files contains dict_identifier as keys and the path of the corresponding mesh
-                                            mesh_name_current_externalrun = created_mesh_files[dict_identifier].split('/')[-1]
-                                            # check if mesh of current run matches mesh of current external run to set symbolic link
-                                            if mesh_name_current_run == mesh_name_current_externalrun:
-                                                relative_source_path = os.path.relpath(created_mesh_files[dict_identifier], external.directory)
-                                                target_mesh_path = os.path.join(external.directory, mesh_name_current_run)
-                                                # set symbolic link for current mesh, since it is created at meshes_dir_path
-                                                if not os.path.exists(target_mesh_path):
-                                                    # Since external will not be executed for these runs check if pre-execution is needed
-                                                    if command_line_count != 1 or RunCount != 1:
-                                                        cmd_pre_execute = external.parameters.get('cmd_pre_execute')
-                                                        if cmd_pre_execute:
-                                                            cmd_pre = cmd_pre_execute.split()
-                                                            s = "Running [%s] ..." % (" ".join(cmd_pre))
-                                                            externalrun.execute_cmd(cmd_pre, external.directory, name='pre-exec', string_info=tools.indent(s, 3))  # run something
-                                                    # Create symbolic link
-                                                    os.symlink(relative_source_path, target_mesh_path)
-                                                    print(tools.indent(tools.yellow(f'Creating symbolic link from {relative_source_path} to {target_mesh_path}'), 3))
-                                        # execute other externals normally and also hopr every run if hopr binary has random name
+                                        # (pre) externals (3.1): run the external binary
+                                        # check if meshes should be reused with symbolic links for each command line of example
+                                        if args.meshesdir:
+                                            # check if externalbinary is set in self.MeshGeneration and should be executed only once, since other externals should be executed normally
+                                            # we also save which MeshGenerator is matched to get the file ending
+                                            self.Matched_Generator_Name = next((Generator_Name for Generator_Name in self.MeshGeneration.keys() if Generator_Name in externalbinary), None)
+                                            if self.Matched_Generator_Name:
+                                                externalcmd = self.mesh_external(run, external, externalrun, build, args)
+                                            # execute other externals normally and also hopr every run if hopr binary has random name
+                                            else:
+                                                externalcmd = externalrun.execute(build, external, args)
+                                        # execute each external each run normally
                                         else:
                                             externalcmd = externalrun.execute(build, external, args)
-                                    # execute each external each run normally
-                                    else:
-                                        externalcmd = externalrun.execute(build, external, args)
-                                    if not externalrun.successful:
-                                        external_failed = True
-                                        s = tools.red('Execution (pre) external failed: %s' % externalcmd)
-                                        run.externals_errors.append(s)
-                                        print("ExternalRun.total_errors = %s" % (ExternalRun.total_errors))
-                                        ExternalRun.total_errors += 1  # add error if externalrun fails
-                                        # Check if immediate stop is activated on failure
-                                        if args.stop:
-                                            s = tools.red('Stop on first error (-p, --stop) is activated! Execution (pre) external failed')
-                                            print(s)
-                                            exit(1)
 
-                        if PreprocessingActive:
-                            print(tools.indent(tools.green('Preprocessing: Externals %s finished!' % externalbinaries), 3))
+                                        if not externalrun.successful:
+                                            external_failed = True
+                                            s = tools.red('Execution (pre) external failed: %s' % externalcmd)
+                                            run.externals_errors.append(s)
+                                            print("ExternalRun.total_errors = %s" % (ExternalRun.total_errors))
+                                            ExternalRun.total_errors += 1  # add error if externalrun fails
+                                            # Check if immediate stop is activated on failure
+                                            if args.stop:
+                                                s = tools.red('Stop on first error (-p, --stop) is activated! Execution (pre) external failed')
+                                                print(s)
+                                                exit(1)
 
-                        # 4.2    execute the binary file for one combination of parameters
-                        run.execute(build, command_line, args, external_failed)
-                        if not run.successful:
-                            Run.total_errors += 1  # add error if run fails
-                            # Check if immediate stop is activated on failure
-                            if args.stop:
-                                s = tools.red('Stop on first error (-p, --stop) is activated! Execution of run failed')
-                                print(s)
-                                exit(1)
+                            if PreprocessingActive:
+                                print(tools.indent(tools.green('Preprocessing: Externals %s finished!' % externalbinaries), 3))
 
-                        # (post) externals (1): loop over all externals available in external.ini
-                        if run.externals_post is None:
-                            PostprocessingActive = False
-                        else:
-                            if len(run.externals_post) == 0:
+                            # 4.2    execute the binary file for one combination of parameters
+                            run.execute(build, command_line, args, external_failed)
+                            if not run.successful:
+                                Run.total_errors += 1  # add error if run fails
+                                # Check if immediate stop is activated on failure
+                                if args.stop:
+                                    s = tools.red('Stop on first error (-p, --stop) is activated! Execution of run failed')
+                                    print(s)
+                                    exit(1)
+
+                            # (post) externals (1): loop over all externals available in external.ini
+                            if run.externals_post is None:
                                 PostprocessingActive = False
                             else:
-                                PostprocessingActive = True
-                                externalbinaries = [external.parameters.get("externalbinary") for external in run.externals_post]
-                                print(tools.indent(tools.green('Postprocessing: Started  %s post-externals' % externalbinaries), 3))
+                                if len(run.externals_post) == 0:
+                                    PostprocessingActive = False
+                                else:
+                                    PostprocessingActive = True
+                                    externalbinaries = [external.parameters.get("externalbinary") for external in run.externals_post]
+                                    print(tools.indent(tools.green('Postprocessing: Started  %s post-externals' % externalbinaries), 3))
 
-                        for external in run.externals_post:
-                            log.info(str(external))
+                            for external in run.externals_post:
+                                log.info(str(external))
 
-                            # (post) externals (1.1): get the path and the parameterfiles to the i'th external
-                            externaldirectory = external.parameters.get("externaldirectory")
-                            if externaldirectory.endswith('.ini'):
-                                external.directory = run.target_directory
-                                external.parameterfiles = [externaldirectory]
-                            else:
-                                external.directory = run.target_directory + '/' + externaldirectory
-                                external.parameterfiles = [i for i in os.listdir(external.directory) if i.endswith('.ini')]
+                                # (post) externals (1.1): get the path and the parameterfiles to the i'th external
+                                externaldirectory = external.parameters.get("externaldirectory")
+                                if externaldirectory.endswith('.ini'):
+                                    external.directory = run.target_directory
+                                    external.parameterfiles = [externaldirectory]
+                                else:
+                                    external.directory = run.target_directory + '/' + externaldirectory
+                                    external.parameterfiles = [i for i in os.listdir(external.directory) if i.endswith('.ini')]
 
-                            # externalbinary = external.parameters.get("externalbinary")
+                                # externalbinary = external.parameters.get("externalbinary")
 
-                            # (post) externals (2): loop over all parameterfiles available for the i'th external
-                            for external.parameterfile in external.parameterfiles:  # noqa: B020 loop control variable external overrides iterable it iterates
-                                # (post) externals (2.1): consider combinations
-                                external.runs = getExternalRuns(os.path.join(external.directory, external.parameterfile), external)
+                                # (post) externals (2): loop over all parameterfiles available for the i'th external
+                                for external.parameterfile in external.parameterfiles:  # noqa: B020 loop control variable external overrides iterable it iterates
+                                    # (post) externals (2.1): consider combinations
+                                    external.runs = getExternalRuns(os.path.join(external.directory, external.parameterfile), external)
 
-                                # (post) externals (3): loop over all combinations and parameterfiles for the i'th external
-                                for externalrun in external.runs:
-                                    log.info(str(externalrun))
+                                    # (post) externals (3): loop over all combinations and parameterfiles for the i'th external
+                                    for externalrun in external.runs:
+                                        log.info(str(externalrun))
 
-                                    # (post) externals (3.1): run the external binary
-                                    externalcmd = externalrun.execute(build, external, args)
-                                    if not externalrun.successful:
-                                        # print(externalrun.return_code)
-                                        s = tools.red('Execution (post) external failed: %s' % externalcmd)
-                                        run.externals_errors.append(s)
-                                        ExternalRun.total_errors += 1  # add error if externalrun fails
-                                        # Check if immediate stop is activated on failure
-                                        if args.stop:
-                                            s = tools.red('Stop on first error (-p, --stop) is activated! Execution (post) external failed')
-                                            print(s)
-                                            exit(1)
+                                        # (post) externals (3.1): run the external binary
+                                        externalcmd = externalrun.execute(build, external, args)
+                                        if not externalrun.successful:
+                                            # print(externalrun.return_code)
+                                            s = tools.red('Execution (post) external failed: %s' % externalcmd)
+                                            run.externals_errors.append(s)
+                                            ExternalRun.total_errors += 1  # add error if externalrun fails
+                                            # Check if immediate stop is activated on failure
+                                            if args.stop:
+                                                s = tools.red('Stop on first error (-p, --stop) is activated! Execution (post) external failed')
+                                                print(s)
+                                                exit(1)
 
-                        if PostprocessingActive:
-                            print(tools.indent(tools.green('Postprocessing: Externals %s finished!' % externalbinaries), 3))
+                            if PostprocessingActive:
+                                print(tools.indent(tools.green('Postprocessing: Externals %s finished!' % externalbinaries), 3))
 
-                        # 4.3 Remove unwanted files: run analysis directly after each run (as opposed to the normal analysis which is used for analyzing the created output)
+                            # 4.3 Remove unwanted files: run analysis directly after each run (as opposed to the normal analysis which is used for analyzing the created output)
+                            for analyze in example.analyzes:
+                                if isinstance(analyze, Clean_up_files):
+                                    analyze.execute(run)
+
+                        # 5.   loop over all successfully executed binary results and perform analyze tests
+                        runs_successful = [run for run in command_line.runs if run.successful]
+                        if runs_successful:  # do analysis only if runs_successful is not empty
+                            for analyze in example.analyzes:
+                                if isinstance(analyze, Clean_up_files) or isinstance(analyze, Analyze_compare_across_commands):
+                                    # skip because either already called in the "run" loop under 4.2 or called later under cross-command comparisons in 7.
+                                    continue
+                                # Set the restart file index in case of one diff per restart file (from command line)
+                                analyze.iRestartFile = iRestartFile
+                                # Output of the __str__ for the respective analyze routine
+                                print(tools.indent(tools.blue(str(analyze)), 2))
+                                # Perform the analyze for the successful runs
+                                analyze.perform(runs_successful)
+                                # Check if immediate stop is activated on failure
+                                if args.stop and Analyze.total_errors > 0:
+                                    s = tools.red('Stop on first error (-p, --stop) is activated! Analysis failed')
+                                    print(s)
+                                    exit(1)
+                        else:  # don't delete build folder after all examples/runs
+                            remove_build_when_successful = False
+
+                        # 6.   rename all run directories for which the analyze step has failed for at least one test
+                        for run in runs_successful:  # all successful runs (failed runs are already renamed)
+                            if not run.analyze_successful:  # if 1 of N analyzes fails: rename
+                                run.rename_failed()
+
+                        # Don't remove when run fails
+                        if not all([run.analyze_successful for run in runs_successful]):  # don't delete build folder after all examples/runs
+                            remove_build_when_successful = False
+
+                        # Don't remove when (pre) external fails
+                        for run in runs_successful:
+                            for external in run.externals_pre:
+                                if not all([externalrun.successful for externalrun in external.runs]):  # don't delete build folder after all examples/runs
+                                    remove_build_when_successful = False
+
+                        # Don't remove when (post) external fails
+                        for run in runs_successful:
+                            for external in run.externals_post:
+                                if not all([externalrun.successful for externalrun in external.runs]):  # don't delete build folder after all examples/runs
+                                    remove_build_when_successful = False
+
+                    # 7.    perform analyze tests comparing corresponding runs from different commands
+                    for iRun in range(len(example.command_lines[0].runs)):  # loop over runs of first command
+                        # collect corresponding runs from different commands, i.e. cmd_*/run_0001, cmd_*/run_0002, ...
+                        runs_corresponding = [command_line.runs[iRun] for command_line in example.command_lines]
                         for analyze in example.analyzes:
-                            if isinstance(analyze, Clean_up_files):
-                                analyze.execute(run)
+                            # perform only cross-command comparisons
+                            if isinstance(analyze, Analyze_compare_across_commands):
+                                print(tools.indent(tools.blue(str(analyze)), 2))
+                                analyze.perform(runs_corresponding)
+                                # Check if immediate stop is activated on failure
+                                if args.stop and Analyze.total_errors > 0:
+                                    s = tools.red('Stop on first error (-p, --stop) is activated! Analysis failed (cross-command comparisons)')
+                                    print(s)
+                                    exit(1)
 
-                    # 5.   loop over all successfully executed binary results and perform analyze tests
-                    runs_successful = [run for run in command_line.runs if run.successful]
-                    if runs_successful:  # do analysis only if runs_successful is not empty
-                        for analyze in example.analyzes:
-                            if isinstance(analyze, Clean_up_files) or isinstance(analyze, Analyze_compare_across_commands):
-                                # skip because either already called in the "run" loop under 4.2 or called later under cross-command comparisons in 7.
-                                continue
-                            # Set the restart file index in case of one diff per restart file (from command line)
-                            analyze.iRestartFile = iRestartFile
-                            # Output of the __str__ for the respective analyze routine
-                            print(tools.indent(tools.blue(str(analyze)), 2))
-                            # Perform the analyze for the successful runs
-                            analyze.perform(runs_successful)
-                            # Check if immediate stop is activated on failure
-                            if args.stop and Analyze.total_errors > 0:
-                                s = tools.red('Stop on first error (-p, --stop) is activated! Analysis failed')
-                                print(s)
-                                exit(1)
-                    else:  # don't delete build folder after all examples/runs
-                        remove_build_when_successful = False
+                # create coverage report for current build
+                if args.coverage:
+                    self.write_single_coverage_report(build, args)
 
-                    # 6.   rename all run directories for which the analyze step has failed for at least one test
-                    for run in runs_successful:  # all successful runs (failed runs are already renamed)
-                        if not run.analyze_successful:  # if 1 of N analyzes fails: rename
-                            run.rename_failed()
+                if remove_build_when_successful and not args.save:
+                    tools.remove_folder(build.target_directory)
+                print('=' * 132)
 
-                    # Don't remove when run fails
-                    if not all([run.analyze_successful for run in runs_successful]):  # don't delete build folder after all examples/runs
-                        remove_build_when_successful = False
+            # check if reggie is executed directly or via gitlab: if executed by hand combine the coverage data over all builds, gitlab uses the single reports and separate stage to combine
+            if not self.coverage_env and args.coverage:
+                self.combine_local_coverage_reports(args)
 
-                    # Don't remove when (pre) external fails
-                    for run in runs_successful:
-                        for external in run.externals_pre:
-                            if not all([externalrun.successful for externalrun in external.runs]):  # don't delete build folder after all examples/runs
-                                remove_build_when_successful = False
+        # catch exception if bulding fails
+        except BuildFailedException as ex:
+            # print table with summary of errors
+            summary.SummaryOfErrors(builds, args)
 
-                    # Don't remove when (post) external fails
-                    for run in runs_successful:
-                        for external in run.externals_post:
-                            if not all([externalrun.successful for externalrun in external.runs]):  # don't delete build folder after all examples/runs
-                                remove_build_when_successful = False
+            # display error message
+            print(tools.red(str(ex)))  # display error msg
+            if hasattr(ex.build, 'cmake_cmd'):
+                print(tools.indent(tools.yellow(str(" ".join(ex.build.cmake_cmd))), 1))
+            if hasattr(ex.build, 'make_cmd'):
+                print(tools.indent(tools.yellow(str(" ".join(ex.build.make_cmd))), 1))
+            print(tools.indent("Build failed, see: " + str(ex.build.stdout_filename), 1))
+            print(tools.indent("                   " + str(ex.build.stderr_filename), 1))
+            print(tools.bcolors.RED)
+            for line in ex.build.stderr[-20:]:
+                print(tools.indent(line, 4), end=' ')  # skip linebreak
+            print(tools.bcolors.ENDC)
 
-                # 7.    perform analyze tests comparing corresponding runs from different commands
-                for iRun in range(len(example.command_lines[0].runs)):  # loop over runs of first command
-                    # collect corresponding runs from different commands, i.e. cmd_*/run_0001, cmd_*/run_0002, ...
-                    runs_corresponding = [command_line.runs[iRun] for command_line in example.command_lines]
-                    for analyze in example.analyzes:
-                        # perform only cross-command comparisons
-                        if isinstance(analyze, Analyze_compare_across_commands):
-                            print(tools.indent(tools.blue(str(analyze)), 2))
-                            analyze.perform(runs_corresponding)
-                            # Check if immediate stop is activated on failure
-                            if args.stop and Analyze.total_errors > 0:
-                                s = tools.red('Stop on first error (-p, --stop) is activated! Analysis failed (cross-command comparisons)')
-                                print(s)
-                                exit(1)
-
-            # create coverage report for current build
-            if args.coverage:
-                # gcovr needs two directories as arguments: - "source_files_dir" the root directory, where the source files are located
-                #                                           - "coverage_files_dir" the coverage files directory (containing necessary files)
-                # When compiling with the --coverage option, the compiler generates additional files for each object file, .gcno and .gcda
-                # The .gcno file is created during compilation and contains information for reconstructing basic block graphs and associating source lines with blocks.
-                # The .gcda file is generated when the instrumented code is executed and contains counts
-                # for out of source builds (like with cmake) these are not the same directory
-                # the .gcno and .gcda files are located in the build/CMakeFiles directory, but the build directory is sufficient here
-                # for a standalone executable these paths are not safely known here and are therefore searched
-                # for the args.basedir options is gets easier
-                s = tools.green("Post-processing: Started gcovr")
-                print(tools.indent(s, 1))
-                if args.exe:
-                    print(tools.indent(tools.yellow("Running gcovr for standalone executable [%s]" % build.binary_path), 2))
-                    try:
-                        # expect directory structure for a cmake project like
-                        # program
-                        # |- src
-                        #   | - source files
-                        #   | ...
-                        # |- build
-                        #   | - bin
-                        # default to the parent dir of binary_dir
-                        coverage_files_dir = os.path.dirname(build.binary_dir)
-                        # sanity check: find .gcno files in coverage_files_dir or any subdir, since exe must be compiled with coverage
-                        gcno_files = [os.path.join(root, file) for root, _, files in os.walk(coverage_files_dir) for file in files if file.endswith('.gcno')]
-                        if not gcno_files:
-                            raise Exception("No .gcno files found in coverage_files_dir [%s] or any subdirectories. Please check if the executable is compiled with coverage enabled" % coverage_files_dir)
-                    except Exception as e:
-                        print("%s" % (tools.red("Error determining source directory of standalone executable: %s" % e)))
-                        exit(1)
-                    # source_files_dir is the directory where the source files are located, it is expected to be the parent directory or at least a subdirectory of the parentdirectory
-                    source_files_dir = os.path.dirname(coverage_files_dir)
-                else:
-                    coverage_files_dir = build.binary_dir
-                    source_files_dir = build.basedir
-
-                coverage_files_dir = os.path.abspath(coverage_files_dir)
-                if not os.path.exists(coverage_files_dir):
-                    s = tools.red("Coverage data object directory [%s] does not exist" % coverage_files_dir)
-                    print(s)
-                    exit(1)
-
-                # try to append /src to the path to exclude other directories, e.g. UnitTests
-                src_path = os.path.abspath(os.path.join(source_files_dir, 'src'))
-                if os.path.exists(src_path):
-                    source_files_dir = src_path
-                    print(tools.indent(tools.yellow("Using source directory [%s] for gcovr" % source_files_dir), 2))
-
-                source_files_dir = os.path.abspath(source_files_dir)
-                if not os.path.exists(source_files_dir):
-                    s = tools.red("Source files directory [%s] does not exist" % source_files_dir)
-                    print(s)
-                    exit(1)
-
-                s = tools.indent(tools.green('Combining coverage reports for build: %s' % build.target_directory), 2)
-                print(s)
-                cmd_gcovr = ["gcovr", "--root", f"{source_files_dir}", f"{coverage_files_dir}"]
-                if args.debug > 0:
-                    cmd_gcovr.extend(["--verbose", "--print-summary"])
-
-                if args.gcovr_extra:
-                    cmd_gcovr.extend(args.gcovr_extra.split(' '))
-
-                # get name of current build source dir
-                if coverage_env:
-                    # get cwd for naming convention due to gitlab setup
-                    report_name = f"combined_report_{os.path.split(os.getcwd())[1]}.json"
-                else:
-                    # get build_dir name otherwise
-                    report_name = f"combined_report_{os.path.split(str(coverage_files_dir))[1]}.json"
-
-                # check if file already exists from other reggie call before the current call, e.g. two regression tests use the same build, which would lead to the same report_name here
-                if report_name in os.listdir(coverage_dir):
-                    # Locally this won't be a problem, since the coverage files still contain all data from previous runs, but on GitLab/GitHub this might be different
-                    # The updated .gcno files (which contain the coverage from the current run) in the build directory are not necessarily pushed to the cache (on gitlab) each time the reggie is executed
-                    # Therefore the coverage information from previous runs is lost and if gcovr is executed again with the same report_name only the coverage data of the last executed run per build is saved
-                    # This leaves us with two options: Either combine the reports if the name already exists, or just save as a new file
-                    # Saving new files for each test using the same build could lead to a large amount of report files being cached, so we will combine the reports here
-                    # Generate new coverage report with temporary name
-                    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', dir=coverage_dir, delete=False) as tmp_new:
-                        temp_new_path = tmp_new.name
-
-                    print(tools.indent(f'{report_name} already exists in {coverage_dir}! Creating temporary report {os.path.basename(temp_new_path)} and merging coverage data.', 2))
-                    cmd_gcovr.extend(["--json", os.path.basename(temp_new_path)])
-                    s = tools.indent("Generating new coverage data [%s] ..." % (" ".join(cmd_gcovr)), 2)
-                    return_code = ExternalCommand().execute_cmd(cmd_gcovr, coverage_dir, string_info=s)
-                    if return_code != 0:
-                        # Clean up temp file on failure
-                        if os.path.exists(temp_new_path):
-                            os.remove(temp_new_path)
-                        raise Exception("Failed to generate new coverage report")
-
-                    # Combine old and new reports into temporary output, then move temporary output to report_name
-                    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', dir=coverage_dir, delete=False) as tmp_combined:
-                        temp_combined_path = tmp_combined.name
-
-                    # fmt: off
-                    cmd_combine = ["gcovr",
-                                   "--root",source_files_dir,
-                                   "--json-add-tracefile",report_name,
-                                   "--json-add-tracefile",os.path.basename(temp_new_path),
-                                   "--merge-mode-functions=merge-use-line-min",
-                                   "--json",os.path.basename(temp_combined_path),
-                                  ]
-                    # fmt: on
-
-                    s = tools.indent("Merging coverage reports [%s] ..." % (" ".join(cmd_combine)), 2)
-                    return_code = ExternalCommand().execute_cmd(cmd_combine, coverage_dir, string_info=s)
-                    if return_code != 0:
-                        # Clean up temp files on failure
-                        os.remove(temp_new_path)
-                        os.remove(temp_combined_path)
-                        raise Exception("Failed to merge coverage reports")
-
-                    # rename combined report to final name
-                    final_path = os.path.join(coverage_dir, report_name)
-                    os.replace(temp_combined_path, final_path)
-                    # Clean up temporary new report
-                    os.remove(temp_new_path)
-                else:
-                    # No existing report, create new one directly
-                    cmd_gcovr.extend(["--json", report_name])
-                    s = tools.indent("Running [%s] ..." % (" ".join(cmd_gcovr)), 2)
-                    ExternalCommand().execute_cmd(cmd_gcovr, coverage_dir, string_info=s)
-
-                s = tools.green("Post-processing: Finished gcovr")
-                print(tools.indent(s, 1))
-
-            if remove_build_when_successful and not args.save:
-                tools.remove_folder(build.target_directory)
-            print('=' * 132)
-
-        # check if reggie is executed directly or via gitlab: if executed by hand combine the coverage data over all builds, gitlab uses the single reports and separate stage to combine
-        if not coverage_env and args.coverage:
-            combined_cov_path = os.path.abspath(os.path.join(coverage_dir, "combined_report"))
-            tools.create_folder(combined_cov_path)
-
-            coverage_files = [os.path.abspath(os.path.join(coverage_dir, file)) for file in os.listdir(coverage_dir) if file.endswith('.json')]
-
-            # combine all coverage reports from all builds
-            s = tools.indent(tools.green('Combining coverage reports for all builds'), 1)
-            print(s)
-            cmd_combine = ["gcovr", "--root", f"{source_files_dir}"]
-            if args.debug > 0:
-                cmd_combine.extend(["--verbose", "--print-summary"])
-            # add files separately to the command line since ExternalCommand().execute_cmd resolves wildcards which would lead to invalid syntax for gcovr
-            # which is either --json-add-tracefile file1 --json-add-tracefile file2 or --json-add-tracefile *.json, but ExternalCommand().execute_cmd resolves wildcards to
-            # --json-add-tracefile file1 file2 ...
-            for cov_file in coverage_files:
-                cmd_combine.extend(["--json-add-tracefile", f"{cov_file}"])
-            # use merge mode functions to avoid errors if the same functions appears in different lines (e.g. for two builds a block is missing due to compiler flags, which moves func1 form line X to X-5)
-            cmd_combine.append("--merge-mode-functions=merge-use-line-min")
-            if coverage_output_html:
-                html_path = os.path.abspath(os.path.join(combined_cov_path, "html"))
-                tools.create_folder(html_path)
-                cmd_combine_html = cmd_combine.copy()
-                cmd_combine_html.extend(["--html-nested", "combined_report.html"])
-                s = tools.indent("Running [%s] ..." % (" ".join(cmd_combine_html)), 2)
-                ExternalCommand().execute_cmd(cmd_combine_html, html_path, string_info=s)
-            if coverage_output_cobertura:
-                xml_path = os.path.abspath(os.path.join(combined_cov_path, "xml"))
-                tools.create_folder(xml_path)
-                cmd_combine_cobertura = cmd_combine.copy()
-                cmd_combine_cobertura.extend(["--cobertura", "combined_report.xml"])
-                s = tools.indent("Running [%s] ..." % (" ".join(cmd_combine_cobertura)), 2)
-                ExternalCommand().execute_cmd(cmd_combine_cobertura, xml_path, string_info=s)
-
-            cmd_combine.extend(["--json", "combined_report.json"])
-            # merge functions for builds with different compiler flags (function name stays the same but line changes due to ifdef)
-            s = tools.indent("Running [%s] ..." % (" ".join(cmd_combine)), 2)
-            ExternalCommand().execute_cmd(cmd_combine, combined_cov_path, string_info=s)
-
-    # catch exception if bulding fails
-    except BuildFailedException as ex:
-        # print table with summary of errors
-        summary.SummaryOfErrors(builds, args)
-
-        # display error message
-        print(tools.red(str(ex)))  # display error msg
-        if hasattr(ex.build, 'cmake_cmd'):
-            print(tools.indent(tools.yellow(str(" ".join(ex.build.cmake_cmd))), 1))
-        if hasattr(ex.build, 'make_cmd'):
-            print(tools.indent(tools.yellow(str(" ".join(ex.build.make_cmd))), 1))
-        print(tools.indent("Build failed, see: " + str(ex.build.stdout_filename), 1))
-        print(tools.indent("                   " + str(ex.build.stderr_filename), 1))
-        print(tools.bcolors.RED)
-        for line in ex.build.stderr[-20:]:
-            print(tools.indent(line, 4), end=' ')  # skip linebreak
-        print(tools.bcolors.ENDC)
-
-        print("run 'reggie' with the command line option '-c/--carryon' to skip successful builds.")
-        tools.finalize(start, 1, Run.total_errors, Analyze.total_errors, Analyze.total_infos)
-        exit(1)
+            print("run 'reggie' with the command line option '-c/--carryon' to skip successful builds.")
+            tools.finalize(start, 1, Run.total_errors, Analyze.total_errors, Analyze.total_infos)
+            exit(1)
