@@ -1903,7 +1903,12 @@ class Analyze_h5diff(Analyze, ExternalCommand):
                             Analyze.total_errors += 1
 
     def __str__(self):
-        return "perform h5diff of " + str(self.prms["data_set"][0]) + " between two files: [" + str(self.prms["file"][0]) + "] + reference [" + str(self.prms["reference_file"][0]) + "]"
+        dataset = self.prms["data_set"][0]
+        file = self.prms["file"][0]
+        reference = self.prms["reference_file"][0]
+        tolerance = self.prms["tolerance_type"][0]
+        value = self.prms["tolerance_value"][0]
+        return f'Perform h5diff of {dataset} between [{file}] and reference [{reference}] with {tolerance} tolerance of {value}'
 
 
 # ==================================================================================================
