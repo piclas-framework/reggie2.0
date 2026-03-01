@@ -3299,7 +3299,7 @@ class Analyze_compare_column(Analyze):
 
                     if NbrOfDifferences > 0:
                         s = tools.red("Analyze_compare_column() failed: Found %s differences.\n" % NbrOfDifferences)
-                        s = s + tools.red("Mismatch in column: %s" % header_line[index_loc])
+                        s = s + tools.red("Mismatch in column: %s" % header_line)
                         print(s)
                         run.analyze_results.append(s)
                         run.analyze_successful = False
