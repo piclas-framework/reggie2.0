@@ -1,3 +1,6 @@
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12080/badge)](https://www.bestpractices.dev/projects/12080)
+[![OpenSSF Baseline](https://www.bestpractices.dev/projects/12080/baseline)](https://www.bestpractices.dev/projects/12080)
+
 # Table of Contents
 
 - [Reggie2.0](#reggie20-toolbox)
