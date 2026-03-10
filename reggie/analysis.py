@@ -1975,6 +1975,60 @@ class Analyze_vtudiff(Analyze, ExternalCommand):
         # set logical for creating new reference files and copying them to the example source directory
         self.referencescopy = vtudiff.referencescopy
 
+    def read_in_vtk_data(self, data_reader, single_array_name=None):
+        '''
+        Function to read in data from vtk file and return numpy array
+
+        Currently cell and/or point data is read in, but can be extended to read in other data types (mainly field data if needed).
+
+        Input arguments:
+        - data_reader: vtk reader object
+        - single_array_name: string containing the name of the array to be read in (if None, all arrays are read in)
+
+        Return values:
+        - numpy_data: numpy array containing all data from the vtk file (stacked in columns)
+        - array_names_dims: dictionary containing the names of the arrays and their number of columns (number of components, e.g. 3 for Velocity for x,y and z respectively)
+        '''
+        num_arrays_per_type = [
+            data_reader.GetOutput().GetPointData().GetNumberOfArrays(),
+            data_reader.GetOutput().GetCellData().GetNumberOfArrays(),
+            data_reader.GetOutput().GetFieldData().GetNumberOfArrays(),
+        ]
+        data_getter_per_type = [data_reader.GetOutput().GetPointData, data_reader.GetOutput().GetCellData, data_reader.GetOutput().GetFieldData]
+        # number of arrays in the vtk file (return one for velocity, where 3 components will be added to the numpy array result)
+        data = []
+        array_names_dims = {}
+        # loop over cell and point data and read in all arrays, if existent
+        for data_getter, num_of_arrays in zip(data_getter_per_type, num_arrays_per_type, strict=True):
+            if num_of_arrays > 0:
+                array_names = [data_getter().GetArrayName(i) for i in range(num_of_arrays)]
+                lower_names = [arr_name.lower() for arr_name in array_names]
+                # check if only given arrays are compared
+                if single_array_name is not None and single_array_name.lower() in lower_names:
+                    single_array_index = lower_names.index(single_array_name.lower())
+                    # try to read in specific array but skip if it is not found in the current type (point or cell data respectively)
+                    vtk_arr = data_getter().GetArray(array_names[single_array_index])
+                    temp_array = vtk.util.numpy_support.vtk_to_numpy(vtk_arr).astype(float)
+                    # check if the array is a 1D array and reshape it to a 2D array to read in the dimensions correctly
+                    if temp_array.ndim == 1:
+                        temp_array = temp_array.reshape(-1, 1)
+                    array_names_dims[array_names[single_array_index]] = temp_array.shape[1]
+                    # only read in specific data
+                    data.append(temp_array)
+
+                else:
+                    for i in range(num_of_arrays):
+                        vtk_arr = data_getter().GetArray(i)
+                        temp_array = vtk.util.numpy_support.vtk_to_numpy(vtk_arr).astype(float)
+                        if temp_array.ndim == 1:
+                            temp_array = temp_array.reshape(-1, 1)
+                        data.append(temp_array)
+                        array_names_dims[data_getter().GetArrayName(i)] = temp_array.shape[1]
+
+        # Convert the list to a single numpy array (concatenated along columns) for each data type (point or cell data respectively)
+        numpy_data = np.hstack(data) if data else np.array([])
+        return numpy_data, array_names_dims
+
     def perform(self, runs):
         global vtk_module_loaded
         # Check if this analysis can be performed: vtk must be imported
@@ -2099,60 +2153,6 @@ class Analyze_vtudiff(Analyze, ExternalCommand):
                     continue
 
                 # 1.1.2 read in data and convert it to numpy array
-                def read_in_vtk_data(data_reader, single_array_name=None):
-                    '''
-                    Function to read in data from vtk file and return numpy array
-
-                    Currently cell and/or point data is read in, but can be extended to read in other data types (mainly field data if needed).
-
-                    Input arguments:
-                    - data_reader: vtk reader object
-                    - single_array_name: string containing the name of the array to be read in (if None, all arrays are read in)
-
-                    Return values:
-                    - numpy_data: numpy array containing all data from the vtk file (stacked in columns)
-                    - array_names_dims: dictionary containing the names of the arrays and their number of columns (number of components, e.g. 3 for Velocity for x,y and z respectively)
-                    '''
-                    num_arrays_per_type = [
-                        data_reader.GetOutput().GetPointData().GetNumberOfArrays(),
-                        data_reader.GetOutput().GetCellData().GetNumberOfArrays(),
-                        data_reader.GetOutput().GetFieldData().GetNumberOfArrays(),
-                    ]
-                    data_getter_per_type = [data_reader.GetOutput().GetPointData, data_reader.GetOutput().GetCellData, data_reader.GetOutput().GetFieldData]
-                    # number of arrays in the vtk file (return one for velocity, where 3 components will be added to the numpy array result)
-                    vtk_num_arrays_total = 0
-                    data = []
-                    array_names_dims = {}
-                    # loop over cell and point data and read in all arrays, if existent
-                    for data_getter, num_of_arrays in zip(data_getter_per_type, num_arrays_per_type):
-                        if num_of_arrays > 0:
-                            array_names = [data_getter().GetArrayName(i) for i in range(num_of_arrays)]
-                            lower_names = [arr_name.lower() for arr_name in array_names]
-                            # check if only given arrays are compared
-                            if single_array_name is not None and single_array_name.lower() in lower_names:
-                                single_array_index = lower_names.index(single_array_name.lower())
-                                # try to read in specific array but skip if it is not found in the current type (point or cell data respectively)
-                                temp_array = np.array(data_getter().GetArray(array_names[single_array_index]), dtype=float)
-                                # check if the array is a 1D array and reshape it to a 2D array to read in the dimensions correctly
-                                if temp_array.ndim == 1:
-                                    temp_array = temp_array.reshape(-1, 1)
-                                vtk_num_arrays_total = 1
-                                array_names_dims[array_names[single_array_index]] = temp_array.shape[1]
-                                # only read in specific data
-                                data.append(temp_array)
-
-                            else:
-                                # add number of cell and point data arrays
-                                vtk_num_arrays_total = vtk_num_arrays_total + num_of_arrays
-                                array_dim = data_getter().GetArray(0).GetNumberOfTuples()
-                                # read in all data from vtk file
-                                data = [np.array([data_getter().GetArray(i).GetTuple(j) for j in range(array_dim)]) for i in range(num_of_arrays)]
-                                array_names_dims = {data_getter().GetArrayName(i): data[i].shape[1] for i in range(num_of_arrays)}
-
-                    # Convert the list to a single numpy array (concatenated along columns) for each data type (point or cell data respectively)
-                    numpy_data = np.hstack(data) if data else np.array([])
-                    return numpy_data, array_names_dims
-
                 try:
                     # Check if the array name in the file and the ref. have the same name
                     if array_name_loc is not None and len(array_name_loc.split()) > 1:
@@ -2161,9 +2161,8 @@ class Analyze_vtudiff(Analyze, ExternalCommand):
                     else:
                         array_name_loc_file = array_name_loc
                         array_name_loc_ref = array_name_loc
-
-                    vtu_data, array_names_dims = read_in_vtk_data(reader, array_name_loc_file)
-                    vtu_data_ref, array_names_dims_ref = read_in_vtk_data(reader_ref, array_name_loc_ref)
+                    vtu_data, array_names_dims = self.read_in_vtk_data(reader, array_name_loc_file)
+                    vtu_data_ref, array_names_dims_ref = self.read_in_vtk_data(reader_ref, array_name_loc_ref)
                     try:
                         # Check if array_name_loc has not been set (because no name was stated in the analyze.ini file)
                         if array_name_loc is None:
@@ -2254,7 +2253,8 @@ class Analyze_vtudiff(Analyze, ExternalCommand):
 
                     data_shape = vtu_data.shape
                     name_suffix = name_suffix + '_reshaped'
-                    file_loc_new, ext = os.path.splitext(file_loc) + name_suffix + ext
+                    file_name, ext = os.path.splitext(file_loc)
+                    file_loc_new = file_name + name_suffix + ext
                     # In the following, compare the reshaped array instead of the original one
                     str_1 = "'%s' (instead of '%s')" % (file_loc_new, file_loc)
                     print(
@@ -2307,8 +2307,10 @@ class Analyze_vtudiff(Analyze, ExternalCommand):
 
                     # In the following, compare the two sorted arrays instead of the original ones
                     name_suffix = name_suffix + '_sorted'
-                    file_loc_new, ext = os.path.splitext(file_loc) + name_suffix + ext
-                    reference_file_loc_new, ext = os.path.splitext(reference_file_loc) + name_suffix + ext
+                    file_name, ext = os.path.splitext(file_loc)
+                    file_loc_new = file_name + name_suffix + ext
+                    file_name, ext = os.path.splitext(reference_file_loc)
+                    reference_file_loc_new = file_name + name_suffix + ext
                     str_1 = "'%s' (instead of '%s')" % (file_loc_new, file_loc)
                     str_2 = "'%s' (instead of '%s')" % (reference_file_loc_new, reference_file_loc)
                     print(tools.yellow("    Sorting dim=%s by variable=%s (variable indexing begins at 0). Now comparing: %s with %s" % (sort_dim_loc, sort_var_loc, str_1, str_2)))
@@ -2322,19 +2324,24 @@ class Analyze_vtudiff(Analyze, ExternalCommand):
                     num_arrays_per_type = [reader.GetOutput().GetPointData().GetNumberOfArrays(), reader.GetOutput().GetCellData().GetNumberOfArrays()]
                     data_getter_per_type = [reader.GetOutput().GetPointData, reader.GetOutput().GetCellData]
                     data_writer_per_type = [vtk_data.GetPointData, vtk_data.GetCellData]
+                    # track column counts in vtu_data, e.g. if the first vtu array in vtu_data is velocity with cols 0,1,2 then the next vtu array is at col 3
+                    current_col_idx = 0
                     # loop over cell and point data and read in all arrays, if existent
-                    for data_writer, data_getter, num_of_arrays in zip(data_writer_per_type, data_getter_per_type, num_arrays_per_type):
+                    for data_writer, data_getter, num_of_arrays in zip(data_writer_per_type, data_getter_per_type, num_arrays_per_type, strict=True):
                         if num_of_arrays > 0:
                             for i in range(num_of_arrays):
                                 num_of_cols = data_getter().GetArray(i).GetNumberOfComponents()
                                 array_name = data_getter().GetArrayName(i)
                                 array_name = array_name + name_suffix
-                                vtk_new_array = vtk.util.numpy_support.numpy_to_vtk(num_array=vtu_data[:, i : i + num_of_cols], deep=True)
+                                vtk_new_array = vtk.util.numpy_support.numpy_to_vtk(num_array=vtu_data[:, current_col_idx : current_col_idx + num_of_cols], deep=True)
                                 vtk_new_array.SetName(array_name)
                                 # Add the new array to the VTK data
                                 data_writer().AddArray(vtk_new_array)
+                                # increase col count by num_of_cols of current vtu array
+                                current_col_idx += num_of_cols
 
-                    output_file_loc, ext = os.path.splitext(file_loc) + name_suffix + ext
+                    file_name, ext = os.path.splitext(file_loc)
+                    output_file_loc = file_name + name_suffix + ext
                     output_file_loc = os.path.join(run.target_directory, output_file_loc)
                     # Write the VTK unstructured grid to file
                     try:
@@ -2381,9 +2388,7 @@ class Analyze_vtudiff(Analyze, ExternalCommand):
 
                             if np.any(array_diff_mask):
                                 # Header
-                                header = "{:<20} | {:<45} | {:<45} | {:<25} | {:<25}".format(
-                                    'Index', name, list(array_names_dims_ref.keys())[i] + '_ref', 'Abs Diff', 'Rel Diff'
-                                )
+                                header = "{:<20} | {:<45} | {:<45} | {:<25} | {:<25}".format('Index', name, list(array_names_dims_ref.keys())[i] + '_ref', 'Abs Diff', 'Rel Diff')
                                 print(tools.red(header))
                                 print('-' * 170)
 
@@ -2393,18 +2398,11 @@ class Analyze_vtudiff(Analyze, ExternalCommand):
                                     ref_val = vtu_data_ref[actual_idx, col_slice]
 
                                     abs_diff = np.abs(val - ref_val)
-                                    rel_diff = np.divide(
-                                        abs_diff,
-                                        np.abs(ref_val),
-                                        out=np.zeros_like(abs_diff),
-                                        where=ref_val != 0
-                                    )
+                                    rel_diff = np.divide(abs_diff, np.abs(ref_val), out=np.zeros_like(abs_diff), where=ref_val != 0)
 
-                                    print(tools.red("{:<20} | {:<45} | {:<45}".format(
-                                        actual_idx, str(val), str(ref_val)
-                                    )) + tools.yellow(" | {:<25} | {:<25}".format(
-                                        str(np.round(abs_diff, 6)), str(np.round(rel_diff, 6))
-                                    )))
+                                    print(
+                                        tools.red("{:<20} | {:<45} | {:<45}".format(actual_idx, str(val), str(ref_val))) + tools.yellow(" | {:<25} | {:<25}".format(str(np.round(abs_diff, 6)), str(np.round(rel_diff, 6))))
+                                    )
 
                             offset += size
                     else:
