@@ -715,7 +715,7 @@ class Analyze_Convtest_h(Analyze):
 
             # 1.2   get L2 errors of all runs and create np.array
             try:
-                L2_errors = np.array([analyze_functions.get_last_L2_error(run.stdout, self.error_name) for run in runs])
+                L2_errors = np.array([analyze_functions.get_last_L2_error(run.stdout, self.error_name, LastLines) for run in runs])
                 L2_errors = np.transpose(L2_errors)
             except Exception:
                 for run in runs:  # find out exactly which L2 error could not be read
