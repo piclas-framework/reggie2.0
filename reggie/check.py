@@ -785,13 +785,25 @@ class Run(OutputDirectory, ExternalCommand):
                 with h5py.File(os.path.join(self.target_directory, MeshFileName), 'r') as MeshFile:
                     nElems = MeshFile.attrs['nElems']
 
+                    # hopr stores the number of elements as array with one element
+                    try:
+                        nElems = int(nElems[0])
+                    # pyhope stores number of elements as scalar
+                    except (TypeError, IndexError):
+                        nElems = int(nElems)
+
                     # Limit the number of mpithreads
                     if MPIthreads:
-                        if int(MPIthreads) > int(nElems[0]):
-                            s = tools.yellow("Automatically reducing number of MPI threads from %s to %s (number of elements in mesh)!" % (int(MPIthreads), int(nElems[0])))
-                            print(s)
-                        MPIthreads = str(min(int(nElems[0]), int(MPIthreads)))
-            except Exception:
+                        if int(MPIthreads) > nElems:
+                            s = tools.yellow("Automatically reducing number of MPI threads from %s to %s (number of elements in mesh)!" % (int(MPIthreads), nElems))
+                            print(tools.indent(s, 2))
+                        MPIthreads = str(min(nElems, int(MPIthreads)))
+            except Exception as e:
+                s = (
+                    "Failed to extract the number of elements ('nElems') from the mesh file to automatically limit MPI threads."
+                    "\nError message: [%s]\nThe program will continue without limiting MPI threads for this execution." % e
+                )
+                print(tools.indent(tools.red(s), 2))
                 pass
 
         # check MPI built binary (only possible for reggie-compiled binaries)
