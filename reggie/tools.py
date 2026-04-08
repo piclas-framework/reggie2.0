@@ -249,3 +249,14 @@ def splitall(path):
             path = parts[0]
             allparts.insert(0, parts[1])
     return allparts
+
+
+INI_COMMENT_SYMBOLS = ('!', '#', ';')
+
+
+def exclude_comments_from_line(line):
+    if line.startswith(INI_COMMENT_SYMBOLS):  # skip lines starting with a comment
+        return
+    for sym in INI_COMMENT_SYMBOLS:
+        line = line.split(sym)[0]  # remove trailing comments in line
+    return line
