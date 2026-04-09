@@ -27,12 +27,12 @@ def replace_wild_cards_recursive(cmd, workingDir):
         # Check for wild cards
         if "*" in i[1]:
             # fmt: off
-            absolutePath     = os.path.join(workingDir,i[1])
-            files            = sorted(glob.glob(absolutePath), key = lambda x: os.path.splitext(os.path.basename(x))[0])
+            absolutePath     = os.path.join(workingDir, i[1])
+            files            = sorted(glob.glob(absolutePath), key=lambda x: os.path.splitext(os.path.basename(x))[0])
             files            = [sub.replace(workingDir+'/', '') for sub in files]
             cmd[i[0]:i[0]+1] = files
             # call function recursively to replace multiple wild cards
-            cmd = replace_wild_cards_recursive(cmd,workingDir)
+            cmd = replace_wild_cards_recursive(cmd, workingDir)
             # fmt: on
     return cmd
 
@@ -46,6 +46,13 @@ class ExternalCommand:
         self.return_code = 0
         self.result = ""
         self.walltime = 0
+
+        # Check ENV variable for args.gitlab_ci, which is either set externally via "export REGGIE_GITLAB_CI=1" or commandline "reggie... --gitlab-ci"
+        gitlab_ci_env = os.getenv('REGGIE_GITLAB_CI')
+        if gitlab_ci_env:
+            self.gitlab_ci = True
+        else:
+            self.gitlab_ci = False
 
     def execute_cmd(self, cmd, target_directory, name="std", string_info=None, environment=None, displayOnFailure=True):
         """
@@ -61,7 +68,10 @@ class ExternalCommand:
         """
         # Display string_info
         if string_info is not None:
-            print(string_info)
+            if self.gitlab_ci:
+                print(string_info, end=' ')  # skip line break
+            else:
+                print(string_info)
 
         # check that only cmd arguments of type 'list' are supplied to this function
         if not isinstance(cmd, list):
@@ -160,7 +170,7 @@ class ExternalCommand:
             self.result = tools.blue("Successful")
 
         # Display result (Successful or Failed)
-        if string_info is not None:
+        if string_info is not None and not self.gitlab_ci:
             # display result and wall time in previous line and shift the text by ncols columns to the right
             # Note that f-strings in print statements, e.g. print(f"...."), only work in python 3
             # print(f"\033[F\033[{ncols}G "+str(self.result)+" [%.2f sec]" % self.walltime)
@@ -170,12 +180,11 @@ class ExternalCommand:
             print(self.result + " [%.2f sec]" % self.walltime)
 
         # Display error information if the code has failed to run: the last 15 lines of std.out and the last 15 lines of std.err
-        if log.getEffectiveLevel() != logging.DEBUG and displayOnFailure:
-            if self.return_code != 0:
-                for line in self.stdout[-15:]:
-                    print(tools.red("%s" % line.strip()))
-                for line in self.stderr[-15:]:
-                    print(tools.red("%s" % line.strip()))
+        if log.getEffectiveLevel() != logging.DEBUG and displayOnFailure and self.return_code != 0:
+            for line in self.stdout[-15:]:
+                print(tools.red("%s" % line.strip()))
+            for line in self.stderr[-15:]:
+                print(tools.red("%s" % line.strip()))
 
         return self.return_code
 
