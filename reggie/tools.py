@@ -242,12 +242,11 @@ def splitall(path):
         if parts[0] == path:  # sentinel for absolute paths
             allparts.insert(0, parts[0])
             break
-        elif parts[1] == path:  # sentinel for relative paths
+        if parts[1] == path:  # sentinel for relative paths
             allparts.insert(0, parts[1])
             break
-        else:
-            path = parts[0]
-            allparts.insert(0, parts[1])
+        path = parts[0]
+        allparts.insert(0, parts[1])
     return allparts
 
 
@@ -255,8 +254,16 @@ INI_COMMENT_SYMBOLS = ('!', '#', ';')
 
 
 def exclude_comments_from_line(line):
+    firstEquationMark = True  # Activate switch to only trigger once when looping over the comment symbols
     if line.startswith(INI_COMMENT_SYMBOLS):  # skip lines starting with a comment
-        return
+        return None
     for sym in INI_COMMENT_SYMBOLS:
-        line = line.split(sym)[0]  # remove trailing comments in line
+        line_split = line.split(sym)  # split the line at the comment symbol
+        line = line_split[0]  # remove trailing comments in line
+        # Check if the remaining line string ends with an equation mark, which implies
+        # that the value of the key/value pair uses a comment symbol in its name
+        if line[-1:] == '=' and firstEquationMark and len(line_split) > 1:
+            # Add the comment symbol and the 2nd part of the split string to the line again
+            line = line + sym + line_split[1]  # if a variable start with a comment symbol, keep it
+            firstEquationMark = False  # Deactivate
     return line
