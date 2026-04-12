@@ -250,7 +250,10 @@ def splitall(path):
     return allparts
 
 
+# Tuple of symbols, which indicate commented out text in .ini files
 INI_COMMENT_SYMBOLS = ('!', '#', ';')
+# Tuple of symbols, which are allowed in variables names of key/variable pairs in .ini files
+INI_VARIABLE_SYMBOLS = '#'
 
 
 def exclude_comments_from_line(line):
@@ -260,9 +263,13 @@ def exclude_comments_from_line(line):
     for sym in INI_COMMENT_SYMBOLS:
         line_split = line.split(sym)  # split the line at the comment symbol
         line = line_split[0]  # remove trailing comments in line
-        # Check if the remaining line string ends with an equation mark, which implies
-        # that the value of the key/value pair uses a comment symbol in its name
-        if line[-1:] == '=' and firstEquationMark and len(line_split) > 1:
+        # Check if
+        #   - the remaining line string ends with an equation mark, which implies
+        #     that the value of the key/value pair uses a comment symbol in its name
+        #   - the first equation mark is encountered (ignore the rest)
+        #   - the line could be split into more than one element. Only one element means that the value is empty
+        #   - the symbol is in the list of allowed variable symbold
+        if line[-1:] == '=' and firstEquationMark and len(line_split) > 1 and sym in INI_VARIABLE_SYMBOLS:
             # Add the comment symbol and the 2nd part of the split string to the line again
             line = line + sym + line_split[1]  # if a variable start with a comment symbol, keep it
             firstEquationMark = False  # Deactivate
