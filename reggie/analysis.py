@@ -654,7 +654,7 @@ class Analyze_L2(Analyze):
                 print(tools.indent(tools.blue('%s: %s' % (self.error_name, L2_errors_str)), 2))
 
     def __str__(self):
-        return "perform L2 error comparison with a pre-defined tolerance=%s for %s:" % (self.L2_tolerance, self.error_name)
+        return f'Perform L2 error comparison with a pre-defined tolerance={self.L2_tolerance} for {self.error_name}:'
 
 
 # ==================================================================================================
@@ -1037,7 +1037,7 @@ class Analyze_Convtest_t(Analyze):
             print(tools.yellow("[%s] = [%s] values for x_values (must equal the number of nRun)" % (self.name, len(self.x_values))))
 
     def __str__(self):
-        return "perform L2 t-convergence test and compare the order of convergence with %s against the supplied order of convergence" % self.name
+        return f'Perform L2 t-convergence and compare order of convergence with {self.name} against a supplied order of convergence'
 
 
 # ==================================================================================================
