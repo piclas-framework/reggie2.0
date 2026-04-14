@@ -172,11 +172,11 @@ def diff_lists(x, x_ref, tol, tol_type):
     """
     # check tolerance type: absolute/relative (is the reference value is zero, absolute comparison is used)
     if tol_type == 'absolute':
-        diff = [abs(a - b) for (a, b) in zip(x, x_ref)]
+        diff = [abs(a - b) for (a, b) in zip(x, x_ref, strict=True)]
         executed_tol_type = ['absolute' for (b) in x_ref]
     else:  # relative comparison
         # if the reference value is zero, use absolute comparison
-        diff = [abs(a / b - 1.0) if abs(b) > 0.0 else abs(a) for (a, b) in zip(x, x_ref)]
+        diff = [abs(a / b - 1.0) if abs(b) > 0.0 else abs(a) for (a, b) in zip(x, x_ref, strict=True)]
         executed_tol_type = ['relative' if abs(b) > 0.0 else 'absolute' for (b) in x_ref]
 
     # determie success logical list for return variable
