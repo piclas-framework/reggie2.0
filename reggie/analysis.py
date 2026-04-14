@@ -1682,7 +1682,7 @@ class Analyze_h5diff(Analyze, ExternalCommand):
                             if NbrOfDifferences > 0:
                                 if var_name_loc is None:
                                     var_name_loc = '[var_name]'
-                                s = "Comparison failed for [%s] of [%s] with [%s] due to %s differences\n" % (var_name_loc, path, reference_file_loc, NbrOfDifferences)
+                                s = "Comparison failed for [%s] of [%s] with [%s] due to %s differences" % (var_name_loc, path, reference_file_loc, NbrOfDifferences)
                                 if NbrOfDifferences > max_differences_loc:
                                     s = tools.red(s)
                                     # create apply boolean mask to get differences and remove masked values with compressed()
@@ -2281,7 +2281,7 @@ class Analyze_vtudiff(Analyze, ExternalCommand):
                     Analyze.total_errors += 1
                     continue
                 else:
-                    print("\n", tools.indent(tools.yellow("Comparing %s vtk arrays with total of %s columns:"), 1) % (len(array_names_dims), data_shape[1]), list(array_names_dims.keys()))
+                    print(tools.indent(tools.yellow("Comparing %s vtk arrays with total of %s columns:"), 2) % (len(array_names_dims), data_shape[1]), list(array_names_dims.keys()))
 
                 # 1.2.1 When sorting is used, the sorted array is written to a new .vtu file with a new name
                 if sort_loc:
@@ -2405,6 +2405,12 @@ class Analyze_vtudiff(Analyze, ExternalCommand):
                                     )
 
                             offset += size
+
+                        s = tools.red("Comparison failed for %s of [%s] with [%s] due to %s differences" % (array_name_loc, path, reference_file_loc, nbr_of_differences))
+                        print(s)
+                        run.analyze_results.append(s)
+                        run.analyze_successful = False
+                        Analyze.total_errors += 1
                     else:
                         s = s.replace("Comparison failed for", "Comparison ignored for")
                         s2 = ", but %s difference(s) are allowed (given by compare_data_file_max_differences). This analysis is therefore marked as passed." % max_differences_loc
