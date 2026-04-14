@@ -588,7 +588,7 @@ class ExternalRun(OutputDirectory, ExternalCommand):
         self.skip = False
 
     def execute(self, build, external, args, meshes_directory=None, mesh_generator=None):
-        ''''
+        ''' '
         Arguments:  - build
                     - external
                     - args
@@ -925,6 +925,7 @@ def getRuns(path, command_line):
         i += 1
     return runs
 
+
 class PerformCheck:
     def __init__(self):
         # Definition looks like: self.MeshGeneration = {'external': 'end of created filename', ...}
@@ -974,19 +975,21 @@ class PerformCheck:
         if mesh_name_current_run == mesh_name_current_externalrun:
             relative_source_path = os.path.relpath(self.created_mesh_files[dict_identifier], external.directory)
             target_mesh_path = os.path.join(external.directory, mesh_name_current_run)
-            if not os.path.exists(target_mesh_path):
-                # Since external will not be executed for these runs check if pre-execution is needed (for the first run the pre_execution is done inside the externalrun execution)
-                if self.command_line_count != 1 or self.RunCount != 1:
-                    cmd_pre_execute = external.parameters.get('cmd_pre_execute')
-                    if cmd_pre_execute:
-                        cmd_pre = cmd_pre_execute.split()
-                        s = "Running [%s] ..." % (" ".join(cmd_pre))
-                        externalrun.execute_cmd(cmd_pre, external.directory, name='pre-exec', string_info=tools.indent(s, 3))  # run something
+            # Since external will not be executed for these runs check if pre-execution is needed (for the first run the pre_execution is done inside the externalrun execution)
+            if self.command_line_count != 1 or self.RunCount != 1:
+                cmd_pre_execute = external.parameters.get('cmd_pre_execute')
+                if cmd_pre_execute:
+                    cmd_pre = cmd_pre_execute.split()
+                    s = "Running [%s] ..." % (" ".join(cmd_pre))
+                    externalrun.execute_cmd(cmd_pre, external.directory, name='pre-exec', string_info=tools.indent(s, 3))  # run something
+            try:
                 # Create symbolic link
                 os.symlink(relative_source_path, target_mesh_path)
                 print(tools.indent(tools.yellow(f'Creating symbolic link from {relative_source_path} to {target_mesh_path}'), 3))
-                # dummpy output for error message if external fails
-                externalcmd = f'ln -s {relative_source_path} {target_mesh_path}'
+            except Exception as e:
+                print(tools.indent(tools.red(f'Error creating symbolic link:{e}'), 3))
+            # dummpy output for error message if external fails
+            externalcmd = f'ln -s {relative_source_path} {target_mesh_path}'
 
         # return externalcmd for error message if externalrun fails
         return externalcmd
@@ -1205,7 +1208,6 @@ class PerformCheck:
         # merge functions for builds with different compiler flags (function name stays the same but line changes due to ifdef)
         s = tools.indent("Running [%s] ..." % (" ".join(cmd_combine)), 2)
         ExternalCommand().execute_cmd(cmd_combine, combined_cov_path, string_info=s)
-
 
     #######################################################################
     ############################ main function ############################
