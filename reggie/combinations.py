@@ -65,6 +65,7 @@ def anyIsSubset(alist, b):
 
 
 def readValueFromFile(filename, key):
+    # fmt: off
     # Read the value of a single key from a file. Workflow:
     # 1.  Read file line by line:
     # 1.1   ignore exclusion (if line starts with 'exclude:')
@@ -78,29 +79,28 @@ def readValueFromFile(filename, key):
     # 1. read options and exclusions from the file
     currentValue = None
     with open(filename) as f:
-        for line in f.readlines():  # iterate over all lines of the file
-            line = re.sub(r"\s+", "", line)  # remove all whitespaces ("\s" is the whitespac symbol)
-            line = re.sub(r"\\s", " ", line)  # add new whitespaces for all occurrances of "\s" in the string ("\s" is NOT the whitespace symbol here)
-            if line.startswith('!'):  # skip lines starting with a comment
-                continue
-            line = line.split('!')[0]  # remove comments
+        for line in f.readlines():                          # iterate over all lines of the file
+            line = re.sub(r"\s+", "", line)                 # remove all whitespaces ("\s" is the whitespac symbol)
+            line = re.sub(r"\\s", " ", line)                # add new whitespaces for all occurrances of "\s" in the string ("\s" is NOT the whitespace symbol here)
+            line = tools.exclude_comments_from_line(line)   # remove comments
 
-            # 1.1 read an exclusion
-            if line.lower().startswith('exclude:'):
-                continue  # ignore exclusion
+            if line:                                        # exclude_comments_from_line returns None if line is commented out and returns line (without trailing comments) if not
+                # 1.1 read an exclusion
+                if line.lower().startswith('exclude:'):
+                    continue  # ignore exclusion
 
-            # 1.2 read a noCrossCombination
-            if line.lower().startswith('nocrosscombination:'):
-                continue  # ignore noCrossCombination
+                # 1.2 read a noCrossCombination
+                if line.lower().startswith('nocrosscombination:'):
+                    continue  # ignore noCrossCombination
 
-            # 1.3 read a option and its possible values
-            if '=' in line:
-                (currentKey, currentValue) = line.split('=', 1)  # split line at '='
-                if key.lower() == currentKey.lower():  # check if the key matches the one passed to the routine
-                    break  # if so, break from the for loop
-                else:
-                    continue  # better luck in the next line
-
+                # 1.3 read a option and its possible values
+                if '=' in line:
+                    (currentKey, currentValue) = line.split('=', 1)  # split line at '='
+                    if key.lower() == currentKey.lower():  # check if the key matches the one passed to the routine
+                        break  # if so, break from the for loop
+                    else:
+                        continue  # better luck in the next line
+    # fmt: on
     return currentValue
 
 
@@ -122,45 +122,44 @@ def readKeyValueFile(filename):
 
     # 1. read options and exclusions from the file
     with open(filename) as f :
-        for line in f.readlines() :                # iterate over all lines of the file
-            line = re.sub(r"\s+", "", line)        # remove all whitespaces ("\s" is the whitespac symbol)
-            line = re.sub(r"\\s", " ", line)       # add new whitespaces for all occurrances of "\s" in the string ("\s" is NOT the whitespace symbol here)
-            if line.startswith('!') :              # skip lines starting with a comment
-                continue
-            line = line.split('!')[0]              # remove comments
+        for line in f.readlines() :                             # iterate over all lines of the file
+            line = re.sub(r"\s+", "", line)                     # remove all whitespaces ("\s" is the whitespac symbol)
+            line = re.sub(r"\\s", " ", line)                    # add new whitespaces for all occurrances of "\s" in the string ("\s" is NOT the whitespace symbol here)
+            line = tools.exclude_comments_from_line(line)       # remove comments
 
-            # 1.1 read an exclusion
-            if line.lower().startswith('exclude:') :
-                line = line.split(':', 1)[1]         # remove everything before ':''
-                ex = {}                              # new dictionary for the exclusion
-                for key_value in splitValues(line):  # split at ',' (but not inside brackets) and iterate over key-value-pairs
-                    (key, value) = key_value.split('=')
-                    ex[key] = value                  # save key and its value in the exclusion-dictionary
+            if line:                                            # exclude_comments_from_line returns None if line is commented out and returns line (without trailing comments) if not
+                # 1.1 read an exclusion
+                if line.lower().startswith('exclude:') :
+                    line = line.split(':', 1)[1]         # remove everything before ':''
+                    ex = {}                              # new dictionary for the exclusion
+                    for key_value in splitValues(line):  # split at ',' (but not inside brackets) and iterate over key-value-pairs
+                        (key, value) = key_value.split('=')
+                        ex[key] = value                  # save key and its value in the exclusion-dictionary
 
-                exclusions.append(ex)                # append exclusion to the list of all exclusions
-                continue                             # reading of exclusion finished -> go on with next line
+                    exclusions.append(ex)                # append exclusion to the list of all exclusions
+                    continue                             # reading of exclusion finished -> go on with next line
 
-            # 1.2 read a noCrossCombination
-            if line.lower().startswith('nocrosscombination:') :
-                line = line.split(':', 1)[1]                    # remove everything before ':''
-                noCrossCombination = line.split(',')            # list of keys, that should not be cross combined
-                noCrossCombinations.append(noCrossCombination)  # append noCrossCombination to the list of all noCrossCombinations
-                continue                                        # reading of noCrossCombination finished -> go on with next line
+                # 1.2 read a noCrossCombination
+                if line.lower().startswith('nocrosscombination:') :
+                    line = line.split(':', 1)[1]                    # remove everything before ':''
+                    noCrossCombination = line.split(',')            # list of keys, that should not be cross combined
+                    noCrossCombinations.append(noCrossCombination)  # append noCrossCombination to the list of all noCrossCombinations
+                    continue                                        # reading of noCrossCombination finished -> go on with next line
 
-            # 1.3 read a option and its possible values
-            if '=' in line :
-                # Catch special variables
-                # DEFVAR=(INT):i0 = 1, 2
-                if "DEFVAR" in line and ("INT" in line or "REAL" in line) :
-                    splitline = line.split('=', 2)
-                    key       = "=".join(splitline[:2])
-                    values    = splitline[2]
-                else:
-                    (key, values) = line.split('=', 1)     # split line at '='
-                option = Option(key, splitValues(values))  # generate new Option with a list of values (splitted at ',' but not inside brackets)
-                options.append(option)                     # append option to options list, where
-                continue                                   # reading of option finished -> go on with next line
-            # fmt: on
+                # 1.3 read a option and its possible values
+                if '=' in line :
+                    # Catch special variables
+                    # DEFVAR=(INT):i0 = 1, 2
+                    if "DEFVAR" in line and ("INT" in line or "REAL" in line) :
+                        splitline = line.split('=', 2)
+                        key       = "=".join(splitline[:2])
+                        values    = splitline[2]
+                    else:
+                        (key, values) = line.split('=', 1)     # split line at '='
+                    option = Option(key, splitValues(values))  # generate new Option with a list of values (splitted at ',' but not inside brackets)
+                    options.append(option)                     # append option to options list, where
+                    continue                                   # reading of option finished -> go on with next line
+                # fmt: on
 
     options.sort(key=lambda option: len(option.values), reverse=True)  # sort list in order to have the most varying option at the beginning
 
@@ -190,7 +189,7 @@ def getCombinations(filename, CheckForMultipleKeys=False, OverrideOptionKey=None
         options.sort(key=lambda option: len(option.values), reverse=True)  # sort list in order to have the most varying option at the beginning
 
     # Avoid performing multiple tests, where the number of cores will be limited to MaxCores(only set in the call from getCommand_Lines)
-    if MaxCores> 0:
+    if MaxCores > 0:
         # loop over all the options
         for i in range(len(options)):
             # find the MPI option

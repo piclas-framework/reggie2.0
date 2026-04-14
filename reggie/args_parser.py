@@ -125,6 +125,7 @@ def getArgsAndBuilds():
     parser.add_argument('-o', '--coverage'   , help='Compile code with code coverage option, always returns output in json format. Additional values (resulting in additional output formats): 1=HTML output, 2=Cobertura XML, also allows 12 for both. Default=0 if flag used without value.', nargs='?', const='0', default=None) # noqa: E501
     parser.add_argument('--gcovr_extra'      , help='Extra arguments (string) to pass to gcovr (e.g. --exclude-lines-by-pattern <pattern> or --include-internal-functions). Additional arguments can be obtained from the gcovr documentation.', default=None) # noqa: E501
     parser.add_argument('--meshesdir'        , help='When hopr is used as external: Only run hopr once for each example and store meshes in separate directory to use symbolic links.', action='store_true')
+    parser.add_argument('--gitlab-ci'        , help='Activated automatically when running gitlab-ci pipelines via environment variable REGGIE_GITLAB_CI to print Running [...] + Successful/Failed [x.xx sec] in a single line instead of breaking the last part into a new line.', action='store_true')  # noqa: E501
     # fmt: on
     # parser.set_defaults(carryon=False)
     # parser.set_defaults(dummy=False)
@@ -140,6 +141,15 @@ def getArgsAndBuilds():
 
     # Set default values
     args.noMPIautomatic = False
+
+    # Store ENV varaible if flag --gitlab-ci is set true via command line for later access in externalcommand
+    if args.gitlab_ci:
+        os.environ["REGGIE_GITLAB_CI"] = "1"
+
+    # Check ENV variable for args.gitlab_ci
+    gitlab_ci_env = os.getenv('REGGIE_GITLAB_CI')
+    if gitlab_ci_env:
+        args.gitlab_ci = True
 
     # ENV variable for meshesdir
     meshesdir_env = os.getenv('MESHESDIR')
