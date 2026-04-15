@@ -56,7 +56,7 @@ def main():
     # 3.  perform the regression check by a) building executables
     #                                     b) running the code
     #                                     c) performing the defined analyzes
-    check.PerformCheck(start, builds, args, log)
+    check.PerformCheck().main(start, builds, args, log)
 
     # 4.  display the summary table with information for each build, run and analysis step
     summary.SummaryOfErrors(builds, args)
