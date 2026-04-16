@@ -958,6 +958,8 @@ class PerformCheck:
             os.makedirs(self.meshes_dir_path)
             print(tools.indent(tools.yellow(f'Meshes will be stored in directory: {self.meshes_dir_path}'), 3))
 
+        # dummy return for externalrun which should be skipped
+        externalcmd = ''
         # execute all external runs for first run of first command line (since loop iterates over each externalrun anyway)
         if self.command_line_count == 1 and self.RunCount == 1:
             # execute external
