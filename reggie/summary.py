@@ -54,7 +54,7 @@ def SummaryOfErrors(builds, args):
     # fmt: on
 
     # 1. loop over all runs and set output strings
-    max_lens = collections.OrderedDict([("#run", 4), ("options", 7), ("path", 4), ("MPI", 3), ("time", 4), ("Info", 4)])
+    max_lens = collections.OrderedDict([("#run", 4), ("options", 7), ("path", 4), ("MPI", 3), ("time", 4), ("ext", 3), ("Info", 4)])
     for build in builds:
         for example in build.examples:
             for command_line in example.command_lines:
@@ -79,9 +79,15 @@ def SummaryOfErrors(builds, args):
                     run.output_strings['path']    = os.path.relpath(run.target_directory,OutputDirectory.output_dir)
                     run.output_strings['MPI']     = command_line.parameters.get('MPI', '-')
                     run.output_strings['time']    = "%2.1f" % run.walltime
+                    run.output_strings['ext']     = "%2.1f" % run.externals_time
                     run.output_strings['Info']    = run.result
                     run.outputMPIyellow = False
                     # fmt: on
+
+                    # get the max lens before adding ansi color escape codes (which changes the string length)
+                    for key in run.output_strings.keys():
+                        max_lens[key] = max(max_lens[key], len(run.output_strings[key]))  # set max column widths for summary table
+
                     # Coloured path name
                     try:
                         pathSplit = run.output_strings['path'].split('/')
@@ -115,7 +121,7 @@ def SummaryOfErrors(builds, args):
                     try:
                         try:
                             cores = command_line.parameters.get('MPI', '-')
-                            if int(cores) > args.MaxCores and args.MaxCores> 0:
+                            if int(cores) > args.MaxCores and args.MaxCores > 0:
                                 run.output_strings['MPI'] = '%s (changed from %s)' % (args.MaxCores, run.output_strings['MPI'])
                                 run.outputMPIyellow = True
                         except Exception:
@@ -123,9 +129,6 @@ def SummaryOfErrors(builds, args):
                             run.outputMPIyellow = True
                     except Exception:
                         pass
-
-                    for key in run.output_strings.keys():
-                        max_lens[key] = max(max_lens[key], len(run.output_strings[key]))  # set max column widths for summary table
 
     # 2. print header
     print(132 * "=")
@@ -176,7 +179,7 @@ def SummaryOfErrors(builds, args):
                         if key == "options":
                             print(tools.yellow(run.output_strings[key].ljust(value)), end=' ')  # skip linebreak
                         elif key == "MPI" and any([args.noMPI, args.noMPIautomatic]):
-                            print(tools.yellow("1"), end=' ')  # skip linebreak
+                            print(tools.yellow("1".ljust(value)), end=' ')  # skip linebreak
                         elif key == "MPI" and run.outputMPIyellow:
                             print(tools.yellow('%s' % run.output_strings[key].ljust(value)), end=' ')  # skip linebreak
                         else:
