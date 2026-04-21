@@ -78,7 +78,7 @@ def SummaryOfErrors(builds, args):
                     # fmt: off
                     run.output_strings['path']    = os.path.relpath(run.target_directory,OutputDirectory.output_dir)
                     run.output_strings['MPI']     = command_line.parameters.get('MPI', '-')
-                    run.output_strings['time']    = "%2.1f" % run.walltime
+                    run.output_strings['time']    = "%2.1f" % run.total_runtime
                     run.output_strings['Info']    = run.result
                     run.outputMPIyellow = False
                     # fmt: on
@@ -115,7 +115,7 @@ def SummaryOfErrors(builds, args):
                     try:
                         try:
                             cores = command_line.parameters.get('MPI', '-')
-                            if int(cores) > args.MaxCores and args.MaxCores> 0:
+                            if int(cores) > args.MaxCores and args.MaxCores > 0:
                                 run.output_strings['MPI'] = '%s (changed from %s)' % (args.MaxCores, run.output_strings['MPI'])
                                 run.outputMPIyellow = True
                         except Exception:
