@@ -1366,7 +1366,7 @@ class PerformCheck:
                         # 4.   loop over all parameter combinations supplied in the parameter file 'parameter.ini'
                         for self.RunCount, run in enumerate(command_line.runs, start=1):
                             # collect different runtimes (from externals and main run)
-                            run.total_runtime = 0
+                            run.externals_time = 0
                             print(tools.indent('Run %s of %s' % (self.RunCount, len(command_line.runs)), 1))
                             log.info(str(run))
                             # Database linking
@@ -1446,15 +1446,13 @@ class PerformCheck:
                                                 print(s)
                                                 exit(1)
                                         # add external runtime
-                                        run.total_runtime += externalrun.walltime
+                                        run.externals_time += externalrun.walltime
 
                             if PreprocessingActive:
                                 print(tools.indent(tools.green('Preprocessing: Externals %s finished!' % externalbinaries), 3))
 
                             # 4.2    execute the binary file for one combination of parameters
                             run.execute(build, command_line, args, external_failed)
-                            # add runtime
-                            run.total_runtime += run.walltime
                             if not run.successful:
                                 Run.total_errors += 1  # add error if run fails
                                 # Check if immediate stop is activated on failure
@@ -1510,7 +1508,7 @@ class PerformCheck:
                                                 print(s)
                                                 exit(1)
                                         # add external runtime
-                                        run.total_runtime += externalrun.walltime
+                                        run.externals_time += externalrun.walltime
 
                             if PostprocessingActive:
                                 print(tools.indent(tools.green('Postprocessing: Externals %s finished!' % externalbinaries), 3))
